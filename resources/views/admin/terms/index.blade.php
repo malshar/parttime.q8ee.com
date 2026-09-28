@@ -13,6 +13,7 @@
             <th>{{ __('app.terms.teaching_starts_on') }}</th>
             <th>{{ __('app.terms.teaching_ends_on') }}</th>
             <th>{{ __('app.terms.status') }}</th>
+            <th>{{ __('app.terms.applications') }}</th>
             <th>{{ __('app.common.actions') }}</th>
         </tr>
         </thead>
@@ -27,6 +28,7 @@
                         {{ __('app.terms.statuses.'.$term->status) }}
                     </span>
                 </td>
+                <td>{{ $term->applications_count }}</td>
                 <td class="d-flex gap-2">
                     @if ($term->isOpen())
                         <a href="{{ route('admin.terms.edit', $term) }}" class="btn btn-sm btn-outline-secondary">{{ __('app.terms.edit') }}</a>

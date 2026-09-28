@@ -14,7 +14,7 @@ class TermController extends Controller
 {
     public function index(): View
     {
-        return view('admin.terms.index', ['terms' => Term::orderByDesc('teaching_starts_on')->get()]);
+        return view('admin.terms.index', ['terms' => Term::withCount('applications')->orderByDesc('teaching_starts_on')->get()]);
     }
 
     public function create(): View

@@ -1,0 +1,73 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
+
+class Application extends Model
+{
+    use HasFactory;
+
+    public const STATUS_DRAFT = 'draft';
+
+    public const STATUS_SUBMITTED = 'submitted';
+
+    public const STATUS_UNDER_REVIEW = 'under_review';
+
+    public const STATUS_INCOMPLETE = 'incomplete';
+
+    public const STATUS_APPROVED = 'approved';
+
+    public const STATUS_REJECTED = 'rejected';
+
+    public const STATUS_WITHDRAWN = 'withdrawn';
+
+    public const EDITABLE_STATUSES = [self::STATUS_DRAFT, self::STATUS_INCOMPLETE];
+
+    public const FINAL_STATUSES = [self::STATUS_APPROVED, self::STATUS_REJECTED, self::STATUS_WITHDRAWN];
+
+    protected $fillable = ['term_id', 'instructor_id', 'status', 'submitted_at', 'reviewed_at', 'decided_at',
+        'assignment_decision_number', 'assignment_decision_date', 'weekly_hours', 'admin_note', 'rejection_reason'];
+
+    protected function casts(): array
+    {
+        return ['submitted_at' => 'datetime', 'reviewed_at' => 'datetime', 'decided_at' => 'datetime',
+            'assignment_decision_date' => 'date'];
+    }
+
+    public function term(): BelongsTo
+    {
+        return $this->belongsTo(Term::class);
+    }
+
+    public function instructor(): BelongsTo
+    {
+        return $this->belongsTo(Instructor::class);
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class);
+    }
+
+    /** Latest version per checklist item, keyed by item code. */
+    public function latestDocuments(): Collection
+    {
+        return $this->documents()->with('checklistItem')->orderByDesc('version')->get()
+            ->unique('checklist_item_id')->keyBy(fn (Document $d) => $d->checklistItem->code);
+    }
+
+    public function isEditable(): bool
+    {
+        return in_array($this->status, self::EDITABLE_STATUSES, true) && $this->term->isOpen();
+    }
+
+    public function isFinal(): bool
+    {
+        return in_array($this->status, self::FINAL_STATUSES, true);
+    }
+}

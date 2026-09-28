@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\VerificationController;
+use App\Http\Controllers\Instructor\ApplicationController as InstructorApplicationController;
 use App\Http\Controllers\Instructor\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -28,11 +29,13 @@ Route::middleware('auth')->group(function () {
     Route::post('email/verification-notification', [VerificationController::class, 'resend'])->middleware('throttle:6,1')->name('verification.send');
 });
 
-// Instructor area (verified only). Task 8 fills this group.
+// Instructor area (verified only).
 Route::middleware(['auth', 'verified', 'role:instructor'])->prefix('my')->name('instructor.')->group(function () {
-    Route::view('/', 'home')->name('home'); // placeholder until Task 8
+    Route::get('/', [InstructorApplicationController::class, 'home'])->name('home');
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('applications', [InstructorApplicationController::class, 'start'])->name('applications.start');
+    Route::get('applications/{application}', [InstructorApplicationController::class, 'show'])->name('applications.show');
 });
 
 // Admin area. Task 11 fills this group.
