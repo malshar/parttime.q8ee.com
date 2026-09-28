@@ -37,6 +37,8 @@ Route::middleware(['auth', 'verified', 'role:instructor'])->prefix('my')->name('
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('applications', [InstructorApplicationController::class, 'start'])->name('applications.start');
     Route::get('applications/{application}', [InstructorApplicationController::class, 'show'])->name('applications.show');
+    Route::post('applications/{application}/submit', [InstructorApplicationController::class, 'submit'])->name('applications.submit');
+    Route::post('applications/{application}/withdraw', [InstructorApplicationController::class, 'withdraw'])->name('applications.withdraw');
     Route::post('applications/{application}/documents/{item:code}', [InstructorDocumentController::class, 'store'])->name('documents.store')->withoutScopedBindings();
     Route::get('documents/{document}', [InstructorDocumentController::class, 'download'])->name('documents.download');
 });
@@ -44,6 +46,7 @@ Route::middleware(['auth', 'verified', 'role:instructor'])->prefix('my')->name('
 // Admin area. Task 11 fills this group.
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::view('/', 'home')->name('dashboard'); // placeholder until Task 11
+    Route::get('applications/{application}', fn () => '')->name('applications.show'); // placeholder until Task 11
     Route::get('terms', [TermController::class, 'index'])->name('terms.index');
     Route::get('terms/create', [TermController::class, 'create'])->name('terms.create');
     Route::post('terms', [TermController::class, 'store'])->name('terms.store');

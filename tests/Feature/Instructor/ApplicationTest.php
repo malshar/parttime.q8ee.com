@@ -56,6 +56,15 @@ class ApplicationTest extends TestCase
         $this->assertDatabaseCount('applications', 0);
     }
 
+    public function test_start_without_profile_redirects_to_profile(): void
+    {
+        Term::factory()->open()->create();
+        $bare = User::factory()->instructor()->create();
+
+        $this->actingAs($bare)->post(route('instructor.applications.start'))->assertRedirect(route('instructor.profile.edit'));
+        $this->assertDatabaseCount('applications', 0);
+    }
+
     public function test_show_lists_required_department_and_not_applicable_items(): void
     {
         $term = Term::factory()->open()->create();

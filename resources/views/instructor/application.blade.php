@@ -80,12 +80,21 @@
         @endforeach
     </ul>
 
-    @if ($canSubmit && Route::has('instructor.applications.submit'))
-        <form method="post" action="{{ route('instructor.applications.submit', $application) }}">
-            @csrf
-            <button type="submit" class="btn btn-eet">{{ __('app.applications.submit') }}</button>
-        </form>
-    @endif
+    <div class="d-flex gap-2">
+        @if ($canSubmit && Route::has('instructor.applications.submit'))
+            <form method="post" action="{{ route('instructor.applications.submit', $application) }}">
+                @csrf
+                <button type="submit" class="btn btn-eet">{{ __('app.applications.submit') }}</button>
+            </form>
+        @endif
+
+        @if (! $application->isFinal() && Route::has('instructor.applications.withdraw'))
+            <form method="post" action="{{ route('instructor.applications.withdraw', $application) }}" onsubmit="return confirm('{{ __('app.applications.withdraw_confirm') }}')">
+                @csrf
+                <button type="submit" class="btn btn-outline-danger">{{ __('app.applications.withdraw') }}</button>
+            </form>
+        @endif
+    </div>
 
 </div></div>
 @endsection

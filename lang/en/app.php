@@ -40,6 +40,9 @@ return [
         'reset_subject' => 'Reset your password',
         'reset_body' => 'We received a request to reset your password. Click the button below to set a new password. If you did not request this, please ignore this email.',
         'reset_button' => 'Set new password',
+        'submitted_subject' => 'New secondment application: :name',
+        'submitted_body' => ':name submitted a secondment application for the :term term and it is awaiting review.',
+        'open_application' => 'Open application',
     ],
     'terms' => [
         'title' => 'Terms', 'add' => 'Add term', 'edit' => 'Edit term',
@@ -83,6 +86,8 @@ return [
         'rejected_reason' => 'Rejection reason', 'submit' => 'Submit application', 'submitted' => 'The application has been submitted, you will be notified after review.',
         'submit_blocked' => 'You cannot submit before uploading all the required documents.',
         'withdraw' => 'Withdraw application',
+        'withdrawn' => 'The application has been withdrawn.',
+        'withdraw_confirm' => 'Do you want to withdraw the application?',
     ],
     'documents' => [
         'item' => 'Item', 'status' => 'Status', 'file' => 'File',

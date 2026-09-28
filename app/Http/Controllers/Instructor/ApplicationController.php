@@ -31,12 +31,16 @@ class ApplicationController extends Controller
 
     public function start(Request $request): RedirectResponse
     {
+        $instructor = $request->user()->instructor;
+        if (! $instructor) {
+            return redirect()->route('instructor.profile.edit')->with('status', __('app.profile.incomplete'));
+        }
         $term = Term::current();
         if (! $term) {
             return redirect()->route('instructor.home')->withErrors(['term' => __('app.terms.none_open')]);
         }
         try {
-            $application = $this->workflow->start($request->user()->instructor, $term);
+            $application = $this->workflow->start($instructor, $term);
         } catch (TermClosedException) {
             return redirect()->route('instructor.home')->withErrors(['term' => __('app.applications.term_closed')]);
         }
@@ -54,5 +58,26 @@ class ApplicationController extends Controller
             'plan' => $this->workflow->plan($application),
             'canSubmit' => $application->isEditable() && $this->workflow->allRequiredUploaded($application),
         ]);
+    }
+
+    public function submit(Application $application): RedirectResponse
+    {
+        $this->authorize('update', $application);
+        try {
+            $this->workflow->submit($application);
+        } catch (\DomainException $e) {
+            return back()->withErrors(['submit' => $e->getMessage()]);
+        }
+
+        return redirect()->route('instructor.applications.show', $application)->with('status', __('app.applications.submitted'));
+    }
+
+    public function withdraw(Application $application): RedirectResponse
+    {
+        $this->authorize('view', $application);
+        abort_if($application->isFinal(), 403);
+        $this->workflow->withdraw($application);
+
+        return redirect()->route('instructor.home')->with('status', __('app.applications.withdrawn'));
     }
 }
