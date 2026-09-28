@@ -113,6 +113,10 @@ class ApplicationWorkflow
 
     public function reviewDocument(Document $document, User $admin, string $status, ?string $reason): void
     {
+        if ($document->application->isFinal()) {
+            throw new \DomainException(__('app.review.already_final'));
+        }
+
         $document->update([
             'status' => $status,
             'rejection_reason' => $status === Document::STATUS_REJECTED ? $reason : null,
@@ -132,6 +136,9 @@ class ApplicationWorkflow
 
     public function approve(Application $application, User $admin, ?string $decisionNumber, ?string $decisionDate): void
     {
+        if ($application->isFinal()) {
+            throw new \DomainException(__('app.review.already_final'));
+        }
         if (! $application->term->isOpen()) {
             throw new \DomainException(__('app.applications.term_closed'));
         }
@@ -148,6 +155,9 @@ class ApplicationWorkflow
 
     public function reject(Application $application, User $admin, string $reason): void
     {
+        if ($application->isFinal()) {
+            throw new \DomainException(__('app.review.already_final'));
+        }
         $application->update(['status' => Application::STATUS_REJECTED, 'decided_at' => now(), 'rejection_reason' => $reason]);
         AuditLog::record($admin->id, 'reject_application', $application);
         Mail::to($application->instructor->user->email)->send(new ApplicationRejected($application));

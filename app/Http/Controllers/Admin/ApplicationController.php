@@ -75,7 +75,11 @@ class ApplicationController extends Controller
     {
         $this->authorize('review', $application);
         $data = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
-        $this->workflow->reject($application, $request->user(), $data['reason']);
+        try {
+            $this->workflow->reject($application, $request->user(), $data['reason']);
+        } catch (\DomainException $e) {
+            return back()->withErrors(['reject' => $e->getMessage()]);
+        }
 
         return back()->with('status', __('app.review.rejected'));
     }

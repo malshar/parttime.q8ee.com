@@ -112,6 +112,7 @@ return [
         'checklist' => 'Document checklist', 'history' => 'File history', 'decision' => 'Decision',
         'decision_number' => 'Assignment decision number', 'decision_date' => 'Assignment decision date',
         'approve' => 'Approve application', 'approve_blocked' => 'The application cannot be approved before all required documents are accepted.',
+        'already_final' => 'The application is in a final status and cannot be changed.',
         'approved' => 'The application has been approved.', 'reject' => 'Reject application', 'reject_confirm' => 'Do you want to reject the application?', 'rejected' => 'The application has been rejected.',
         'reason' => 'Reason', 'view' => 'View', 'print_checklist' => 'Print check list',
     ],

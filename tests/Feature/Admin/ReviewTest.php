@@ -126,6 +126,42 @@ class ReviewTest extends TestCase
         Mail::assertSent(ApplicationRejected::class);
     }
 
+    public function test_approve_refused_on_final_application(): void
+    {
+        $this->acceptAll();
+        $this->application->update(['status' => Application::STATUS_WITHDRAWN, 'decided_at' => now()]);
+
+        $this->actingAs($this->admin)->post(route('admin.applications.approve', $this->application))->assertSessionHasErrors('approve');
+
+        $this->assertSame(Application::STATUS_WITHDRAWN, $this->application->fresh()->status);
+        Mail::assertNotSent(ApplicationApproved::class);
+    }
+
+    public function test_reject_refused_on_final_application(): void
+    {
+        $this->acceptAll();
+        $this->application->update(['status' => Application::STATUS_APPROVED, 'decided_at' => now()]);
+
+        $this->actingAs($this->admin)->post(route('admin.applications.reject', $this->application), ['reason' => 'x'])->assertSessionHasErrors('reject');
+
+        $this->assertSame(Application::STATUS_APPROVED, $this->application->fresh()->status);
+        Mail::assertNotSent(ApplicationRejected::class);
+    }
+
+    public function test_document_review_refused_on_final_application(): void
+    {
+        $this->acceptAll();
+        $this->application->update(['status' => Application::STATUS_APPROVED, 'decided_at' => now()]);
+        $doc = $this->application->latestDocuments()->get('iban');
+
+        $this->actingAs($this->admin)->post(route('admin.documents.review', $doc), ['status' => 'rejected', 'reason' => 'x'])
+            ->assertSessionHasErrors('review');
+
+        $this->assertSame('accepted', $doc->fresh()->status);
+        $this->assertSame(Application::STATUS_APPROVED, $this->application->fresh()->status);
+        Mail::assertNotSent(DocumentsRejected::class);
+    }
+
     public function test_admin_document_download_is_audited_and_instructor_cannot_use_admin_routes(): void
     {
         $doc = $this->application->latestDocuments()->get('civil_id');

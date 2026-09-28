@@ -18,7 +18,11 @@ class DocumentController extends Controller
     public function review(RejectDocumentRequest $request, Document $document): RedirectResponse
     {
         $this->authorize('review', $document);
-        $this->workflow->reviewDocument($document, $request->user(), $request->status, $request->reason);
+        try {
+            $this->workflow->reviewDocument($document, $request->user(), $request->status, $request->reason);
+        } catch (\DomainException $e) {
+            return back()->withErrors(['review' => $e->getMessage()]);
+        }
 
         return back()->with('status', __('app.documents.reviewed'));
     }
