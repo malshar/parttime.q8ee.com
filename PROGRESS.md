@@ -6,11 +6,15 @@ Real applicant documents are accumulating in `../part-time/` (10 applicants
 as of 2026-09-27; sensitive — see root `../CLAUDE.md`).
 
 ## Next
-1. Brainstorm scope with Dr. Mishal (superpowers:brainstorming), using the
-   `../part-time/` intake as a concrete sample of what must be handled.
-2. Write docs/ spec.
-3. Decide stack (Laravel like help.q8ee.com vs single-file like jadawil),
-   scaffold, build.
+1. Dr. Mishal reviews `docs/superpowers/specs/2026-09-28-parttime-system-design.md`.
+2. On approval: superpowers:writing-plans → implementation plan for milestone 1
+   (intake), then scaffold Laravel 12 and build.
+
+## Decided (2026-09-28 brainstorm)
+Approach A: one Laravel 12 app, three milestones (intake → assignment →
+attestation). Applicants self-register (Cloudflare Turnstile). (خ-3) is
+generated from section meetings + term calendar, confirmed by the instructor.
+Sections imported per term from Excel. Full details in the spec.
 
 ## In progress / blocked
 (nothing yet)
