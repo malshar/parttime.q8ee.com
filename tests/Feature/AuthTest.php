@@ -38,6 +38,7 @@ class AuthTest extends TestCase
         $this->assertSame(User::ROLE_INSTRUCTOR, $user->role);
         $this->assertNull($user->email_verified_at);
         Mail::assertSent(VerifyEmailMail::class, fn ($m) => $m->hasTo('m@example.com'));
+        Mail::assertSent(VerifyEmailMail::class, 1);
     }
 
     public function test_register_rejected_when_turnstile_fails(): void
