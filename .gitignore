@@ -4,3 +4,5 @@
 .DS_Store
 /storage/*.key
 *.sqlite
+
+.superpowers/
