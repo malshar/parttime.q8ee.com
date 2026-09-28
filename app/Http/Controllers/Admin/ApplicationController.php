@@ -7,9 +7,11 @@ use App\Models\Application;
 use App\Models\AuditLog;
 use App\Models\Term;
 use App\Services\ApplicationWorkflow;
+use App\Services\ChecklistDocument;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ApplicationController extends Controller
 {
@@ -82,5 +84,15 @@ class ApplicationController extends Controller
         }
 
         return back()->with('status', __('app.review.rejected'));
+    }
+
+    public function checklist(Request $request, Application $application, ChecklistDocument $doc): BinaryFileResponse
+    {
+        $this->authorize('review', $application);
+        AuditLog::record($request->user()->id, 'print_checklist', $application);
+
+        return response()->download($doc->build($application, $request->user()), "checklist-{$application->id}.docx", [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ]);
     }
 }

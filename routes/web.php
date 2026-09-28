@@ -57,6 +57,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('terms/{term}/close', [TermController::class, 'close'])->name('terms.close');
     Route::get('applications', [AdminApplicationController::class, 'index'])->name('applications.index');
     Route::get('applications/{application}', [AdminApplicationController::class, 'show'])->name('applications.show');
+    Route::get('applications/{application}/checklist', [AdminApplicationController::class, 'checklist'])->name('applications.checklist');
     Route::post('applications/{application}/reveal', [AdminApplicationController::class, 'reveal'])->name('applications.reveal');
     Route::post('applications/{application}/approve', [AdminApplicationController::class, 'approve'])->name('applications.approve');
     Route::post('applications/{application}/reject', [AdminApplicationController::class, 'reject'])->name('applications.reject');
