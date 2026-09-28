@@ -15,4 +15,5 @@ return [
         'save' => 'Save', 'cancel' => 'Cancel', 'back' => 'Back', 'yes' => 'Yes', 'no' => 'No',
         'actions' => 'Actions', 'page_expired' => 'The page expired, please try again.', 'saved' => 'Saved.',
     ],
+    'auth' => ['turnstile_failed' => 'Human verification failed, please try again.'],
 ];
