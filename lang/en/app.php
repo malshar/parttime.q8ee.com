@@ -41,4 +41,16 @@ return [
         'reset_body' => 'We received a request to reset your password. Click the button below to set a new password. If you did not request this, please ignore this email.',
         'reset_button' => 'Set new password',
     ],
+    'terms' => [
+        'title' => 'Terms', 'add' => 'Add term', 'edit' => 'Edit term',
+        'academic_year' => 'Academic year', 'type' => 'Term',
+        'types' => ['first' => 'First term', 'second' => 'Second term', 'summer' => 'Summer term'],
+        'teaching_starts_on' => 'Teaching starts', 'teaching_ends_on' => 'Teaching ends',
+        'holidays' => 'Official holidays', 'holidays_help' => 'One line per holiday, formatted as: 2026-09-24|Holiday name',
+        'holiday_line_invalid' => 'Line :line in the holidays is invalid.',
+        'status' => 'Status', 'statuses' => ['open' => 'Open', 'closed' => 'Closed', 'archived' => 'Archived'],
+        'one_open_only' => 'A term is already open, close it first.',
+        'close' => 'Close term', 'closed' => 'The term has been closed.', 'applications' => 'Applications',
+        'none_open' => 'No term is currently open for applications.',
+    ],
 ];

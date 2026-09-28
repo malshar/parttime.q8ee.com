@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\TermController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -34,4 +35,10 @@ Route::middleware(['auth', 'verified', 'role:instructor'])->prefix('my')->name('
 // Admin area. Task 11 fills this group.
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::view('/', 'home')->name('dashboard'); // placeholder until Task 11
+    Route::get('terms', [TermController::class, 'index'])->name('terms.index');
+    Route::get('terms/create', [TermController::class, 'create'])->name('terms.create');
+    Route::post('terms', [TermController::class, 'store'])->name('terms.store');
+    Route::get('terms/{term}/edit', [TermController::class, 'edit'])->name('terms.edit');
+    Route::put('terms/{term}', [TermController::class, 'update'])->name('terms.update');
+    Route::post('terms/{term}/close', [TermController::class, 'close'])->name('terms.close');
 });
