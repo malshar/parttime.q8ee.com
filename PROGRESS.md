@@ -3,7 +3,8 @@
 ## Status (2026-09-28)
 Milestone 1 (intake) implemented; deploy pending server setup. Built on
 branch `milestone-1-intake` (Tasks 1-13 of the implementation plan;
-`php artisan test` green). See
+`php artisan test` green, 89 tests; final whole-branch review + fix wave done — see
+`docs/superpowers/reviews/2026-09-28-milestone-1-final-review.md`). See
 `docs/superpowers/specs/2026-09-28-parttime-system-design.md` for the full
 system spec and `docs/superpowers/plans/2026-09-28-milestone-1-intake.md`
 for the implementation plan. Deploy scripts and docs are in `deploy/`; the
@@ -41,4 +42,6 @@ Sections imported per term from Excel. Full details in the spec.
   Turnstile, terms, encrypted instructor profiles, checklist, applications,
   document uploads, submission, admin review, printable Check List
   generation, and deploy scripts/docs (`deploy/`). `php artisan test` green
-  (80 tests). Deploy pending server setup.
+  (89 tests after the final-review fix wave). Final review and deferred
+  minors: `docs/superpowers/reviews/2026-09-28-milestone-1-final-review.md`.
+  Deploy pending server setup.
