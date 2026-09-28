@@ -10,11 +10,19 @@ use App\Models\User;
 use App\Services\ChecklistDocument;
 use Database\Seeders\ChecklistItemSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ChecklistDocumentTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Generated .docx files go to a throwaway disk, never the real private disk.
+        Storage::fake('local');
+    }
 
     private function docxText(string $path): string
     {
@@ -90,17 +98,10 @@ class ChecklistDocumentTest extends TestCase
     {
         $this->seed(ChecklistItemSeeder::class);
         $app = Application::factory()->create();
-        $dir = \Illuminate\Support\Facades\Storage::disk('local')->path('generated');
-
-        // RefreshDatabase resets auto-increment per test, so $app->id can collide with an id
-        // used by another test in the same run; clear any stale file for this id first so the
-        // assertion below only reflects what *this* request produced and cleaned up.
-        foreach (glob($dir.'/checklist-'.$app->id.'-*.docx') ?: [] as $stale) {
-            @unlink($stale);
-        }
 
         $response = $this->actingAs(User::factory()->admin()->create())->get(route('admin.applications.checklist', $app));
         $response->assertOk();
+        $this->assertCount(1, Storage::disk('local')->files('generated'), 'the request must have generated one checklist file');
 
         // Laravel's HTTP test client never calls Response::send(), so BinaryFileResponse's
         // deleteFileAfterSend cleanup (which runs inside sendContent()) never fires on its own.
@@ -109,7 +110,6 @@ class ChecklistDocumentTest extends TestCase
         $response->baseResponse->sendContent();
         ob_end_clean();
 
-        $remaining = glob($dir.'/checklist-'.$app->id.'-*.docx');
-        $this->assertSame([], $remaining, 'generated checklist file must be deleted after being sent');
+        $this->assertSame([], Storage::disk('local')->files('generated'), 'generated checklist file must be deleted after being sent');
     }
 }

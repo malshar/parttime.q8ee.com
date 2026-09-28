@@ -80,6 +80,7 @@ return [
         'civil_id_taken' => 'This civil ID is already registered to another account.',
         'iban_invalid' => 'The IBAN is invalid. Format: KW + 28 characters.',
         'incomplete' => 'Please complete your personal information first.',
+        'locked' => 'Your details cannot be changed while your application is under review or after it has been approved. Contact the department for any change.',
     ],
     'applications' => [
         'title' => 'Secondment application', 'start' => 'Apply for the current term', 'current' => 'Current application', 'past' => 'Past applications',
@@ -115,6 +116,10 @@ return [
         'already_final' => 'The application is in a final status and cannot be changed.',
         'approved' => 'The application has been approved.', 'reject' => 'Reject application', 'reject_confirm' => 'Do you want to reject the application?', 'rejected' => 'The application has been rejected.',
         'reason' => 'Reason', 'view' => 'View', 'print_checklist' => 'Print check list',
+        'superseded_version' => 'This is an old version of the document; review the latest version.',
+        'experience_below_min' => "Warning: bachelor's holder with :years years of experience; the form requires at least 10 years.",
+        'decision_saved' => 'The assignment decision details have been saved.',
+        'decision_not_approved' => 'The assignment decision can only be entered after the application is approved.',
     ],
     'countries' => ['KW' => 'Kuwait', 'SA' => 'Saudi Arabia', 'AE' => 'United Arab Emirates', 'BH' => 'Bahrain', 'QA' => 'Qatar', 'OM' => 'Oman',
         'EG' => 'Egypt', 'JO' => 'Jordan', 'GB' => 'United Kingdom', 'US' => 'United States', 'CA' => 'Canada', 'AU' => 'Australia',

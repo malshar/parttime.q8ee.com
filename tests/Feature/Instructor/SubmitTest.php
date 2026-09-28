@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\ApplicationWorkflow;
 use Database\Seeders\ChecklistItemSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -100,5 +101,18 @@ class SubmitTest extends TestCase
 
         $this->application->update(['status' => Application::STATUS_APPROVED]);
         $this->actingAs($this->user)->post(route('instructor.applications.withdraw', $this->application))->assertForbidden();
+    }
+
+    public function test_submit_survives_mail_failure(): void
+    {
+        $this->uploadAll();
+        Exceptions::fake();
+        Mail::shouldReceive('to')->once()->andThrow(new \RuntimeException('smtp down'));
+
+        $this->actingAs($this->user)->post(route('instructor.applications.submit', $this->application))
+            ->assertRedirect(route('instructor.applications.show', $this->application));
+
+        $this->assertSame(Application::STATUS_SUBMITTED, $this->application->fresh()->status);
+        Exceptions::assertReported(fn (\RuntimeException $e) => $e->getMessage() === 'smtp down');
     }
 }

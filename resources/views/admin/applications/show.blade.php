@@ -7,6 +7,12 @@
     <span class="badge bg-secondary">{{ __('app.applications.statuses.'.$application->status) }}</span>
 </div>
 
+@php($termOpen = $application->term->isOpen())
+
+@if (! $termOpen)
+    <div class="alert alert-warning">{{ __('app.applications.term_closed') }}</div>
+@endif
+
 @if ($application->status === \App\Models\Application::STATUS_REJECTED && $application->rejection_reason)
     <div class="alert alert-danger">{{ $application->rejection_reason }}</div>
 @endif
@@ -25,6 +31,9 @@
         @endif
     </div>
     <div class="card-body">
+        @if ($instructor->highest_degree === 'bachelor' && (int) $instructor->experience_years < 10)
+            <div class="alert alert-warning py-2">{{ __('app.review.experience_below_min', ['years' => $instructor->experience_years]) }}</div>
+        @endif
         <div class="row">
             <div class="col-md-4 mb-2"><strong>{{ __('app.profile.full_name') }}:</strong> {{ $instructor->full_name }}</div>
             <div class="col-md-4 mb-2" dir="ltr"><strong>{{ __('app.profile.civil_id') }}:</strong> {{ $revealed ? $instructor->civil_id : $instructor->maskedCivilId() }}</div>
@@ -99,7 +108,7 @@
                     @endif
                 </td>
                 <td>
-                    @if ($document && ! $application->isFinal())
+                    @if ($document && ! $application->isFinal() && $termOpen)
                         <div class="d-flex gap-2 align-items-start flex-wrap">
                             <form method="post" action="{{ route('admin.documents.review', $document) }}">
                                 @csrf
@@ -170,6 +179,24 @@
     <div class="card-body">
         @if ($application->isFinal())
             <span class="badge bg-secondary">{{ __('app.applications.statuses.'.$application->status) }}</span>
+            @if ($application->status === \App\Models\Application::STATUS_APPROVED)
+                <form method="post" action="{{ route('admin.applications.decision', $application) }}" class="row g-2 align-items-end mt-2">
+                    @csrf
+                    <div class="col-auto">
+                        <label class="form-label">{{ __('app.review.decision_number') }}</label>
+                        <input name="assignment_decision_number" value="{{ old('assignment_decision_number', $application->assignment_decision_number) }}" class="form-control form-control-sm" maxlength="40" required>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label">{{ __('app.review.decision_date') }}</label>
+                        <input type="date" name="assignment_decision_date" value="{{ old('assignment_decision_date', optional($application->assignment_decision_date)->format('Y-m-d')) }}" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-eet btn-sm">{{ __('app.common.save') }}</button>
+                    </div>
+                </form>
+            @endif
+        @elseif (! $termOpen)
+            <div class="alert alert-warning py-2 mb-0">{{ __('app.applications.term_closed') }}</div>
         @else
             @if ($canApprove)
                 <form method="post" action="{{ route('admin.applications.approve', $application) }}" class="row g-2 align-items-end mb-3">

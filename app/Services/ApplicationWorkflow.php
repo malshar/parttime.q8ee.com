@@ -14,6 +14,7 @@ use App\Models\Document;
 use App\Models\Instructor;
 use App\Models\Term;
 use App\Models\User;
+use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -116,6 +117,12 @@ class ApplicationWorkflow
         if ($document->application->isFinal()) {
             throw new \DomainException(__('app.review.already_final'));
         }
+        if (! $document->application->term->isOpen()) {
+            throw new \DomainException(__('app.applications.term_closed'));
+        }
+        if (! $document->application->latestDocuments()->get($document->checklistItem->code)?->is($document)) {
+            throw new \DomainException(__('app.review.superseded_version'));
+        }
 
         $document->update([
             'status' => $status,
@@ -130,7 +137,7 @@ class ApplicationWorkflow
             $application->update(['status' => Application::STATUS_INCOMPLETE]);
             $rejected = $this->checklist($application);
             $rejected = array_filter($rejected, fn ($row) => $row['state'] === 'rejected');
-            Mail::to($application->instructor->user->email)->send(new DocumentsRejected($application, array_values($rejected)));
+            $this->safeSend($application->instructor->user->email, new DocumentsRejected($application, array_values($rejected)));
         }
     }
 
@@ -150,7 +157,7 @@ class ApplicationWorkflow
             'assignment_decision_number' => $decisionNumber, 'assignment_decision_date' => $decisionDate,
         ]);
         AuditLog::record($admin->id, 'approve_application', $application);
-        Mail::to($application->instructor->user->email)->send(new ApplicationApproved($application));
+        $this->safeSend($application->instructor->user->email, new ApplicationApproved($application));
     }
 
     public function reject(Application $application, User $admin, string $reason): void
@@ -158,19 +165,35 @@ class ApplicationWorkflow
         if ($application->isFinal()) {
             throw new \DomainException(__('app.review.already_final'));
         }
+        if (! $application->term->isOpen()) {
+            throw new \DomainException(__('app.applications.term_closed'));
+        }
         $application->update(['status' => Application::STATUS_REJECTED, 'decided_at' => now(), 'rejection_reason' => $reason]);
         AuditLog::record($admin->id, 'reject_application', $application);
-        Mail::to($application->instructor->user->email)->send(new ApplicationRejected($application));
+        $this->safeSend($application->instructor->user->email, new ApplicationRejected($application));
     }
 
     private function notifyAdmin(Application $application): void
     {
         if ($to = config('mail.admin_notify')) {
-            Mail::to($to)->send(new ApplicationSubmitted($application));
+            $this->safeSend($to, new ApplicationSubmitted($application));
 
             return;
         }
 
         Log::warning('ADMIN_NOTIFY_EMAIL is not set; admin was not notified of application submission', ['application_id' => $application->id]);
+    }
+
+    /**
+     * Mail is sent synchronously after the state change has been saved; a mail
+     * failure (SMTP down, bad credentials) must not turn a completed action into a 500.
+     */
+    private function safeSend(string $to, Mailable $mail): void
+    {
+        try {
+            Mail::to($to)->send($mail);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }

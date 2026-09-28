@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Instructor;
 
+use App\Models\Application;
 use App\Models\Instructor;
+use App\Models\Term;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -95,5 +97,40 @@ class ProfileTest extends TestCase
         $this->assertArrayNotHasKey('iban', $oldInput);
         $this->assertArrayNotHasKey('basic_salary', $oldInput);
         $this->assertArrayNotHasKey('total_salary', $oldInput);
+    }
+
+    public function test_profile_locked_while_application_under_review(): void
+    {
+        $user = User::factory()->instructor()->create();
+        $instructor = Instructor::factory()->for($user)->create(['full_name' => 'الاسم الأصلي']);
+        Application::factory()->submitted()->for(Term::factory()->open())->for($instructor)->create();
+
+        $this->actingAs($user)->get(route('instructor.profile.edit'))->assertOk()
+            ->assertSee(__('app.profile.locked'))
+            ->assertDontSee('>'.__('app.common.save').'</button>', false);
+
+        $this->actingAs($user)->from(route('instructor.profile.edit'))
+            ->put(route('instructor.profile.update'), self::payload(['full_name' => 'اسم جديد']))
+            ->assertRedirect(route('instructor.profile.edit'))
+            ->assertSessionHasErrors(['profile' => __('app.profile.locked')]);
+
+        $this->assertSame('الاسم الأصلي', $instructor->fresh()->full_name);
+    }
+
+    public function test_profile_editable_while_application_incomplete(): void
+    {
+        $user = User::factory()->instructor()->create();
+        $instructor = Instructor::factory()->for($user)->create(['full_name' => 'الاسم الأصلي']);
+        Application::factory()->for(Term::factory()->open())->for($instructor)->create(['status' => Application::STATUS_INCOMPLETE]);
+
+        $this->actingAs($user)->get(route('instructor.profile.edit'))->assertOk()
+            ->assertDontSee(__('app.profile.locked'))
+            ->assertSee('>'.__('app.common.save').'</button>', false);
+
+        $this->actingAs($user)->put(route('instructor.profile.update'), self::payload(['full_name' => 'اسم جديد']))
+            ->assertRedirect(route('instructor.home'))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('اسم جديد', $instructor->fresh()->full_name);
     }
 }

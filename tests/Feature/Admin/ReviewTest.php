@@ -173,4 +173,101 @@ class ReviewTest extends TestCase
         $this->actingAs($this->instructorUser)->get(route('admin.documents.download', $doc))->assertForbidden();
         $this->actingAs($this->instructorUser)->post(route('admin.documents.review', $doc), ['status' => 'accepted'])->assertForbidden();
     }
+
+    public function test_document_review_blocked_on_closed_term(): void
+    {
+        $this->application->term->update(['status' => 'closed']);
+        $doc = $this->application->latestDocuments()->get('iban');
+
+        $this->actingAs($this->admin)->post(route('admin.documents.review', $doc), ['status' => 'rejected', 'reason' => 'x'])
+            ->assertSessionHasErrors(['review' => __('app.applications.term_closed')]);
+
+        $this->assertSame('pending', $doc->fresh()->status);
+        $this->assertSame(Application::STATUS_SUBMITTED, $this->application->fresh()->status);
+        Mail::assertNotSent(DocumentsRejected::class);
+
+        $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))->assertOk()
+            ->assertSee(__('app.applications.term_closed'))
+            ->assertDontSee(route('admin.documents.review', $doc))
+            ->assertDontSee(route('admin.applications.reject', $this->application))
+            ->assertDontSee(route('admin.applications.approve', $this->application));
+    }
+
+    public function test_reject_blocked_on_closed_term(): void
+    {
+        $this->application->term->update(['status' => 'closed']);
+
+        $this->actingAs($this->admin)->post(route('admin.applications.reject', $this->application), ['reason' => 'x'])
+            ->assertSessionHasErrors(['reject' => __('app.applications.term_closed')]);
+
+        $this->assertSame(Application::STATUS_SUBMITTED, $this->application->fresh()->status);
+        Mail::assertNotSent(ApplicationRejected::class);
+    }
+
+    public function test_superseded_document_version_cannot_be_reviewed(): void
+    {
+        $v1 = $this->application->latestDocuments()->get('iban');
+        Document::factory()->for($this->application)->forItem('iban')->create(['version' => 2]);
+
+        $this->actingAs($this->admin)->post(route('admin.documents.review', $v1), ['status' => 'rejected', 'reason' => 'x'])
+            ->assertSessionHasErrors(['review' => __('app.review.superseded_version')]);
+
+        $this->assertSame('pending', $v1->fresh()->status);
+        $this->assertNull($v1->fresh()->reviewed_by);
+        $this->assertSame(Application::STATUS_SUBMITTED, $this->application->fresh()->status);
+        Mail::assertNotSent(DocumentsRejected::class);
+    }
+
+    public function test_show_warns_when_bachelor_experience_below_ten(): void
+    {
+        $warning = __('app.review.experience_below_min', ['years' => 7]);
+        $this->application->instructor->update(['highest_degree' => 'bachelor', 'experience_years' => 7]);
+        $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))->assertOk()->assertSee($warning);
+
+        $this->application->instructor->update(['experience_years' => 12]);
+        $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))->assertOk()
+            ->assertDontSee(__('app.review.experience_below_min', ['years' => 12]));
+
+        $this->application->instructor->update(['highest_degree' => 'master', 'experience_years' => null]);
+        $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))->assertOk()
+            ->assertDontSee(__('app.review.experience_below_min', ['years' => '']));
+    }
+
+    public function test_decision_can_be_set_after_approval(): void
+    {
+        $this->acceptAll();
+        $this->actingAs($this->admin)->post(route('admin.applications.approve', $this->application))->assertSessionHasNoErrors();
+        $this->assertSame(Application::STATUS_APPROVED, $this->application->fresh()->status);
+
+        $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))->assertOk()
+            ->assertSee(route('admin.applications.decision', $this->application));
+
+        $this->actingAs($this->admin)->post(route('admin.applications.decision', $this->application), [
+            'assignment_decision_number' => '456/2026', 'assignment_decision_date' => '2026-10-05',
+        ])->assertRedirect()->assertSessionHas('status', __('app.review.decision_saved'));
+
+        $fresh = $this->application->fresh();
+        $this->assertSame('456/2026', $fresh->assignment_decision_number);
+        $this->assertSame('2026-10-05', $fresh->assignment_decision_date->toDateString());
+        $this->assertDatabaseHas('audit_log', ['user_id' => $this->admin->id, 'action' => 'set_decision', 'subject_id' => $this->application->id]);
+
+        $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))->assertSee('456/2026');
+
+        $this->actingAs($this->admin)->post(route('admin.applications.decision', $this->application), [])
+            ->assertSessionHasErrors(['assignment_decision_number', 'assignment_decision_date']);
+
+        $this->actingAs($this->instructorUser)->post(route('admin.applications.decision', $this->application), [
+            'assignment_decision_number' => '1', 'assignment_decision_date' => '2026-10-05',
+        ])->assertForbidden();
+    }
+
+    public function test_decision_refused_when_not_approved(): void
+    {
+        $this->actingAs($this->admin)->post(route('admin.applications.decision', $this->application), [
+            'assignment_decision_number' => '456/2026', 'assignment_decision_date' => '2026-10-05',
+        ])->assertSessionHasErrors('decision');
+
+        $this->assertNull($this->application->fresh()->assignment_decision_number);
+        $this->assertDatabaseMissing('audit_log', ['action' => 'set_decision']);
+    }
 }

@@ -85,6 +85,15 @@ class Instructor extends Model
         return $this->civil_id_expires_on->isPast();
     }
 
+    /** Profile is frozen while an application on an open term is submitted, under review or approved. */
+    public function hasLockedApplication(): bool
+    {
+        return $this->applications()
+            ->whereIn('status', [Application::STATUS_SUBMITTED, Application::STATUS_UNDER_REVIEW, Application::STATUS_APPROVED])
+            ->whereHas('term', fn ($q) => $q->open())
+            ->exists();
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

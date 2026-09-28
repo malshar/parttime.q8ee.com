@@ -86,6 +86,22 @@ class ApplicationController extends Controller
         return back()->with('status', __('app.review.rejected'));
     }
 
+    public function decision(Request $request, Application $application): RedirectResponse
+    {
+        $this->authorize('review', $application);
+        $data = $request->validate([
+            'assignment_decision_number' => ['required', 'string', 'max:40'],
+            'assignment_decision_date' => ['required', 'date'],
+        ]);
+        if ($application->status !== Application::STATUS_APPROVED) {
+            return back()->withErrors(['decision' => __('app.review.decision_not_approved')]);
+        }
+        $application->update($data);
+        AuditLog::record($request->user()->id, 'set_decision', $application);
+
+        return back()->with('status', __('app.review.decision_saved'));
+    }
+
     public function checklist(Request $request, Application $application, ChecklistDocument $doc): BinaryFileResponse
     {
         $this->authorize('review', $application);

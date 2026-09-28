@@ -13,12 +13,20 @@ class ProfileController extends Controller
 {
     public function edit(Request $request): View
     {
-        return view('instructor.profile', ['instructor' => $request->user()->instructor ?? new Instructor]);
+        $instructor = $request->user()->instructor ?? new Instructor;
+
+        return view('instructor.profile', [
+            'instructor' => $instructor,
+            'locked' => $instructor->exists && $instructor->hasLockedApplication(),
+        ]);
     }
 
     public function update(ProfileRequest $request): RedirectResponse
     {
         $user = $request->user();
+        if ($user->instructor?->hasLockedApplication()) {
+            return back()->withErrors(['profile' => __('app.profile.locked')]);
+        }
         $data = $request->validated();
         if ($data['highest_degree'] !== 'bachelor') {
             $data['experience_years'] = null;
