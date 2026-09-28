@@ -37,22 +37,48 @@ GRANT ALL ON parttime.* TO 'parttime'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-## 3. Directory + code
+## 3. Directory + first sync
+
+`deploy.sh` cannot do the very first sync end-to-end: its ssh block runs
+`composer install && migrate --force && db:seed ... && caches && mkdir
+storage dirs && chown/chmod` as one `set -e` chain, and `migrate --force`
+needs a real `.env` (APP_KEY, DB credentials) on the server — which doesn't
+exist yet. Without it, `migrate --force` fails and the chain aborts before
+it ever reaches `db:seed`, the caches, `mkdir -p storage/app/private/...`,
+or `chown`/`chmod`. So the first sync is done by hand, once; every deploy
+after this section uses `./deploy/deploy.sh` normally.
 
 ```bash
-mkdir -p /srv/www/parttime.q8ee.com/app
+ssh root@alsharidah.shop 'mkdir -p /srv/www/parttime.q8ee.com/app'
 ```
 
-Then from the Mac: `./deploy/deploy.sh --dry` to review, then without
-`--dry` (the first run will fail at the health check — vhost not up yet —
-that's fine; it still syncs and runs composer/migrate).
+From the Mac, review what would be synced (safe — dry-run only, no ssh
+commands run): `./deploy/deploy.sh --dry`.
+
+Then do the actual first copy by hand, with the same flags `deploy.sh` uses
+(copy them from `deploy/deploy.sh` if this drifts):
+
+```bash
+rsync -az --delete \
+  --exclude '.git' --exclude '.env' --exclude 'node_modules' --exclude 'vendor' \
+  --exclude 'storage/app' --exclude 'storage/logs' \
+  --exclude 'storage/framework/cache' --exclude 'storage/framework/sessions' \
+  --exclude 'storage/framework/views' --exclude 'storage/framework/testing' \
+  --exclude 'tests' --exclude 'database/imports' \
+  --exclude 'deploy/.env.production.example' --exclude 'deploy/.env.production' \
+  ./ root@alsharidah.shop:/srv/www/parttime.q8ee.com/app/
+```
 
 ## 4. Environment
 
+On the server:
+
 ```bash
+ssh root@alsharidah.shop
 cd /srv/www/parttime.q8ee.com/app
-cp deploy/.env.production.example .env   # or scp the template from the Mac
-nano .env                                # DB password, MAIL_*, ADMIN_NOTIFY_EMAIL, TURNSTILE_* (see step 7)
+cp deploy/.env.production.example .env
+nano .env                                # DB password, MAIL_*, ADMIN_NOTIFY_EMAIL, TURNSTILE_* (see step 8)
+composer install --no-dev --optimize-autoloader --no-interaction
 php artisan key:generate --force
 ```
 
@@ -75,7 +101,18 @@ php artisan app:create-admin malshar@gmail.com "د. مشعل الشريده"
 # prompts for a password (min 12 chars) — choose a strong one, store it in a password manager
 ```
 
-## 7. Cloudflare Turnstile
+## 7. Permissions + storage layout
+
+```bash
+mkdir -p storage/app/private/applications storage/app/private/generated
+chown -R www-data:www-data storage bootstrap/cache
+chmod -R ug+rwX storage bootstrap/cache
+```
+
+(`deploy.sh` also does this on every deploy, so from here on it's kept in
+sync automatically.)
+
+## 8. Cloudflare Turnstile
 
 In the Cloudflare dashboard → Turnstile: create a new widget for
 `parttime.q8ee.com`, mode **Managed**. Copy the site key and secret key into
@@ -89,7 +126,7 @@ TURNSTILE_SECRET=...
 Then `php artisan config:cache` (or just re-run `./deploy/deploy.sh`, which
 caches config on every deploy).
 
-## 8. Apache vhost
+## 9. Apache vhost + Cloudflare SSL mode
 
 ```bash
 scp deploy/apache-vhost.conf root@alsharidah.shop:/etc/apache2/sites-available/parttime.q8ee.com.conf
@@ -108,17 +145,8 @@ in the `<FilesMatch \.php$>` block matches `ls /run/php/` from step 0.
 Cloudflare SSL/TLS mode: set to **Full (strict)** for parttime.q8ee.com,
 matching help.q8ee.com.
 
-## 9. Permissions + storage layout
-
-```bash
-cd /srv/www/parttime.q8ee.com/app
-mkdir -p storage/app/private/applications storage/app/private/generated
-chown -R www-data:www-data storage bootstrap/cache
-chmod -R ug+rwX storage bootstrap/cache
-```
-
-(`deploy.sh` also does this on every deploy, so this step matters mainly for
-verifying the first run.)
+Once the vhost is live and `.env` is in place, `./deploy/deploy.sh` (no
+`--dry`) works end-to-end, including its own health check.
 
 ## 10. Verify
 

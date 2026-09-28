@@ -22,8 +22,8 @@ fi
 
 cd "$(dirname "$0")/.."
 
-echo "🧪 Running tests before deploying..."
 if [[ "$1" != "--dry" ]]; then
+  echo "🧪 Running tests before deploying..."
   php artisan test --compact || { echo "❌ Tests failed — aborting deploy."; exit 1; }
 fi
 
@@ -38,9 +38,11 @@ rsync $RSYNC_FLAGS \
   --exclude 'storage/framework/cache' \
   --exclude 'storage/framework/sessions' \
   --exclude 'storage/framework/views' \
+  --exclude 'storage/framework/testing' \
   --exclude 'tests' \
   --exclude 'database/imports' \
   --exclude 'deploy/.env.production.example' \
+  --exclude 'deploy/.env.production' \
   ./ "$SERVER:$APP_DIR/"
 
 [[ "$1" == "--dry" ]] && exit 0
