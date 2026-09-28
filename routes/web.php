@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Admin\ApplicationController as AdminApplicationController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DocumentController as AdminDocumentController;
 use App\Http\Controllers\Admin\TermController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -43,14 +46,21 @@ Route::middleware(['auth', 'verified', 'role:instructor'])->prefix('my')->name('
     Route::get('documents/{document}', [InstructorDocumentController::class, 'download'])->name('documents.download');
 });
 
-// Admin area. Task 11 fills this group.
+// Admin area.
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::view('/', 'home')->name('dashboard'); // placeholder until Task 11
-    Route::get('applications/{application}', fn () => '')->name('applications.show'); // placeholder until Task 11
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('terms', [TermController::class, 'index'])->name('terms.index');
     Route::get('terms/create', [TermController::class, 'create'])->name('terms.create');
     Route::post('terms', [TermController::class, 'store'])->name('terms.store');
     Route::get('terms/{term}/edit', [TermController::class, 'edit'])->name('terms.edit');
     Route::put('terms/{term}', [TermController::class, 'update'])->name('terms.update');
     Route::post('terms/{term}/close', [TermController::class, 'close'])->name('terms.close');
+    Route::get('applications', [AdminApplicationController::class, 'index'])->name('applications.index');
+    Route::get('applications/{application}', [AdminApplicationController::class, 'show'])->name('applications.show');
+    Route::post('applications/{application}/reveal', [AdminApplicationController::class, 'reveal'])->name('applications.reveal');
+    Route::post('applications/{application}/approve', [AdminApplicationController::class, 'approve'])->name('applications.approve');
+    Route::post('applications/{application}/reject', [AdminApplicationController::class, 'reject'])->name('applications.reject');
+    Route::post('documents/{document}/review', [AdminDocumentController::class, 'review'])->name('documents.review');
+    Route::get('documents/{document}', [AdminDocumentController::class, 'download'])->name('documents.download');
+    Route::get('documents/{document}/view', [AdminDocumentController::class, 'view'])->name('documents.view');
 });

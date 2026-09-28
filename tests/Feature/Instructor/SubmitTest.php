@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\ApplicationWorkflow;
 use Database\Seeders\ChecklistItemSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
@@ -75,6 +76,21 @@ class SubmitTest extends TestCase
         app(ApplicationWorkflow::class)->afterUpload($this->application->fresh());
 
         $this->assertSame(Application::STATUS_SUBMITTED, $this->application->fresh()->status);
+    }
+
+    public function test_submit_logs_warning_when_admin_notify_unset(): void
+    {
+        config(['mail.admin_notify' => null]);
+        $this->uploadAll();
+        Log::spy();
+
+        $this->actingAs($this->user)->post(route('instructor.applications.submit', $this->application))
+            ->assertRedirect(route('instructor.applications.show', $this->application));
+
+        $this->assertSame(Application::STATUS_SUBMITTED, $this->application->fresh()->status);
+        Log::shouldHaveReceived('warning')->once()
+            ->with('ADMIN_NOTIFY_EMAIL is not set; admin was not notified of application submission', ['application_id' => $this->application->id]);
+        Mail::assertNothingSent();
     }
 
     public function test_withdraw_from_draft_or_submitted_only(): void

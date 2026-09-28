@@ -3,12 +3,18 @@
 namespace App\Services;
 
 use App\Exceptions\TermClosedException;
+use App\Mail\ApplicationApproved;
+use App\Mail\ApplicationRejected;
 use App\Mail\ApplicationSubmitted;
+use App\Mail\DocumentsRejected;
 use App\Models\Application;
+use App\Models\AuditLog;
 use App\Models\ChecklistItem;
 use App\Models\Document;
 use App\Models\Instructor;
 use App\Models\Term;
+use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class ApplicationWorkflow
@@ -98,10 +104,63 @@ class ApplicationWorkflow
         $application->update(['status' => Application::STATUS_WITHDRAWN, 'decided_at' => now()]);
     }
 
+    public function markUnderReview(Application $application): void
+    {
+        if ($application->status === Application::STATUS_SUBMITTED) {
+            $application->update(['status' => Application::STATUS_UNDER_REVIEW, 'reviewed_at' => now()]);
+        }
+    }
+
+    public function reviewDocument(Document $document, User $admin, string $status, ?string $reason): void
+    {
+        $document->update([
+            'status' => $status,
+            'rejection_reason' => $status === Document::STATUS_REJECTED ? $reason : null,
+            'reviewed_by' => $admin->id,
+            'reviewed_at' => now(),
+        ]);
+        AuditLog::record($admin->id, 'review_document_'.$status, $document);
+
+        $application = $document->application->fresh();
+        if ($status === Document::STATUS_REJECTED && ! $application->isFinal()) {
+            $application->update(['status' => Application::STATUS_INCOMPLETE]);
+            $rejected = $this->checklist($application);
+            $rejected = array_filter($rejected, fn ($row) => $row['state'] === 'rejected');
+            Mail::to($application->instructor->user->email)->send(new DocumentsRejected($application, array_values($rejected)));
+        }
+    }
+
+    public function approve(Application $application, User $admin, ?string $decisionNumber, ?string $decisionDate): void
+    {
+        if (! $application->term->isOpen()) {
+            throw new \DomainException(__('app.applications.term_closed'));
+        }
+        if (! $this->allRequiredAccepted($application)) {
+            throw new \DomainException(__('app.review.approve_blocked'));
+        }
+        $application->update([
+            'status' => Application::STATUS_APPROVED, 'decided_at' => now(),
+            'assignment_decision_number' => $decisionNumber, 'assignment_decision_date' => $decisionDate,
+        ]);
+        AuditLog::record($admin->id, 'approve_application', $application);
+        Mail::to($application->instructor->user->email)->send(new ApplicationApproved($application));
+    }
+
+    public function reject(Application $application, User $admin, string $reason): void
+    {
+        $application->update(['status' => Application::STATUS_REJECTED, 'decided_at' => now(), 'rejection_reason' => $reason]);
+        AuditLog::record($admin->id, 'reject_application', $application);
+        Mail::to($application->instructor->user->email)->send(new ApplicationRejected($application));
+    }
+
     private function notifyAdmin(Application $application): void
     {
         if ($to = config('mail.admin_notify')) {
             Mail::to($to)->send(new ApplicationSubmitted($application));
+
+            return;
         }
+
+        Log::warning('ADMIN_NOTIFY_EMAIL is not set; admin was not notified of application submission', ['application_id' => $application->id]);
     }
 }
