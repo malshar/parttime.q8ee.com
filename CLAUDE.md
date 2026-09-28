@@ -1,14 +1,17 @@
 # CLAUDE.md — parttime.q8ee.com (المنتدبون / Part-timers & Interns Management)
 
-> **Status (2026-09-27): NOT STARTED — scope not yet decided.** This folder
-> is scaffolding only (CLAUDE.md, PROGRESS.md, .gitignore; one commit).
-> Before writing any code, brainstorm the scope with Dr. Mishal
-> (superpowers:brainstorming) and record the agreed design here + in a
-> `docs/` spec. Do not assume features.
+> **Status (2026-09-28): Milestone 1 (intake) implemented, deploy pending
+> server setup.** Laravel 12 app on branch `milestone-1-intake`
+> (`php artisan test` green). Scope, design and the milestone 1 plan are
+> recorded in `docs/superpowers/specs/2026-09-28-parttime-system-design.md`
+> and `docs/superpowers/plans/2026-09-28-milestone-1-intake.md`. Deploy
+> scripts/docs are in `deploy/` (`deploy/DEPLOY.md` for first-time server
+> setup, `./deploy/deploy.sh` for routine deploys) — the first real deploy
+> to parttime.q8ee.com has not been run yet.
 >
-> **New input since scaffolding:** real applicant files have started arriving
-> in `../part-time/` (10 applicants, 2026-09-23 → 09-27). See the root
-> `../CLAUDE.md` for what is there and how to handle it (sensitive data).
+> Real applicant files continue to arrive in `../part-time/` (10 applicants
+> as of 2026-09-27). See the root `../CLAUDE.md` for what is there and how
+> to handle it (sensitive data) — never copy it into this repo.
 
 ## What this project is (intended)
 
@@ -85,5 +88,6 @@ Pick per scope. Arabic-first, RTL, complete translation coverage from day one.
 
 ## Next step
 
-Run superpowers:brainstorming to define scope → write `docs/` spec → then
-scaffold. Nothing is built yet.
+Milestone 1 (intake) is built — see the status header above. Next: Dr.
+Mishal runs the first deploy per `deploy/DEPLOY.md`, then merge
+`milestone-1-intake` to main; after that, plan milestone 2 (assignment).
