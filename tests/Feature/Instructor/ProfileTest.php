@@ -80,4 +80,20 @@ class ProfileTest extends TestCase
 
         $this->actingAs($user)->get(route('instructor.profile.edit'))->assertRedirect(route('verification.notice'));
     }
+
+    public function test_sensitive_fields_are_not_flashed_on_validation_failure(): void
+    {
+        $user = User::factory()->instructor()->create();
+
+        $this->actingAs($user)
+            ->put(route('instructor.profile.update'), self::payload(['mobile' => 'not-a-number']))
+            ->assertSessionHasErrors('mobile');
+
+        $oldInput = session('_old_input', []);
+        $this->assertArrayHasKey('mobile', $oldInput);
+        $this->assertArrayNotHasKey('civil_id', $oldInput);
+        $this->assertArrayNotHasKey('iban', $oldInput);
+        $this->assertArrayNotHasKey('basic_salary', $oldInput);
+        $this->assertArrayNotHasKey('total_salary', $oldInput);
+    }
 }

@@ -17,9 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo(fn ($request) => $request->user()->isAdmin() ? route('admin.dashboard') : route('instructor.home'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontFlash(['civil_id', 'iban', 'basic_salary', 'total_salary']);
+
         $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, \Illuminate\Http\Request $request) {
             return redirect()->back()
-                ->withInput($request->except(['_token', 'password', 'password_confirmation', 'civil_id', 'iban']))
+                ->withInput($request->except(['_token', 'password', 'password_confirmation', 'civil_id', 'iban', 'basic_salary', 'total_salary']))
                 ->withErrors(['page_expired' => __('app.common.page_expired')]);
         });
     })->create();
