@@ -60,12 +60,25 @@ Then do the actual first copy by hand, with the same flags `deploy.sh` uses
 
 ```bash
 rsync -az --delete \
-  --exclude '.git' --exclude '.env' --exclude 'node_modules' --exclude 'vendor' \
-  --exclude 'storage/app' --exclude 'storage/logs' \
-  --exclude 'storage/framework/cache' --exclude 'storage/framework/sessions' \
-  --exclude 'storage/framework/views' --exclude 'storage/framework/testing' \
-  --exclude 'tests' --exclude 'database/imports' \
-  --exclude 'deploy/.env.production.example' --exclude 'deploy/.env.production' \
+  --exclude '.git' \
+  --exclude '.env' \
+  --exclude 'node_modules' \
+  --exclude 'vendor' \
+  --exclude 'storage/app' \
+  --exclude 'storage/logs' \
+  --exclude 'storage/framework/cache' \
+  --exclude 'storage/framework/sessions' \
+  --exclude 'storage/framework/views' \
+  --exclude 'storage/framework/testing' \
+  --exclude 'tests' \
+  --exclude 'database/imports' \
+  --exclude 'deploy/.env.production.example' \
+  --exclude 'deploy/.env.production' \
+  --exclude 'database/*.sqlite' \
+  --exclude '.superpowers' \
+  --exclude '.phpunit.result.cache' \
+  --exclude 'docs' \
+  --exclude 'bootstrap/cache/*' \
   ./ root@alsharidah.shop:/srv/www/parttime.q8ee.com/app/
 ```
 
@@ -148,6 +161,35 @@ matching help.q8ee.com.
 Once the vhost is live and `.env` is in place, `./deploy/deploy.sh` (no
 `--dry`) works end-to-end, including its own health check.
 
+## 9a. Restrict the origin to Cloudflare
+
+`bootstrap/app.php` trusts every proxy (`trustProxies(at: '*')`), which is
+needed behind Cloudflare. But if the origin answers on 80/443 for anyone who
+knows its IP, a client can connect directly, send its own `X-Forwarded-For`,
+and so defeat the per-IP rate limits (registration, login) and forge the IP
+recorded in `audit_log`. Only Cloudflare may reach the web ports: allow
+Cloudflare's published ranges and deny everything else (SSH stays open).
+If help.q8ee.com's origin already has these rules (same server), just confirm
+with `ufw status` that they are present and skip the commands.
+If ufw is currently inactive, enabling it denies all other incoming ports
+by default: check `ss -tlnp` first and `ufw allow` anything else this shared
+server must keep serving before running `ufw enable`.
+
+```bash
+ssh root@alsharidah.shop
+ufw allow OpenSSH
+for ip in $(curl -s https://www.cloudflare.com/ips-v4) $(curl -s https://www.cloudflare.com/ips-v6); do
+  ufw allow proto tcp from "$ip" to any port 80,443 comment 'cloudflare'
+done
+ufw deny 80/tcp
+ufw deny 443/tcp
+ufw enable
+ufw status numbered        # the Cloudflare allow rules must be listed before the deny rules
+```
+
+Cloudflare changes these ranges rarely; re-run the loop when
+https://www.cloudflare.com/ips/ announces a change.
+
 ## 10. Verify
 
 - https://parttime.q8ee.com/up → 200
@@ -156,6 +198,8 @@ Once the vhost is live and `.env` is in place, `./deploy/deploy.sh` (no
   submit an application end-to-end
 - Log in as the admin created in step 6 → review the test application →
   approve/reject a document → generate the Check List (Word download)
+- Upload one real scanned PDF and one real .docx through the instructor
+  form; both must be accepted (checks libmagic's MIME detection on the server)
 - Check `storage/logs/laravel.log` for unexpected errors
 
 ## 11. SMTP

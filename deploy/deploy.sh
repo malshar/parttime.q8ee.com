@@ -43,6 +43,11 @@ rsync $RSYNC_FLAGS \
   --exclude 'database/imports' \
   --exclude 'deploy/.env.production.example' \
   --exclude 'deploy/.env.production' \
+  --exclude 'database/*.sqlite' \
+  --exclude '.superpowers' \
+  --exclude '.phpunit.result.cache' \
+  --exclude 'docs' \
+  --exclude 'bootstrap/cache/*' \
   ./ "$SERVER:$APP_DIR/"
 
 [[ "$1" == "--dry" ]] && exit 0
@@ -54,6 +59,7 @@ ssh "$SERVER" "set -e; cd $APP_DIR && \
   php artisan db:seed --class=ChecklistItemSeeder --force && \
   php artisan config:cache && php artisan route:cache && php artisan view:cache && \
   mkdir -p storage/app/private/applications storage/app/private/generated && \
+  mkdir -p storage/framework/{cache,sessions,views} && \
   chown -R www-data:www-data storage bootstrap/cache && \
   chmod -R ug+rwX storage bootstrap/cache"
 
