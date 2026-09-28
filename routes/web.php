@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\Instructor\ApplicationController as InstructorApplicationController;
+use App\Http\Controllers\Instructor\DocumentController as InstructorDocumentController;
 use App\Http\Controllers\Instructor\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -36,6 +37,8 @@ Route::middleware(['auth', 'verified', 'role:instructor'])->prefix('my')->name('
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('applications', [InstructorApplicationController::class, 'start'])->name('applications.start');
     Route::get('applications/{application}', [InstructorApplicationController::class, 'show'])->name('applications.show');
+    Route::post('applications/{application}/documents/{item:code}', [InstructorDocumentController::class, 'store'])->name('documents.store')->withoutScopedBindings();
+    Route::get('documents/{document}', [InstructorDocumentController::class, 'download'])->name('documents.download');
 });
 
 // Admin area. Task 11 fills this group.

@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Models\Application;
+use App\Models\Document;
 use App\Policies\ApplicationPolicy;
+use App\Policies\DocumentPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -29,5 +31,6 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('register', fn (Request $r) => Limit::perHour(3)->by($r->ip()));
 
         Gate::policy(Application::class, ApplicationPolicy::class);
+        Gate::policy(Document::class, DocumentPolicy::class);
     }
 }

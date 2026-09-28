@@ -50,12 +50,13 @@
                     </td>
                     <td>
                         @if ($document)
-                            <a href="#">{{ $document->original_name }}</a> (v{{ $document->version }})
+                            <a href="{{ route('instructor.documents.download', $document) }}">{{ $document->original_name }}</a>
+                            ({{ __('app.documents.version') }} {{ $document->version }})
                         @endif
                     </td>
                     <td>
                         @if (Route::has('instructor.documents.store'))
-                            @include('instructor._upload', ['application' => $application, 'item' => $item])
+                            @include('instructor._upload', ['application' => $application, 'item' => $item, 'document' => $document])
                         @endif
                     </td>
                 </tr>

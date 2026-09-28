@@ -67,4 +67,6 @@ class ApplicationWorkflow
 
         return true;
     }
+
+    public function afterUpload(Application $application): void {}
 }
