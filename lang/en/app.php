@@ -48,6 +48,7 @@ return [
         'teaching_starts_on' => 'Teaching starts', 'teaching_ends_on' => 'Teaching ends',
         'holidays' => 'Official holidays', 'holidays_help' => 'One line per holiday, formatted as: 2026-09-24|Holiday name',
         'holiday_line_invalid' => 'Line :line in the holidays is invalid.',
+        'holiday_duplicate' => 'The date :date is duplicated in the holidays.',
         'status' => 'Status', 'statuses' => ['open' => 'Open', 'closed' => 'Closed', 'archived' => 'Archived'],
         'one_open_only' => 'A term is already open, close it first.',
         'close' => 'Close term', 'closed' => 'The term has been closed.', 'applications' => 'Applications',

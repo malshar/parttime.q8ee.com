@@ -30,9 +30,18 @@ class StoreTermRequest extends FormRequest
             if (Term::open()->when($ignore, fn ($q) => $q->whereKeyNot($ignore))->exists()) {
                 $v->errors()->add('academic_year', __('app.terms.one_open_only'));
             }
+            $seen = [];
             foreach ($this->parsedHolidays() as $i => $h) {
                 if ($h === null) {
                     $v->errors()->add('holidays', __('app.terms.holiday_line_invalid', ['line' => $i + 1]));
+
+                    continue;
+                }
+                if (empty($h['skip'])) {
+                    if (isset($seen[$h['date']])) {
+                        $v->errors()->add('holidays', __('app.terms.holiday_duplicate', ['date' => $h['date']]));
+                    }
+                    $seen[$h['date']] = true;
                 }
             }
         });

@@ -28,8 +28,8 @@
                     </span>
                 </td>
                 <td class="d-flex gap-2">
-                    <a href="{{ route('admin.terms.edit', $term) }}" class="btn btn-sm btn-outline-secondary">{{ __('app.terms.edit') }}</a>
                     @if ($term->isOpen())
+                        <a href="{{ route('admin.terms.edit', $term) }}" class="btn btn-sm btn-outline-secondary">{{ __('app.terms.edit') }}</a>
                         <form method="post" action="{{ route('admin.terms.close', $term) }}">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('app.terms.close') }}</button>

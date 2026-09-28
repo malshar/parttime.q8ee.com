@@ -54,6 +54,7 @@ return [
         'teaching_starts_on' => 'بداية الدراسة', 'teaching_ends_on' => 'نهاية الدراسة',
         'holidays' => 'العطل الرسمية', 'holidays_help' => 'سطر لكل عطلة بالصيغة: 2026-09-24|اسم العطلة',
         'holiday_line_invalid' => 'السطر :line في العطل غير صحيح.',
+        'holiday_duplicate' => 'التاريخ :date مكرر في العطل.',
         'status' => 'الحالة', 'statuses' => ['open' => 'مفتوح', 'closed' => 'مغلق', 'archived' => 'مؤرشف'],
         'one_open_only' => 'يوجد فصل مفتوح بالفعل، أغلقه أولا.',
         'close' => 'إغلاق الفصل', 'closed' => 'تم إغلاق الفصل.', 'applications' => 'الطلبات',

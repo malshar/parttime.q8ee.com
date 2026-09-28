@@ -37,11 +37,15 @@ class TermController extends Controller
 
     public function edit(Term $term): View
     {
+        abort_unless($term->isOpen(), 403);
+
         return view('admin.terms.form', ['term' => $term]);
     }
 
     public function update(StoreTermRequest $request, Term $term): RedirectResponse
     {
+        abort_unless($term->isOpen(), 403);
+
         DB::transaction(function () use ($request, $term) {
             $term->update($request->safe()->except('holidays'));
             $this->syncHolidays($term, $request);
@@ -53,6 +57,8 @@ class TermController extends Controller
 
     public function close(Term $term): RedirectResponse
     {
+        abort_unless($term->isOpen(), 403);
+
         $term->update(['status' => Term::STATUS_CLOSED]);
         AuditLog::record(auth()->id(), 'close_term', $term);
 
