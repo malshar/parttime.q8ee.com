@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'civil_id_checksum' => env('CIVIL_ID_CHECKSUM', true),
+
 ];

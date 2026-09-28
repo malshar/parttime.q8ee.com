@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\VerificationController;
+use App\Http\Controllers\Instructor\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'home')->name('home');
@@ -30,6 +31,8 @@ Route::middleware('auth')->group(function () {
 // Instructor area (verified only). Task 8 fills this group.
 Route::middleware(['auth', 'verified', 'role:instructor'])->prefix('my')->name('instructor.')->group(function () {
     Route::view('/', 'home')->name('home'); // placeholder until Task 8
+    Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
 });
 
 // Admin area. Task 11 fills this group.
