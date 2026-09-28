@@ -6,8 +6,10 @@ use App\Models\Application;
 use App\Models\ChecklistItem;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\Shared\Converter;
 use PhpOffice\PhpWord\SimpleType\Jc;
 
@@ -17,6 +19,8 @@ class ChecklistDocument
 
     public function build(Application $application, User $checker): string
     {
+        Settings::setOutputEscapingEnabled(true);
+
         $i = $application->instructor;
         $checklist = $this->workflow->checklist($application);
 
@@ -54,7 +58,7 @@ class ChecklistDocument
 
         foreach (ChecklistItem::orderBy('sort_order')->get() as $item) {
             if ($item->isDepartment()) {
-                $mark = '☑';
+                $mark = '☐';
             } elseif (isset($checklist[$item->code])) {
                 $mark = $checklist[$item->code]['state'] === 'accepted' ? '☑' : '☐';
             } else {
@@ -74,7 +78,7 @@ class ChecklistDocument
         $section->addText('الاسم : '.$checker->name, [], $rtl);
 
         Storage::disk('local')->makeDirectory('generated');
-        $path = Storage::disk('local')->path("generated/checklist-{$application->id}.docx");
+        $path = Storage::disk('local')->path('generated/checklist-'.$application->id.'-'.Str::random(12).'.docx');
         IOFactory::createWriter($word, 'Word2007')->save($path);
 
         return $path;

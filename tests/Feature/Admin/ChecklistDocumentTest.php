@@ -46,8 +46,34 @@ class ChecklistDocumentTest extends TestCase
         $this->assertStringContainsString('☑ صورة البطاقة المدنية سارية المفعول', $text);
         $this->assertStringContainsString('☐ صورة من المؤهل العلمي', $text);
         $this->assertStringContainsString('— صورة من معادلة المؤهل العلمي', $text);
-        $this->assertStringContainsString('☑ الجدول الدراسي', $text);
+        $this->assertStringContainsString('☐ الجدول الدراسي', $text);
         $this->assertStringContainsString('د. مشعل الشريده', $text);
+    }
+
+    public function test_special_characters_in_names_are_escaped(): void
+    {
+        $this->seed(ChecklistItemSeeder::class);
+        $admin = User::factory()->admin()->create(['name' => "د. مشعل 'الشريده'"]);
+        $instructor = Instructor::factory()->for(User::factory()->instructor())->create([
+            'employer' => 'شركة الخليج & الشرق <للتجارة>',
+        ]);
+        $app = Application::factory()->for($instructor)->create();
+
+        $path = app(ChecklistDocument::class)->build($app, $admin);
+
+        $zip = new \ZipArchive;
+        $this->assertTrue($zip->open($path) === true);
+        $documentXml = $zip->getFromName('word/document.xml');
+        $zip->close();
+
+        $dom = new \DOMDocument;
+        libxml_use_internal_errors(true);
+        $loaded = $dom->loadXML($documentXml);
+        libxml_clear_errors();
+        $this->assertTrue($loaded, 'word/document.xml must be well-formed XML');
+
+        $text = $this->docxText($path);
+        $this->assertStringContainsString('شركة الخليج & الشرق <للتجارة>', $text);
     }
 
     public function test_route_streams_docx_for_admin_only(): void
@@ -58,5 +84,32 @@ class ChecklistDocumentTest extends TestCase
         $this->actingAs(User::factory()->admin()->create())->get(route('admin.applications.checklist', $app))
             ->assertOk()->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
         $this->actingAs($app->instructor->user)->get(route('admin.applications.checklist', $app))->assertForbidden();
+    }
+
+    public function test_downloaded_checklist_file_is_deleted_after_send(): void
+    {
+        $this->seed(ChecklistItemSeeder::class);
+        $app = Application::factory()->create();
+        $dir = \Illuminate\Support\Facades\Storage::disk('local')->path('generated');
+
+        // RefreshDatabase resets auto-increment per test, so $app->id can collide with an id
+        // used by another test in the same run; clear any stale file for this id first so the
+        // assertion below only reflects what *this* request produced and cleaned up.
+        foreach (glob($dir.'/checklist-'.$app->id.'-*.docx') ?: [] as $stale) {
+            @unlink($stale);
+        }
+
+        $response = $this->actingAs(User::factory()->admin()->create())->get(route('admin.applications.checklist', $app));
+        $response->assertOk();
+
+        // Laravel's HTTP test client never calls Response::send(), so BinaryFileResponse's
+        // deleteFileAfterSend cleanup (which runs inside sendContent()) never fires on its own.
+        // Trigger it explicitly to reproduce what a real request/response cycle does.
+        ob_start();
+        $response->baseResponse->sendContent();
+        ob_end_clean();
+
+        $remaining = glob($dir.'/checklist-'.$app->id.'-*.docx');
+        $this->assertSame([], $remaining, 'generated checklist file must be deleted after being sent');
     }
 }

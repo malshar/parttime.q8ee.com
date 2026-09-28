@@ -93,6 +93,6 @@ class ApplicationController extends Controller
 
         return response()->download($doc->build($application, $request->user()), "checklist-{$application->id}.docx", [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        ]);
+        ])->deleteFileAfterSend(true);
     }
 }
