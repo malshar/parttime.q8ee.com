@@ -8,7 +8,7 @@
 </div>
 
 <div class="d-flex flex-wrap gap-2 mb-4">
-    @foreach (['submitted', 'under_review', 'incomplete', 'complete', 'approved', 'rejected', 'withdrawn'] as $status)
+    @foreach (\App\Models\Application::STATUSES as $status)
         <span class="badge bg-secondary">
             {{ __('app.applications.statuses.'.$status) }}: {{ $counts[$status] ?? 0 }}
         </span>

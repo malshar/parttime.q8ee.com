@@ -99,7 +99,7 @@ class SectionImportServiceTest extends TestCase
         $this->assertFalse($assigned->fresh()->missing_since_import);
     }
 
-    public function test_apply_refuses_errors_and_closed_terms_and_rolls_back(): void
+    public function test_apply_refuses_timetables_with_errors(): void
     {
         $importer = app(SectionImporter::class);
         $bad = $this->timetable(self::HEADER."\"7220220\",\"x\",\"محاضرة\",\"8:00\",\"9:15\",\"الجمعة\",\"\",\"1\",\"1\"\n");

@@ -243,4 +243,6 @@ Each new term, after creating the term at `/admin/terms`:
 
 Export the term's timetable from jadawil (CSV or XLSX) and import it at
 `/admin/sections/import`; re-import whenever the timetable changes —
-assigned sections are never deleted automatically.
+assigned sections are never deleted automatically. Read the preview's
+warnings and errors before confirming, and always re-import a term using the
+same format (CSV or XLSX) you used first.

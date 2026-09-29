@@ -15,7 +15,7 @@
     <div class="col-auto">
         <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
             <option value="">{{ __('app.review.all_statuses') }}</option>
-            @foreach (['draft', 'submitted', 'under_review', 'incomplete', 'approved', 'rejected', 'withdrawn'] as $status)
+            @foreach (\App\Models\Application::STATUSES as $status)
                 <option value="{{ $status }}" @selected(request('status') === $status)>{{ __('app.applications.statuses.'.$status) }}</option>
             @endforeach
         </select>

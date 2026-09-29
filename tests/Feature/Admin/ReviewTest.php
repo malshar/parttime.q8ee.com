@@ -53,6 +53,18 @@ class ReviewTest extends TestCase
             ->assertSee($this->application->instructor->full_name)->assertSee(__('app.applications.statuses.submitted'));
     }
 
+    public function test_applications_index_filters_on_complete(): void
+    {
+        $this->application->update(['status' => Application::STATUS_COMPLETE]);
+        $other = Instructor::factory()->for(User::factory()->instructor())->create(['full_name' => 'متقدم آخر قيد المراجعة']);
+        Application::factory()->submitted()->for($this->application->term)->for($other)->create();
+
+        $this->actingAs($this->admin)->get(route('admin.applications.index', ['status' => 'complete']))->assertOk()
+            ->assertSee('<option value="complete" selected', false)
+            ->assertSee($this->application->instructor->full_name)
+            ->assertDontSee('متقدم آخر قيد المراجعة');
+    }
+
     public function test_show_masks_sensitive_until_reveal_which_is_audited(): void
     {
         $civil = $this->application->instructor->civil_id;

@@ -32,6 +32,10 @@ class Application extends Model
 
     public const STATUS_WITHDRAWN = 'withdrawn';
 
+    /** Every status in pipeline order (filters, dashboard counts). */
+    public const STATUSES = [self::STATUS_DRAFT, self::STATUS_SUBMITTED, self::STATUS_UNDER_REVIEW, self::STATUS_INCOMPLETE,
+        self::STATUS_COMPLETE, self::STATUS_APPROVED, self::STATUS_REJECTED, self::STATUS_WITHDRAWN];
+
     public const EDITABLE_STATUSES = [self::STATUS_DRAFT, self::STATUS_INCOMPLETE];
 
     public const FINAL_STATUSES = [self::STATUS_APPROVED, self::STATUS_REJECTED, self::STATUS_WITHDRAWN];
