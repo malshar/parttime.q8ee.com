@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ApplicationController as AdminApplicationController;
+use App\Http\Controllers\Admin\AssignmentController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController as AdminDocumentController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
@@ -76,4 +77,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('sections/import', [SectionImportController::class, 'form'])->name('sections.import.form');
     Route::post('sections/import/preview', [SectionImportController::class, 'preview'])->name('sections.import.preview');
     Route::post('sections/import/confirm', [SectionImportController::class, 'confirm'])->name('sections.import.confirm');
+    Route::post('sections/{section}/assign', [AssignmentController::class, 'store'])->name('assignments.store');
+    Route::delete('sections/{section}/assign', [AssignmentController::class, 'destroy'])->name('assignments.destroy');
 });

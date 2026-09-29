@@ -195,4 +195,17 @@ return [
         'warnings' => 'Warnings',
         'errors' => 'Errors',
     ],
+    'assignments' => [
+        'title' => 'Section assignments',
+        'not_approved' => 'Only an approved application can be assigned.',
+        'other_term' => 'The application and section are in different terms.',
+        'already_assigned' => 'The section is already assigned to another part-timer.',
+        'not_assigned' => 'The section is not assigned.',
+        'assigned' => 'The section has been assigned.',
+        'unassigned' => 'The assignment has been removed.',
+        'assign' => 'Assign', 'unassign' => 'Unassign',
+        'choose' => 'Choose the part-timer', 'suggested' => 'Suggested from the schedule',
+        'weekly_hours' => 'Weekly hours', 'my_sections' => 'Assigned sections', 'none' => 'No sections assigned yet.',
+        'totals' => 'Total per part-timer', 'no_approved' => 'No approved part-timers in this term.',
+    ],
 ];

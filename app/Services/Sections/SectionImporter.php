@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class SectionImporter
 {
+    public function __construct(private AssignmentService $assignments) {}
+
     public function plan(Term $term, ParsedTimetable $timetable): ImportPlan
     {
         $plan = new ImportPlan;
@@ -54,6 +56,7 @@ class SectionImporter
                 if (in_array($key, $plan->unchanged, true)) {
                     $term->sections()->where('course_code', $parsed->courseCode)->where('section_number', $parsed->sectionNumber)
                         ->update(['imported_at' => now(), 'missing_since_import' => false]);
+
                     continue;
                 }
                 $section = $term->sections()->updateOrCreate(
@@ -85,7 +88,7 @@ class SectionImporter
                 $term->sections()->where('course_code', $code)->where('section_number', $num)->update(['missing_since_import' => true]);
             }
             foreach (array_keys($touchedApplications) as $appId) {
-                $this->recompute(Application::findOrFail($appId));
+                $this->assignments->recomputeHours(Application::findOrFail($appId));
             }
 
             $counts = $plan->counts();
@@ -94,16 +97,6 @@ class SectionImporter
 
             return $plan;
         });
-    }
-
-    /** Replaced by AssignmentService::recomputeHours() in Task 11. */
-    private function recompute(Application $application): void
-    {
-        $minutes = 0;
-        foreach ($application->sections()->with('meetings')->get() as $s) {
-            $minutes += $s->weeklyMinutes();
-        }
-        $application->update(['weekly_minutes' => $minutes, 'weekly_hours_decimal' => round($minutes / 60, 1)]);
     }
 
     private function fingerprint(Section $s): string
