@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CommitteeDecisionRequest;
 use App\Models\Application;
 use App\Models\AuditLog;
 use App\Models\Term;
@@ -42,7 +43,6 @@ class ApplicationController extends Controller
             'plan' => $this->workflow->plan($application),
             'history' => $application->documents()->with('checklistItem')->orderBy('checklist_item_id')->orderByDesc('version')->get(),
             'revealed' => in_array($application->id, session('revealed_applications', []), true),
-            'canApprove' => $this->workflow->allRequiredAccepted($application) && $application->term->isOpen() && ! $application->isFinal(),
             'canComplete' => in_array($application->status, [Application::STATUS_UNDER_REVIEW, Application::STATUS_INCOMPLETE], true)
                 && $application->term->isOpen() && $this->workflow->allRequiredAccepted($application),
         ]);
@@ -59,33 +59,16 @@ class ApplicationController extends Controller
         return back();
     }
 
-    public function approve(Request $request, Application $application): RedirectResponse
+    public function committee(CommitteeDecisionRequest $request, Application $application): RedirectResponse
     {
         $this->authorize('review', $application);
-        $data = $request->validate([
-            'assignment_decision_number' => ['nullable', 'string', 'max:40'],
-            'assignment_decision_date' => ['nullable', 'date'],
-        ]);
         try {
-            $this->workflow->approve($application, $request->user(), $data['assignment_decision_number'] ?? null, $data['assignment_decision_date'] ?? null);
+            $this->workflow->committeeDecision($application, $request->user(), $request->outcome, $request->committee_met_on, $request->committee_reference, $request->committee_note ?: null);
         } catch (\DomainException $e) {
-            return back()->withErrors(['approve' => $e->getMessage()]);
+            return back()->withErrors(['committee' => $e->getMessage()]);
         }
 
-        return back()->with('status', __('app.review.approved'));
-    }
-
-    public function reject(Request $request, Application $application): RedirectResponse
-    {
-        $this->authorize('review', $application);
-        $data = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
-        try {
-            $this->workflow->reject($application, $request->user(), $data['reason']);
-        } catch (\DomainException $e) {
-            return back()->withErrors(['reject' => $e->getMessage()]);
-        }
-
-        return back()->with('status', __('app.review.rejected'));
+        return back()->with('status', __('app.review.committee_saved'));
     }
 
     public function complete(Request $request, Application $application): RedirectResponse

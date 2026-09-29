@@ -60,8 +60,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('applications/{application}/checklist', [AdminApplicationController::class, 'checklist'])->name('applications.checklist');
     Route::post('applications/{application}/reveal', [AdminApplicationController::class, 'reveal'])->name('applications.reveal');
     Route::post('applications/{application}/complete', [AdminApplicationController::class, 'complete'])->name('applications.complete');
-    Route::post('applications/{application}/approve', [AdminApplicationController::class, 'approve'])->name('applications.approve');
-    Route::post('applications/{application}/reject', [AdminApplicationController::class, 'reject'])->name('applications.reject');
+    Route::post('applications/{application}/committee', [AdminApplicationController::class, 'committee'])->name('applications.committee');
     Route::post('applications/{application}/decision', [AdminApplicationController::class, 'decision'])->name('applications.decision');
     Route::post('documents/{document}/review', [AdminDocumentController::class, 'review'])->name('documents.review');
     Route::get('documents/{document}', [AdminDocumentController::class, 'download'])->name('documents.download');

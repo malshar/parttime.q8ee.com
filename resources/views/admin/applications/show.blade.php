@@ -179,6 +179,12 @@
     <div class="card-body">
         @if ($application->isFinal())
             <span class="badge bg-secondary">{{ __('app.applications.statuses.'.$application->status) }}</span>
+            @if ($application->committee_outcome)
+                <div class="small text-muted mt-2">
+                    {{ __('app.review.committee_record', ['outcome' => __('app.review.outcomes.'.$application->committee_outcome), 'date' => format_date($application->committee_met_on), 'ref' => $application->committee_reference]) }}
+                    @if ($application->committee_note)<div>{{ $application->committee_note }}</div>@endif
+                </div>
+            @endif
             @if ($application->status === \App\Models\Application::STATUS_APPROVED)
                 <form method="post" action="{{ route('admin.applications.decision', $application) }}" class="row g-2 align-items-end mt-2">
                     @csrf
@@ -200,44 +206,40 @@
         @else
             @if ($application->status === \App\Models\Application::STATUS_COMPLETE)
                 <div class="alert alert-info py-2">{{ __('app.review.awaiting_committee') }}</div>
+                <form method="post" action="{{ route('admin.applications.committee', $application) }}" class="row g-2 align-items-end">
+                    @csrf
+                    <div class="col-md-3">
+                        <label class="form-label">{{ __('app.review.committee_outcome') }}</label>
+                        <select name="outcome" class="form-select form-select-sm" required>
+                            <option value="approved">{{ __('app.review.outcomes.approved') }}</option>
+                            <option value="rejected">{{ __('app.review.outcomes.rejected') }}</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">{{ __('app.review.committee_met_on') }}</label>
+                        <input type="date" name="committee_met_on" value="{{ old('committee_met_on') }}" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">{{ __('app.review.committee_reference') }}</label>
+                        <input name="committee_reference" value="{{ old('committee_reference') }}" class="form-control form-control-sm" maxlength="60" required>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">{{ __('app.review.committee_note') }}</label>
+                        <textarea name="committee_note" class="form-control form-control-sm">{{ old('committee_note') }}</textarea>
+                        <div class="form-text">{{ __('app.review.committee_note_hint') }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-eet btn-sm" onclick="return confirm(@js(__('app.review.committee_confirm')))">{{ __('app.review.committee_save') }}</button>
+                    </div>
+                </form>
             @elseif ($canComplete)
                 <form method="post" action="{{ route('admin.applications.complete', $application) }}" class="mb-3">
                     @csrf
                     <button type="submit" class="btn btn-eet btn-sm">{{ __('app.review.mark_complete') }}</button>
                 </form>
             @else
-                <div class="alert alert-warning py-2">{{ __('app.review.complete_blocked') }}</div>
+                <div class="alert alert-warning py-2 mb-0">{{ __('app.review.complete_blocked') }}</div>
             @endif
-
-            @if ($canApprove)
-                <form method="post" action="{{ route('admin.applications.approve', $application) }}" class="row g-2 align-items-end mb-3">
-                    @csrf
-                    <div class="col-auto">
-                        <label class="form-label">{{ __('app.review.decision_number') }}</label>
-                        <input name="assignment_decision_number" class="form-control form-control-sm">
-                    </div>
-                    <div class="col-auto">
-                        <label class="form-label">{{ __('app.review.decision_date') }}</label>
-                        <input type="date" name="assignment_decision_date" class="form-control form-control-sm">
-                    </div>
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-eet btn-sm">{{ __('app.review.approve') }}</button>
-                    </div>
-                </form>
-            @else
-                <div class="alert alert-warning py-2">{{ __('app.review.approve_blocked') }}</div>
-            @endif
-
-            <form method="post" action="{{ route('admin.applications.reject', $application) }}" onsubmit="return confirm('{{ __('app.review.reject_confirm') }}')" class="row g-2 align-items-end">
-                @csrf
-                <div class="col-md-8">
-                    <label class="form-label">{{ __('app.review.reason') }}</label>
-                    <textarea name="reason" class="form-control form-control-sm" required></textarea>
-                </div>
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-outline-danger btn-sm">{{ __('app.review.reject') }}</button>
-                </div>
-            </form>
         @endif
     </div>
 </div>

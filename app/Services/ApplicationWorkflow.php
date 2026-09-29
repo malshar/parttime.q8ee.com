@@ -156,36 +156,33 @@ class ApplicationWorkflow
         AuditLog::record($admin->id, 'mark_complete', $application);
     }
 
-    public function approve(Application $application, User $admin, ?string $decisionNumber, ?string $decisionDate): void
+    public function committeeDecision(Application $application, User $admin, string $outcome, string $metOn, string $reference, ?string $note): void
     {
         if ($application->isFinal()) {
             throw new \DomainException(__('app.review.already_final'));
         }
+        if ($application->status !== Application::STATUS_COMPLETE) {
+            throw new \DomainException(__('app.review.committee_wrong_status'));
+        }
         if (! $application->term->isOpen()) {
             throw new \DomainException(__('app.applications.term_closed'));
         }
-        if (! $this->allRequiredAccepted($application)) {
-            throw new \DomainException(__('app.review.approve_blocked'));
-        }
-        $application->update([
-            'status' => Application::STATUS_APPROVED, 'decided_at' => now(),
-            'assignment_decision_number' => $decisionNumber, 'assignment_decision_date' => $decisionDate,
-        ]);
-        AuditLog::record($admin->id, 'approve_application', $application);
-        $this->safeSend($application->instructor->user->email, new ApplicationApproved($application));
-    }
 
-    public function reject(Application $application, User $admin, string $reason): void
-    {
-        if ($application->isFinal()) {
-            throw new \DomainException(__('app.review.already_final'));
-        }
-        if (! $application->term->isOpen()) {
-            throw new \DomainException(__('app.applications.term_closed'));
-        }
-        $application->update(['status' => Application::STATUS_REJECTED, 'decided_at' => now(), 'rejection_reason' => $reason]);
-        AuditLog::record($admin->id, 'reject_application', $application);
-        $this->safeSend($application->instructor->user->email, new ApplicationRejected($application));
+        $approved = $outcome === 'approved';
+        $application->update([
+            'status' => $approved ? Application::STATUS_APPROVED : Application::STATUS_REJECTED,
+            'decided_at' => now(),
+            'committee_outcome' => $outcome,
+            'committee_met_on' => $metOn,
+            'committee_reference' => $reference,
+            'committee_note' => $note,
+            'rejection_reason' => $approved ? null : $note,
+        ]);
+        AuditLog::record($admin->id, 'committee_decision', $application);
+        $this->safeSend(
+            $application->instructor->user->email,
+            $approved ? new ApplicationApproved($application) : new ApplicationRejected($application),
+        );
     }
 
     private function notifyAdmin(Application $application): void

@@ -2,8 +2,6 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Mail\ApplicationApproved;
-use App\Mail\ApplicationRejected;
 use App\Mail\DocumentsRejected;
 use App\Models\Application;
 use App\Models\AuditLog;
@@ -86,66 +84,32 @@ class ReviewTest extends TestCase
         $this->actingAs($this->admin)->post(route('admin.documents.review', $doc), ['status' => 'rejected'])->assertSessionHasErrors('reason');
     }
 
-    public function test_approve_blocked_until_latest_versions_all_accepted(): void
+    public function test_complete_blocked_until_latest_versions_all_accepted(): void
     {
         $this->acceptAll();
         $iban = $this->application->latestDocuments()->get('iban');
         $this->actingAs($this->admin)->post(route('admin.documents.review', $iban), ['status' => 'rejected', 'reason' => 'x']);
 
-        $this->actingAs($this->admin)->post(route('admin.applications.approve', $this->application))->assertSessionHasErrors('approve');
+        $this->actingAs($this->admin)->post(route('admin.applications.complete', $this->application))->assertSessionHasErrors('complete');
 
-        // Applicant re-uploads (v2, pending) → still blocked; admin accepts v2 → approve works even though v1 stays rejected.
+        // Applicant re-uploads (v2, pending) → still blocked; admin accepts v2 → complete works even though v1 stays rejected.
         $v2 = Document::factory()->for($this->application)->forItem('iban')->create(['version' => 2]);
-        $this->actingAs($this->admin)->post(route('admin.applications.approve', $this->application))->assertSessionHasErrors('approve');
+        $this->actingAs($this->admin)->post(route('admin.applications.complete', $this->application))->assertSessionHasErrors('complete');
         $this->actingAs($this->admin)->post(route('admin.documents.review', $v2), ['status' => 'accepted']);
 
-        $this->actingAs($this->admin)->post(route('admin.applications.approve', $this->application), [
-            'assignment_decision_number' => '123/2026', 'assignment_decision_date' => '2026-09-20',
-        ])->assertRedirect();
+        $this->actingAs($this->admin)->post(route('admin.applications.complete', $this->application))->assertRedirect();
 
         $fresh = $this->application->fresh();
-        $this->assertSame(Application::STATUS_APPROVED, $fresh->status);
-        $this->assertSame('123/2026', $fresh->assignment_decision_number);
-        Mail::assertSent(ApplicationApproved::class, fn ($m) => $m->hasTo($this->instructorUser->email));
+        $this->assertSame(Application::STATUS_COMPLETE, $fresh->status);
     }
 
-    public function test_approve_blocked_on_closed_term(): void
+    public function test_complete_blocked_on_closed_term(): void
     {
         $this->acceptAll();
         $this->application->term->update(['status' => 'closed']);
 
-        $this->actingAs($this->admin)->post(route('admin.applications.approve', $this->application))->assertSessionHasErrors('approve');
-        $this->assertNotSame(Application::STATUS_APPROVED, $this->application->fresh()->status);
-    }
-
-    public function test_reject_application_with_reason_mails_instructor(): void
-    {
-        $this->actingAs($this->admin)->post(route('admin.applications.reject', $this->application), ['reason' => 'لا يستوفي الشروط'])->assertRedirect();
-
-        $this->assertSame(Application::STATUS_REJECTED, $this->application->fresh()->status);
-        Mail::assertSent(ApplicationRejected::class);
-    }
-
-    public function test_approve_refused_on_final_application(): void
-    {
-        $this->acceptAll();
-        $this->application->update(['status' => Application::STATUS_WITHDRAWN, 'decided_at' => now()]);
-
-        $this->actingAs($this->admin)->post(route('admin.applications.approve', $this->application))->assertSessionHasErrors('approve');
-
-        $this->assertSame(Application::STATUS_WITHDRAWN, $this->application->fresh()->status);
-        Mail::assertNotSent(ApplicationApproved::class);
-    }
-
-    public function test_reject_refused_on_final_application(): void
-    {
-        $this->acceptAll();
-        $this->application->update(['status' => Application::STATUS_APPROVED, 'decided_at' => now()]);
-
-        $this->actingAs($this->admin)->post(route('admin.applications.reject', $this->application), ['reason' => 'x'])->assertSessionHasErrors('reject');
-
-        $this->assertSame(Application::STATUS_APPROVED, $this->application->fresh()->status);
-        Mail::assertNotSent(ApplicationRejected::class);
+        $this->actingAs($this->admin)->post(route('admin.applications.complete', $this->application))->assertSessionHasErrors('complete');
+        $this->assertNotSame(Application::STATUS_COMPLETE, $this->application->fresh()->status);
     }
 
     public function test_document_review_refused_on_final_application(): void
@@ -189,19 +153,7 @@ class ReviewTest extends TestCase
         $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))->assertOk()
             ->assertSee(__('app.applications.term_closed'))
             ->assertDontSee(route('admin.documents.review', $doc))
-            ->assertDontSee(route('admin.applications.reject', $this->application))
-            ->assertDontSee(route('admin.applications.approve', $this->application));
-    }
-
-    public function test_reject_blocked_on_closed_term(): void
-    {
-        $this->application->term->update(['status' => 'closed']);
-
-        $this->actingAs($this->admin)->post(route('admin.applications.reject', $this->application), ['reason' => 'x'])
-            ->assertSessionHasErrors(['reject' => __('app.applications.term_closed')]);
-
-        $this->assertSame(Application::STATUS_SUBMITTED, $this->application->fresh()->status);
-        Mail::assertNotSent(ApplicationRejected::class);
+            ->assertDontSee(route('admin.applications.committee', $this->application));
     }
 
     public function test_superseded_document_version_cannot_be_reviewed(): void
@@ -236,7 +188,7 @@ class ReviewTest extends TestCase
     public function test_decision_can_be_set_after_approval(): void
     {
         $this->acceptAll();
-        $this->actingAs($this->admin)->post(route('admin.applications.approve', $this->application))->assertSessionHasNoErrors();
+        $this->application->update(['status' => Application::STATUS_APPROVED, 'decided_at' => now()]);
         $this->assertSame(Application::STATUS_APPROVED, $this->application->fresh()->status);
 
         $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))->assertOk()
