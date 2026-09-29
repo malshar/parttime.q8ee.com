@@ -5,10 +5,9 @@ Target: the same Ubuntu + Apache server that hosts help.q8ee.com
 `./deploy/deploy.sh`.
 
 **Status:** milestone 1 (intake) and milestone 2 (committee workflow,
-sections import, assignments) are implemented, milestone 2 on branch
-`milestone-2-assignment` (`php artisan test` green). Nothing below has been
-run against the real server yet — this is the checklist for when Dr. Mishal
-is ready to do the first deploy.
+sections import, assignments) are merged on `main` and pushed
+(`php artisan test` green, 147 tests). Nothing below has been run against
+the real server yet — this is the checklist for the first deploy.
 
 ## 0. Prerequisites to verify on the server
 
