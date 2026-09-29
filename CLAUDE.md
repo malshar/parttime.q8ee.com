@@ -2,7 +2,8 @@
 
 > **Status (2026-09-29): Milestone 2 (committee workflow, sections import,
 > assignments) implemented on branch `milestone-2-assignment`, deploy
-> pending.** Laravel 12 app (`php artisan test` green). Milestone 1 (intake)
+> pending; final review + fix wave done.** Laravel 12 app (`php artisan test`
+> green, 147 tests). Milestone 1 (intake)
 > shipped first; milestone 2 adds: the `complete` application status with a
 > three-group attention list, a committee decision step (replacing direct
 > approve/reject) with a consolidated rejection notice, reopening of
@@ -14,14 +15,17 @@
 > `/admin/assignments` with dashboard alerts. Design:
 > `docs/superpowers/specs/2026-09-28-parttime-system-design.md` (milestone 1)
 > and `docs/superpowers/specs/2026-09-29-milestone-2-assignment-design.md`
-> (milestone 2). Deploy scripts/docs are in `deploy/` (`deploy/DEPLOY.md` for
+> (milestone 2); final reviews with rulings and deferred minors are in
+> `docs/superpowers/reviews/`. Deploy scripts/docs are in `deploy/` (`deploy/DEPLOY.md` for
 > first-time server setup, `./deploy/deploy.sh` for routine deploys) — the
 > first real deploy to parttime.q8ee.com has not been run yet.
 >
 > Application status pipeline: `draft` → `submitted` → `under_review` →
 > (`incomplete` ⇄ `under_review`) → `complete` → committee decision →
 > `approved` / `rejected`, or `withdrawn` at any point before a final
-> decision (withdrawn applications can be reopened by an admin).
+> decision (an admin can reopen a withdrawn application, which returns it to
+> `draft`). Weekly load is stored as `weekly_minutes` (scheduled contact time
+> from the imported timetable); hours are derived for display.
 >
 > Real applicant files continue to arrive in `../part-time/` (10 applicants
 > as of 2026-09-27). See the root `../CLAUDE.md` for what is there and how

@@ -2,7 +2,10 @@
 
 ## Status (2026-09-29)
 Milestone 2 (committee workflow, sections import, assignments) implemented
-on branch `milestone-2-assignment`; tests green; deploy pending. Milestone 1
+on branch `milestone-2-assignment`; `php artisan test` green (147 tests);
+final whole-branch review + fix wave done — see
+`docs/superpowers/reviews/2026-09-29-milestone-2-final-review.md`
+(deferred minors + rulings, start there for milestone 3). Deploy pending. Milestone 1
 (intake) shipped first on branch `milestone-1-intake`
 (`php artisan test` green, 89 tests; final whole-branch review + fix wave done — see
 `docs/superpowers/reviews/2026-09-28-milestone-1-final-review.md`). See
@@ -54,6 +57,10 @@ Sections imported per term from Excel. Full details in the spec.
   column), sections/meetings/assignments schema, jadawil CSV/XLSX importer
   (`phpoffice/phpspreadsheet`) at `/admin/sections/import`, section list at
   `/admin/sections`, assignment screen at `/admin/assignments`, dashboard
-  alerts. `php artisan test` green. Design:
-  `docs/superpowers/specs/2026-09-29-milestone-2-assignment-design.md`.
+  alerts. Final review + fix wave (SectionPolicy, profile lock on
+  `complete`, audited admin edit form, `weekly_minutes` as the only stored
+  load, `complete` in the status filter). `php artisan test` green (147
+  tests). Design:
+  `docs/superpowers/specs/2026-09-29-milestone-2-assignment-design.md`;
+  review: `docs/superpowers/reviews/2026-09-29-milestone-2-final-review.md`.
   Deploy pending.
