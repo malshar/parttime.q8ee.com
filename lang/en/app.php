@@ -168,5 +168,6 @@ return [
         'bad_day' => 'Unknown day ":day".',
         'unknown_activity' => 'Row :row: unknown activity ":activity", treated as theory.',
         'duplicate_meeting' => 'Row :row: duplicate meeting for course :course section :section, ignored.',
+        'import_has_errors' => 'Cannot import until the errors in the file are corrected.',
     ],
 ];

@@ -174,5 +174,6 @@ return [
         'bad_day' => 'يوم غير معروف ":day".',
         'unknown_activity' => 'السطر :row: النشاط ":activity" غير معروف، اعتبر نظريا.',
         'duplicate_meeting' => 'السطر :row: لقاء مكرر للمقرر :course شعبة :section، تم تجاهله.',
+        'import_has_errors' => 'لا يمكن الاستيراد قبل تصحيح الأخطاء في الملف.',
     ],
 ];
