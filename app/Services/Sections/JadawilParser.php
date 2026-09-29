@@ -168,6 +168,8 @@ class JadawilParser
                 $rows[] = ['n' => $i + 1, 'cells' => $cells];
             }
         } catch (\Throwable $e) {
+            report($e);
+
             return new ParsedTimetable(errors: [__('app.sections.unreadable_xlsx')]);
         } finally {
             @unlink($tmp);

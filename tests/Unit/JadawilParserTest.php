@@ -110,4 +110,15 @@ class JadawilParserTest extends TestCase
         $this->assertSame('09:30', $s->meetings[2]->startsAt);
         $this->assertSame(90, $s->meetings[2]->minutes);
     }
+
+    public function test_corrupt_xlsx_yields_unreadable_error_and_reports_exception(): void
+    {
+        \Illuminate\Support\Facades\Exceptions::fake();
+
+        $t = (new JadawilParser)->parse('not a zip file at all', 'xlsx');
+
+        $this->assertTrue($t->hasErrors());
+        $this->assertContains(__('app.sections.unreadable_xlsx'), $t->errors);
+        \Illuminate\Support\Facades\Exceptions::assertReported(\PhpOffice\PhpSpreadsheet\Reader\Exception::class);
+    }
 }
