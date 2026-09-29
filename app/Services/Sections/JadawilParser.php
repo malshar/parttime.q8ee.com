@@ -153,6 +153,44 @@ class JadawilParser
 
     protected function parseXlsx(string $contents): ParsedTimetable
     {
-        return new ParsedTimetable(errors: [__('app.sections.unsupported_file')]); // replaced in Task 8
+        $tmp = tempnam(sys_get_temp_dir(), 'jadawil');
+        file_put_contents($tmp, $contents);
+        try {
+            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
+            $reader->setReadDataOnly(true);
+            $sheet = $reader->load($tmp)->getSheet(0);
+            $rows = [];
+            foreach ($sheet->toArray(null, true, false, false) as $i => $cells) {
+                $cells = array_map(fn ($v) => $this->cellToString($v), $cells);
+                if (implode('', $cells) === '') {
+                    continue;
+                }
+                $rows[] = ['n' => $i + 1, 'cells' => $cells];
+            }
+        } catch (\Throwable $e) {
+            return new ParsedTimetable(errors: [__('app.sections.unreadable_xlsx')]);
+        } finally {
+            @unlink($tmp);
+        }
+
+        return $this->fromRows($rows);
+    }
+
+    /** Numeric time fractions (0.5 = 12:00) become H:MM; other scalars become trimmed strings. */
+    private function cellToString(mixed $v): string
+    {
+        if ($v === null) {
+            return '';
+        }
+        if (is_float($v) && $v > 0 && $v < 1) {
+            $minutes = (int) round($v * 24 * 60);
+
+            return sprintf('%d:%02d', intdiv($minutes, 60), $minutes % 60);
+        }
+        if (is_float($v) && floor($v) == $v) {
+            return (string) (int) $v;
+        }
+
+        return trim((string) $v);
     }
 }

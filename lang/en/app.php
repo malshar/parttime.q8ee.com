@@ -159,6 +159,7 @@ return [
         'MY' => 'Malaysia', 'IN' => 'India', 'PK' => 'Pakistan', 'TR' => 'Turkey', 'DE' => 'Germany', 'FR' => 'France', 'ZZ' => 'Other country'],
     'sections' => [
         'unsupported_file' => 'Unsupported file type. Accepted: CSV or XLSX from the schedule system.',
+        'unreadable_xlsx' => 'Could not read the XLSX file.',
         'no_header' => 'The file is empty or has no header row.',
         'missing_column' => 'The required column ":column" is missing from the file.',
         'row_error' => 'Row :row: :message',

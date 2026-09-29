@@ -88,4 +88,26 @@ class JadawilParserTest extends TestCase
         $this->assertSame('الدوائر, المستوى 1', $s->courseName);
         $this->assertCount(1, $s->meetings);
     }
+
+    public function test_parses_xlsx_with_numeric_cells_and_seats(): void
+    {
+        $sheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet;
+        $ws = $sheet->getActiveSheet();
+        $ws->fromArray(['#', 'رقم المقرر', 'الرقم المرجعي', 'الشعبة', 'اسم المقرر', 'الحالة', 'الرابط', 'الحد الأقصى', 'مسجلة', 'متبقية', 'الوحدات', 'النشاط', 'من', 'الى', 'المبنى', 'القاعة', 'الأيام', 'المدرس', 'الفرع'], null, 'A1');
+        $ws->fromArray([1, 7220220, 10231, 1, 'الإلكترونيات الصناعية', 'مفتوحة', 'A', 25, 20, 5, 3, 'محاضرة', '8:00', '9:15', '04A', 'D-101', 'الأحد / الثلاثاء', 'د. فلان', 'ش'], null, 'A2');
+        $ws->fromArray([2, 7220220, 10231, 1, 'الإلكترونيات الصناعية', 'مفتوحة', 'A', 25, 20, 5, 3, 'مختبر', 9.5 / 24, 11.0 / 24, '04A', 'L-12', 'الإثنين', 'م. علان', 'ش'], null, 'A3');
+        $path = tempnam(sys_get_temp_dir(), 'jad').'.xlsx';
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($sheet))->save($path);
+
+        $t = (new JadawilParser)->parse(file_get_contents($path), 'xlsx');
+        unlink($path);
+
+        $this->assertFalse($t->hasErrors(), implode("\n", $t->errors));
+        $s = $t->sections['7220220|1'];
+        $this->assertSame(25, $s->seatsCapacity);
+        $this->assertSame(5, $s->seatsRemaining);
+        $this->assertCount(3, $s->meetings);
+        $this->assertSame('09:30', $s->meetings[2]->startsAt);
+        $this->assertSame(90, $s->meetings[2]->minutes);
+    }
 }
