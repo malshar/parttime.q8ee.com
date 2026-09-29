@@ -15,8 +15,8 @@ Steps 2-7 and 9 are automated in **`./deploy/first-deploy.sh`** (run once
 from the Mac; idempotent). It generates the DB password
 (`/root/.parttime-db-pass`) and the admin's initial password
 (`/root/parttime-admin-initial.txt`), points mail at this server's mailcow
-(`mail.alsharidah.me:587`, sender `noreply@q8ee.com`, notifications to
-`mishal@q8ee.com`) and issues a Let's Encrypt certificate with certbot,
+as `mail.q8ee.com:587` (see step 11 and `deploy/mail-hostname.sh`; sender
+`noreply@q8ee.com`, notifications to `mishal@q8ee.com`) and issues a Let's Encrypt certificate with certbot,
 like help.q8ee.com. Afterwards do steps 8 (Turnstile keys), 11 (the
 mailcow mailbox password) and 9a (firewall) by hand. Step 0 was verified
 on 2026-09-29: PHP 8.4.25, all extensions, Composer 2.8.5, MySQL 8.0.46,
@@ -223,14 +223,22 @@ https://www.cloudflare.com/ips/ announces a change.
 
 ## 11. SMTP (mailcow on this server)
 
-Outgoing mail goes through the server's own mailcow (`mail.alsharidah.me`,
-submission port 587, STARTTLS), authenticated as the mailbox
-`noreply@q8ee.com` (create it in the mailcow UI: Mailboxes → Add, domain
-`q8ee.com`). Put its password in `.env` as `MAIL_PASSWORD`, then
-`php artisan config:cache`. For deliverability q8ee.com needs, in
-Cloudflare DNS (proxy off): SPF `v=spf1 a:mail.alsharidah.me -all`, the
-DKIM TXT for selector `dkim` (mailcow → domain → DNS tab), and DMARC
-`v=DMARC1; p=quarantine; rua=mailto:mishal@q8ee.com`; MX → `mail.alsharidah.me`
+Outgoing mail goes through the server's own mailcow, addressed as
+`mail.q8ee.com` (submission port 587, STARTTLS), authenticated as the
+mailbox `noreply@q8ee.com` (create it in the mailcow UI: Mailboxes → Add,
+domain `q8ee.com`). Put its password in `.env` as `MAIL_PASSWORD`, then
+`php artisan config:cache`.
+
+`mail.q8ee.com` needs an A record → `74.207.252.122` with the Cloudflare
+proxy **off** (SMTP cannot go through the proxy), then
+`./deploy/mail-hostname.sh` once: it adds an Apache HTTP vhost that
+forwards the ACME challenge to mailcow, sets `SKIP_IP_CHECK=y` and
+`ADDITIONAL_SAN=mail.q8ee.com` in `mailcow.conf`, and lets mailcow renew its
+certificate (which had been expired since 2024-10-10 because the primary
+name is proxied). For deliverability q8ee.com needs, in Cloudflare DNS:
+SPF `v=spf1 a:mail.q8ee.com -all`, the DKIM TXT for selector `dkim`
+(mailcow → domain → DNS tab; one line, no line breaks), and DMARC
+`v=DMARC1; p=quarantine; rua=mailto:mishal@q8ee.com`; MX → `mail.q8ee.com`
 only if q8ee.com should also receive mail. Submit a test application to
 confirm `ADMIN_NOTIFY_EMAIL` receives the notification.
 

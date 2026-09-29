@@ -24,7 +24,7 @@ APP_DIR="$REMOTE_BASE/app"
 ADMIN_EMAIL="mishal@q8ee.com"
 ADMIN_NAME="د. مشعل الشريده"
 NOTIFY_EMAIL="mishal@q8ee.com"
-MAIL_HOST="mail.alsharidah.me"     # this server's mailcow; TLS cert is for this name
+MAIL_HOST="mail.q8ee.com"          # this server's mailcow, via deploy/mail-hostname.sh
 MAIL_USER="noreply@q8ee.com"       # mailbox to create in mailcow (domain q8ee.com)
 
 cd "$(dirname "$0")/.."
