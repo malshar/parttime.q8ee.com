@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Collection;
 
 class Application extends Model
@@ -36,8 +37,8 @@ class Application extends Model
     public const FINAL_STATUSES = [self::STATUS_APPROVED, self::STATUS_REJECTED, self::STATUS_WITHDRAWN];
 
     protected $fillable = ['term_id', 'instructor_id', 'status', 'submitted_at', 'reviewed_at', 'complete_at', 'decided_at',
-        'assignment_decision_number', 'assignment_decision_date', 'weekly_hours', 'admin_note', 'rejection_reason',
-        'committee_outcome', 'committee_met_on', 'committee_reference', 'committee_note'];
+        'assignment_decision_number', 'assignment_decision_date', 'weekly_hours', 'weekly_minutes', 'weekly_hours_decimal',
+        'admin_note', 'rejection_reason', 'committee_outcome', 'committee_met_on', 'committee_reference', 'committee_note'];
 
     protected function casts(): array
     {
@@ -58,6 +59,21 @@ class Application extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class);
+    }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(Assignment::class);
+    }
+
+    public function sections(): HasManyThrough
+    {
+        return $this->hasManyThrough(Section::class, Assignment::class, 'application_id', 'id', 'id', 'section_id');
+    }
+
+    public function weeklyHoursLabel(): string
+    {
+        return Section::hoursFromMinutes((int) $this->weekly_minutes);
     }
 
     /** Latest version per checklist item, keyed by item code. */

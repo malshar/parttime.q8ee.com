@@ -33,6 +33,11 @@ class Term extends Model
         return $this->hasMany(Application::class);
     }
 
+    public function sections(): HasMany
+    {
+        return $this->hasMany(Section::class);
+    }
+
     public function scopeOpen(Builder $q): Builder
     {
         return $q->where('status', self::STATUS_OPEN);
