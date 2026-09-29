@@ -98,4 +98,17 @@ class CommitteeDecisionTest extends TestCase
         $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.applications.approve'));
         $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.applications.reject'));
     }
+
+    public function test_outcome_is_preserved_after_validation_failure(): void
+    {
+        $this->actingAs($this->admin)
+            ->from(route('admin.applications.show', $this->application))
+            ->post(route('admin.applications.committee', $this->application), $this->payload(['outcome' => 'rejected']))
+            ->assertSessionHasErrors('committee_note')
+            ->assertRedirect(route('admin.applications.show', $this->application));
+
+        $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))
+            ->assertSee('<option value="rejected" selected', false)
+            ->assertDontSee('<option value="approved" selected', false);
+    }
 }

@@ -131,6 +131,7 @@ return [
         'complete_wrong_status' => 'The file cannot be marked complete in its current status.',
         'awaiting_committee' => 'The file is complete and awaiting the recruitment and secondment committee decision.',
         'committee_outcome' => 'Committee decision',
+        'choose_outcome' => 'Choose the decision',
         'outcomes' => ['approved' => 'Approved', 'rejected' => 'Rejected'],
         'committee_met_on' => 'Committee meeting date',
         'committee_reference' => 'Decision number/reference',

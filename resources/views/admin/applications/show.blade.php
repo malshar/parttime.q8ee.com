@@ -211,8 +211,9 @@
                     <div class="col-md-3">
                         <label class="form-label">{{ __('app.review.committee_outcome') }}</label>
                         <select name="outcome" class="form-select form-select-sm" required>
-                            <option value="approved">{{ __('app.review.outcomes.approved') }}</option>
-                            <option value="rejected">{{ __('app.review.outcomes.rejected') }}</option>
+                            <option value="">{{ __('app.review.choose_outcome') }}</option>
+                            <option value="approved" @selected(old('outcome') === 'approved')>{{ __('app.review.outcomes.approved') }}</option>
+                            <option value="rejected" @selected(old('outcome') === 'rejected')>{{ __('app.review.outcomes.rejected') }}</option>
                         </select>
                     </div>
                     <div class="col-md-3">

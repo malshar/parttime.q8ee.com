@@ -137,6 +137,7 @@ return [
         'complete_wrong_status' => 'لا يمكن تحديد الملف كمكتمل في حالته الحالية.',
         'awaiting_committee' => 'الملف مكتمل وبانتظار قرار لجنة التوظيف والانتداب.',
         'committee_outcome' => 'قرار اللجنة',
+        'choose_outcome' => 'اختر القرار',
         'outcomes' => ['approved' => 'موافقة', 'rejected' => 'رفض'],
         'committee_met_on' => 'تاريخ اجتماع اللجنة',
         'committee_reference' => 'رقم/مرجع القرار',
