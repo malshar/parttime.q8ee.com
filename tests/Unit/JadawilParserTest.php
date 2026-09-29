@@ -77,4 +77,15 @@ class JadawilParserTest extends TestCase
         $t = (new JadawilParser)->parseCsv($csv);
         $this->assertCount(2, $t->errors);
     }
+
+    public function test_quoted_cell_with_comma_and_crlf_is_parsed(): void
+    {
+        $csv = "\"رقم المقرر\",\"اسم المقرر\",\"النشاط\",\"من\",\"الى\",\"الأيام\",\"الشعبة\"\r\n"
+            ."\"7200100\",\"الدوائر, المستوى 1\",\"محاضرة\",\"8:00\",\"9:00\",\"الأحد\",\"1\"\r\n";
+        $t = (new JadawilParser)->parseCsv($csv);
+
+        $s = $t->sections['7200100|1'];
+        $this->assertSame('الدوائر, المستوى 1', $s->courseName);
+        $this->assertCount(1, $s->meetings);
+    }
 }

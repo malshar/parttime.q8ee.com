@@ -31,7 +31,7 @@ class JadawilParser
             if (trim($line) === '') {
                 continue;
             }
-            $rows[] = ['n' => $i + 1, 'cells' => array_map('trim', str_getcsv($line))];
+            $rows[] = ['n' => $i + 1, 'cells' => array_map('trim', str_getcsv($line, ',', '"', ''))];
         }
 
         return $this->fromRows($rows);
