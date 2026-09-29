@@ -37,7 +37,7 @@ class Application extends Model
     public const FINAL_STATUSES = [self::STATUS_APPROVED, self::STATUS_REJECTED, self::STATUS_WITHDRAWN];
 
     protected $fillable = ['term_id', 'instructor_id', 'status', 'submitted_at', 'reviewed_at', 'complete_at', 'decided_at',
-        'assignment_decision_number', 'assignment_decision_date', 'weekly_hours', 'weekly_minutes', 'weekly_hours_decimal',
+        'assignment_decision_number', 'assignment_decision_date', 'weekly_minutes',
         'admin_note', 'rejection_reason', 'committee_outcome', 'committee_met_on', 'committee_reference', 'committee_note'];
 
     protected function casts(): array

@@ -65,7 +65,7 @@ class AssignmentService
         foreach ($application->sections()->with('meetings')->get() as $s) {
             $minutes += $s->weeklyMinutes();
         }
-        $application->update(['weekly_minutes' => $minutes, 'weekly_hours_decimal' => round($minutes / 60, 1)]);
+        $application->update(['weekly_minutes' => $minutes]);
     }
 
     /** @return array<int, int> section_id => application_id (unique name matches on unassigned sections only) */

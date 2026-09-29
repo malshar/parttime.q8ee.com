@@ -17,7 +17,7 @@
 - Roles `admin`/`instructor`; all new admin routes under the existing `admin` group (`auth`, `role:admin`) and additionally checked by `$this->authorize(...)` where a model is involved. Instructors never reach section/assignment/import routes (403).
 - Every state-changing admin action writes `AuditLog::record($userId, $action, $subject)`; audit rows never contain sensitive values.
 - Status pipeline after this milestone: `draft → submitted → under_review ⇄ incomplete → complete → approved | rejected`; `withdrawn` from any non-final state; `withdrawn → draft` by admin reopen. `complete` is neither editable nor final.
-- Weekly hours are scheduled contact time: `weekly_minutes` (sum of assigned meetings) and `weekly_hours = round(minutes / 60, 1)`; never typed.
+- Weekly hours are scheduled contact time: `weekly_minutes` (sum of assigned meetings) is the only stored value; hours are derived for display (`round(minutes / 60, 1)`); never typed.
 - Import accepts jadawil CSV/XLSX only; required headers (exact Arabic text): رقم المقرر, اسم المقرر, الشعبة, النشاط, من, الى, الأيام. Activity mapping: محاضرة → theory; مختبر, ورشة, عملي → practical; ميداني → field; other → theory + warning.
 - Uploaded import files are parsed in memory and never stored; the parsed payload lives in the session only between preview and confirm.
 - Closed terms are read-only for every action in this milestone.
@@ -1301,7 +1301,7 @@ git add -A && git commit -m "feat: audited admin edit of an instructor profile o
 - Modify: `app/Models/Application.php`, `app/Models/Term.php`
 
 **Interfaces:**
-- Produces: `Section` (`term_id`, `course_code`, `course_name_ar`, `section_number`, `reference_number`, `seats_capacity`, `seats_registered`, `seats_remaining`, `scheduled_instructor`, `imported_at`, `missing_since_import`; relations `term()`, `meetings()`, `assignment()` HasOne; `weeklyMinutesByType(): array{theory:int,practical:int,field:int}`, `weeklyMinutes(): int`, `meetingSummary(): string` (Arabic, e.g. "محاضرة: الأحد/الثلاثاء 8:00-9:15؛ مختبر: الاثنين 9:30-11:10"), static `hoursFromMinutes(int): string` ("2.5")); `SectionMeeting` (`day_of_week`, `type`, `starts_at`, `ends_at`, `minutes`, `activity_ar`, `building`, `room`; const `TYPES`, `DAY_NAMES_AR = [0=>'الأحد',1=>'الاثنين',2=>'الثلاثاء',3=>'الأربعاء',4=>'الخميس']`); `Assignment` (`application_id`, `section_id`, `created_by`; relations); `Application::assignments()`, `Application::sections()` (hasManyThrough), `weekly_minutes` int column, `weekly_hours` decimal(5,1); `Term::sections()`. Factory states: `Section::factory()->for($term)`, `->withMeetings()` (adds theory Sun+Tue 8:00-9:15 and practical Mon 9:30-11:10 → 150+100 = 250 min).
+- Produces: `Section` (`term_id`, `course_code`, `course_name_ar`, `section_number`, `reference_number`, `seats_capacity`, `seats_registered`, `seats_remaining`, `scheduled_instructor`, `imported_at`, `missing_since_import`; relations `term()`, `meetings()`, `assignment()` HasOne; `weeklyMinutesByType(): array{theory:int,practical:int,field:int}`, `weeklyMinutes(): int`, `meetingSummary(): string` (Arabic, e.g. "محاضرة: الأحد/الثلاثاء 8:00-9:15؛ مختبر: الاثنين 9:30-11:10"), static `hoursFromMinutes(int): string` ("2.5")); `SectionMeeting` (`day_of_week`, `type`, `starts_at`, `ends_at`, `minutes`, `activity_ar`, `building`, `room`; const `TYPES`, `DAY_NAMES_AR = [0=>'الأحد',1=>'الاثنين',2=>'الثلاثاء',3=>'الأربعاء',4=>'الخميس']`); `Assignment` (`application_id`, `section_id`, `created_by`; relations); `Application::assignments()`, `Application::sections()` (hasManyThrough), `weekly_minutes` int column (the only stored load value; the M1 integer `weekly_hours` is dropped); `Term::sections()`. Factory states: `Section::factory()->for($term)`, `->withMeetings()` (adds theory Sun+Tue 8:00-9:15 and practical Mon 9:30-11:10 → 150+100 = 250 min).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1404,16 +1404,18 @@ Schema::create('assignments', function (Blueprint $table) {
 });
 ```
 
-Migration `change_weekly_hours_on_applications_table` (SQLite-safe: add new columns rather than altering type):
+Migration `change_weekly_hours_on_applications_table` (final-review fix: minutes are the single source of truth; `down()` mirrors it):
 
 ```php
 Schema::table('applications', function (Blueprint $table) {
-    $table->unsignedInteger('weekly_minutes')->default(0)->after('weekly_hours');
-    $table->decimal('weekly_hours_decimal', 5, 1)->default(0)->after('weekly_minutes');
+    $table->dropColumn('weekly_hours');
+});
+Schema::table('applications', function (Blueprint $table) {
+    $table->unsignedInteger('weekly_minutes')->default(0)->after('assignment_decision_date');
 });
 ```
 
-and in `Application` treat `weekly_hours_decimal` as the displayed value via an accessor `weeklyHoursLabel(): string` (`Section::hoursFromMinutes($this->weekly_minutes)`). The old integer `weekly_hours` column stays unused (drop in a later cleanup; documented in the plan's self-review). Add `weekly_minutes`, `weekly_hours_decimal` to `$fillable`.
+and in `Application` display hours via `weeklyHoursLabel(): string` (`Section::hoursFromMinutes($this->weekly_minutes)`). Replace `weekly_hours` with `weekly_minutes` in `$fillable`.
 
 `app/Models/SectionMeeting.php`:
 
@@ -2401,7 +2403,7 @@ class SectionImporter
         foreach ($application->sections()->with('meetings')->get() as $s) {
             $minutes += $s->weeklyMinutes();
         }
-        $application->update(['weekly_minutes' => $minutes, 'weekly_hours_decimal' => round($minutes / 60, 1)]);
+        $application->update(['weekly_minutes' => $minutes]);
     }
 
     private function fingerprint(Section $s): string
@@ -2695,7 +2697,7 @@ git add -A && git commit -m "feat: section import screens with preview/confirm a
 - Modify: `app/Services/Sections/SectionImporter.php` (call `AssignmentService::recomputeHours()` instead of the private helper), `routes/web.php`, `lang/ar/app.php`, `lang/en/app.php`
 
 **Interfaces:**
-- Produces: `AssignmentService::assign(Section, Application, User $admin): Assignment` (throws `\DomainException` unless application `approved`, same term as the section, term open, section unassigned); `unassign(Section, User $admin): void` (term open); `recomputeHours(Application): void` (sets `weekly_minutes`, `weekly_hours_decimal`); `suggestionsFor(Term): array<int section_id, int application_id>` (normalised `scheduled_instructor` == normalised approved instructor `full_name`, only unassigned sections, only when the match is unique); routes `admin.assignments.store` (POST `admin/sections/{section}/assign`, body `application_id`) and `admin.assignments.destroy` (DELETE `admin/sections/{section}/assign`). Audit `assign_section` / `unassign_section` on the Section.
+- Produces: `AssignmentService::assign(Section, Application, User $admin): Assignment` (throws `\DomainException` unless application `approved`, same term as the section, term open, section unassigned); `unassign(Section, User $admin): void` (term open); `recomputeHours(Application): void` (sets `weekly_minutes`); `suggestionsFor(Term): array<int section_id, int application_id>` (normalised `scheduled_instructor` == normalised approved instructor `full_name`, only unassigned sections, only when the match is unique); routes `admin.assignments.store` (POST `admin/sections/{section}/assign`, body `application_id`) and `admin.assignments.destroy` (DELETE `admin/sections/{section}/assign`). Audit `assign_section` / `unassign_section` on the Section.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -2878,7 +2880,7 @@ class AssignmentService
         foreach ($application->sections()->with('meetings')->get() as $s) {
             $minutes += $s->weeklyMinutes();
         }
-        $application->update(['weekly_minutes' => $minutes, 'weekly_hours_decimal' => round($minutes / 60, 1)]);
+        $application->update(['weekly_minutes' => $minutes]);
     }
 
     /** @return array<int, int> section_id => application_id (unique name matches on unassigned sections only) */
@@ -3181,7 +3183,7 @@ git add -A && git commit -m "docs: milestone 2 status, runbook import step, spec
 ## Self-review notes
 
 - **Spec coverage:** §3.1 status + attention list → Task 1; §3.2 committee decision → Task 2; §3.3 attention groups → Tasks 1 and 12 (alerts); §3.4 carry-overs → Tasks 5 (profile edit), 4 (reopen), 3 (consolidated email); §4.1 model → Task 6; §4.2 format + parser → Tasks 7–8; §4.3 import flow → Tasks 9–10; §4.4 section list → Task 10; §5.1–5.3 assignments, rules, suggestions, screens → Tasks 11–12; §6 security → every task's 403 tests + policy `review` checks; §7 tests → per task; §8 delivery → task order; runbook → Task 13.
-- **Deviation from spec wording:** XLSX read with `phpoffice/phpspreadsheet` instead of `maatwebsite/excel` (Task 8; noted in Task 13's spec edit). `weekly_hours` stays as the old integer column plus new `weekly_minutes`/`weekly_hours_decimal` (SQLite cannot alter column types without a rebuild); milestone 3 uses `weekly_minutes`. A follow-up may drop the integer column on MySQL.
+- **Deviation from spec wording:** XLSX read with `phpoffice/phpspreadsheet` instead of `maatwebsite/excel` (Task 8; noted in Task 13's spec edit). Weekly load is stored only as `weekly_minutes` (the M1 integer `weekly_hours` is dropped; hours are derived for display, final-review fix); milestone 3 uses `weekly_minutes`.
 - **Placeholders:** none.
 - **Type consistency:** `ParsedTimetable::sections` keyed `code|section` (Tasks 7, 9, 10); `ImportPlan` arrays hold the same keys; `AssignmentService::recomputeHours()` used by Tasks 9 (after 11), 11, 12; `weeklyHoursLabel()` from Task 6 used in 11, 12; `Application::factory()->approved()` and `->complete()` defined in Task 1 and used from Task 2 on; route names consistent between controllers, views and tests.
 - **Review Focus pins:** 1 → Task 7 `test_duplicate_meeting_rows_are_collapsed_with_a_warning`; 2 → Task 9 `test_reimport_updates_meetings_deletes_unassigned_and_flags_assigned`; 3 → Task 2 `test_second_submission_is_refused_and_sends_no_second_mail`; 4 → Task 7 normaliser test + Task 11 `test_suggestions_match_normalised_names_only_when_unique` + Task 12 index test; 5 → Task 7 `test_unknown_day_is_an_error_with_row_number_and_blocks` + `test_unknown_activity_maps_to_theory_with_warning_and_empty_day_is_error`.

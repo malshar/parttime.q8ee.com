@@ -6,6 +6,7 @@ use App\Models\Section;
 use App\Models\Term;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class SectionModelTest extends TestCase
@@ -30,5 +31,12 @@ class SectionModelTest extends TestCase
         Section::factory()->for($term)->create(['course_code' => '7220220', 'section_number' => '1']);
         $this->expectException(UniqueConstraintViolationException::class);
         Section::factory()->for($term)->create(['course_code' => '7220220', 'section_number' => '1']);
+    }
+
+    public function test_applications_store_weekly_minutes_as_the_only_load_column(): void
+    {
+        $this->assertTrue(Schema::hasColumn('applications', 'weekly_minutes'));
+        $this->assertFalse(Schema::hasColumn('applications', 'weekly_hours'));
+        $this->assertFalse(Schema::hasColumn('applications', 'weekly_hours_decimal'));
     }
 }

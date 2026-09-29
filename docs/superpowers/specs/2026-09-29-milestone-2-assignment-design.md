@@ -204,6 +204,8 @@ recomputed on every assignment change: sum of assigned sections' meeting
 minutes / 60, rounded to one decimal. A `weekly_minutes` unsigned int is also
 stored for exactness; milestone 3 uses minutes.
 
+> Implementation note (final review): `weekly_minutes` is the single source of truth; the integer `weekly_hours` column is dropped and hours are derived for display (`Application::weeklyHoursLabel()`), never stored.
+
 ### 5.2 Rules
 
 - Assign only when: application status `approved`, term open, section belongs
