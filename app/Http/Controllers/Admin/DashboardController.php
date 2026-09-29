@@ -16,7 +16,16 @@ class DashboardController extends Controller
 
         $department = (clone $base)->whereIn('status', [Application::STATUS_SUBMITTED, Application::STATUS_UNDER_REVIEW])->orderBy('submitted_at')->get();
         $committee = (clone $base)->where('status', Application::STATUS_COMPLETE)->orderBy('complete_at')->get();
-        $alerts = collect(); // Task 12 fills: approved without assignments, flagged sections
+
+        $alerts = collect();
+        if ($term) {
+            foreach ($term->applications()->where('status', Application::STATUS_APPROVED)->doesntHave('assignments')->with('instructor')->get() as $a) {
+                $alerts->push(['text' => __('app.review.alert_unassigned', ['name' => $a->instructor->full_name]), 'url' => route('admin.assignments.index', ['term' => $term->id])]);
+            }
+            foreach ($term->sections()->where('missing_since_import', true)->get() as $s) {
+                $alerts->push(['text' => __('app.review.alert_missing_section', ['section' => $s->course_code.' / '.$s->section_number]), 'url' => route('admin.sections.index', ['term' => $term->id])]);
+            }
+        }
 
         $counts = Application::whereHas('term', fn ($q) => $q->open())
             ->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status');

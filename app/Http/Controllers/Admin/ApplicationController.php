@@ -41,6 +41,7 @@ class ApplicationController extends Controller
             'instructor' => $application->instructor,
             'checklist' => $this->workflow->checklist($application),
             'plan' => $this->workflow->plan($application),
+            'sections' => $application->sections()->with('meetings')->get(),
             'history' => $application->documents()->with('checklistItem')->orderBy('checklist_item_id')->orderByDesc('version')->get(),
             'revealed' => in_array($application->id, session('revealed_applications', []), true),
             'canComplete' => in_array($application->status, [Application::STATUS_UNDER_REVIEW, Application::STATUS_INCOMPLETE], true)

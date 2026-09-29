@@ -125,6 +125,8 @@ return [
         'group_committee' => 'Awaiting committee',
         'group_alerts' => 'Alerts',
         'no_alerts' => 'There are no alerts.',
+        'alert_unassigned' => 'The approved part-timer :name has no section assigned.',
+        'alert_missing_section' => 'Section :section is assigned but not present in the last import.',
         'complete_at' => 'File completed on',
         'waiting' => 'Waiting time',
         'waiting_days' => ':days days',
@@ -207,5 +209,6 @@ return [
         'choose' => 'Choose the part-timer', 'suggested' => 'Suggested from the schedule',
         'weekly_hours' => 'Weekly hours', 'my_sections' => 'Assigned sections', 'none' => 'No sections assigned yet.',
         'totals' => 'Total per part-timer', 'no_approved' => 'No approved part-timers in this term.',
+        'unassign_confirm' => 'Unassign this section?',
     ],
 ];

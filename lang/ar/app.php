@@ -131,6 +131,8 @@ return [
         'group_committee' => 'بانتظار اللجنة',
         'group_alerts' => 'تنبيهات',
         'no_alerts' => 'لا توجد تنبيهات.',
+        'alert_unassigned' => 'المنتدب :name معتمد ولم تسند له أي شعبة.',
+        'alert_missing_section' => 'الشعبة :section مسندة لكنها غير موجودة في آخر استيراد.',
         'complete_at' => 'تاريخ اكتمال الملف',
         'waiting' => 'مدة الانتظار',
         'waiting_days' => ':days يوم',
@@ -213,5 +215,6 @@ return [
         'choose' => 'اختر المنتدب', 'suggested' => 'مقترح من الجدول',
         'weekly_hours' => 'الساعات الأسبوعية', 'my_sections' => 'الشعب المسندة', 'none' => 'لا توجد شعب مسندة بعد.',
         'totals' => 'إجمالي كل منتدب', 'no_approved' => 'لا يوجد منتدبون معتمدون في هذا الفصل.',
+        'unassign_confirm' => 'إلغاء إسناد هذه الشعبة؟',
     ],
 ];

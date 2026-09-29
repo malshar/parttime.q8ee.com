@@ -33,6 +33,44 @@
         </form>
     @endif
 
+    @if ($current && $current->status === \App\Models\Application::STATUS_APPROVED)
+        <h2 class="h6 mt-4">{{ __('app.assignments.my_sections') }}</h2>
+        <div class="card mb-3">
+            <div class="card-body">
+                @if ($assigned->isEmpty())
+                    <p class="text-muted mb-0">{{ __('app.assignments.none') }}</p>
+                @else
+                    <div class="table-responsive">
+                        <table class="table table-striped align-middle mb-2">
+                            <thead>
+                            <tr>
+                                <th>{{ __('app.sections.course') }}</th>
+                                <th>{{ __('app.sections.meetings') }}</th>
+                                <th>{{ __('app.sections.hours_theory') }}</th>
+                                <th>{{ __('app.sections.hours_practical') }}</th>
+                                <th>{{ __('app.sections.hours_field') }}</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            @foreach ($assigned as $s)
+                                @php($hours = $s->weeklyMinutesByType())
+                                <tr>
+                                    <td>{{ $s->label() }}</td>
+                                    <td>{{ $s->meetingSummary() }}</td>
+                                    <td>{{ \App\Models\Section::hoursFromMinutes($hours['theory']) }}</td>
+                                    <td>{{ \App\Models\Section::hoursFromMinutes($hours['practical']) }}</td>
+                                    <td>{{ \App\Models\Section::hoursFromMinutes($hours['field']) }}</td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+                <div><strong>{{ __('app.assignments.weekly_hours') }}:</strong> {{ $current->weeklyHoursLabel() }}</div>
+            </div>
+        </div>
+    @endif
+
     @if ($past->isNotEmpty())
         <h2 class="h6 mt-4">{{ __('app.applications.past') }}</h2>
         <div class="table-responsive">

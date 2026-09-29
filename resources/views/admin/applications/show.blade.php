@@ -140,6 +140,61 @@
     </table>
 </div>
 
+{{-- 2.5 Assigned sections (Task 12) --}}
+@php($canUnassign = $termOpen && $application->status === \App\Models\Application::STATUS_APPROVED)
+<h2 class="h6">{{ __('app.assignments.my_sections') }}</h2>
+<div class="card mb-4">
+    <div class="card-body">
+        @if ($sections->isEmpty())
+            <p class="text-muted mb-0">{{ __('app.assignments.none') }}</p>
+        @else
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-2">
+                    <thead>
+                    <tr>
+                        <th>{{ __('app.sections.course') }}</th>
+                        <th>{{ __('app.sections.meetings') }}</th>
+                        <th>{{ __('app.sections.hours_theory') }}</th>
+                        <th>{{ __('app.sections.hours_practical') }}</th>
+                        <th>{{ __('app.sections.hours_field') }}</th>
+                        @if ($canUnassign)
+                            <th>{{ __('app.common.actions') }}</th>
+                        @endif
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach ($sections as $s)
+                        @php($hours = $s->weeklyMinutesByType())
+                        <tr>
+                            <td>{{ $s->label() }}</td>
+                            <td>{{ $s->meetingSummary() }}</td>
+                            <td>{{ \App\Models\Section::hoursFromMinutes($hours['theory']) }}</td>
+                            <td>{{ \App\Models\Section::hoursFromMinutes($hours['practical']) }}</td>
+                            <td>{{ \App\Models\Section::hoursFromMinutes($hours['field']) }}</td>
+                            @if ($canUnassign)
+                                <td>
+                                    <form method="post" action="{{ route('admin.assignments.destroy', $s) }}" onsubmit="return confirm(@js(__('app.assignments.unassign_confirm')))">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('app.assignments.unassign') }}</button>
+                                    </form>
+                                </td>
+                            @endif
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+        <div class="d-flex justify-content-between align-items-center">
+            <span><strong>{{ __('app.assignments.weekly_hours') }}:</strong> {{ $application->weeklyHoursLabel() }}</span>
+            @if ($application->status === \App\Models\Application::STATUS_APPROVED)
+                <a href="{{ route('admin.assignments.index', ['term' => $application->term_id]) }}" class="btn btn-sm btn-outline-secondary">{{ __('app.assignments.title') }}</a>
+            @endif
+        </div>
+    </div>
+</div>
+
 {{-- 3. Department & not-applicable items --}}
 <h2 class="h6">{{ __('app.applications.department_items') }}</h2>
 <p class="text-muted small">{{ __('app.applications.by_department') }}</p>

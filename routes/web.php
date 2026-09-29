@@ -77,6 +77,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('sections/import', [SectionImportController::class, 'form'])->name('sections.import.form');
     Route::post('sections/import/preview', [SectionImportController::class, 'preview'])->name('sections.import.preview');
     Route::post('sections/import/confirm', [SectionImportController::class, 'confirm'])->name('sections.import.confirm');
+    Route::get('assignments', [AssignmentController::class, 'index'])->name('assignments.index');
     Route::post('sections/{section}/assign', [AssignmentController::class, 'store'])->name('assignments.store');
     Route::delete('sections/{section}/assign', [AssignmentController::class, 'destroy'])->name('assignments.destroy');
 });

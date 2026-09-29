@@ -25,8 +25,9 @@ class ApplicationController extends Controller
         $current = $term ? $instructor->applications()->where('term_id', $term->id)->first() : null;
         $past = $instructor->applications()->with('term')->when($current, fn ($q) => $q->whereKeyNot($current->id))
             ->orderByDesc('created_at')->get();
+        $assigned = $current?->sections()->with('meetings')->get() ?? collect();
 
-        return view('instructor.home', compact('instructor', 'term', 'current', 'past'));
+        return view('instructor.home', compact('instructor', 'term', 'current', 'past', 'assigned'));
     }
 
     public function start(Request $request): RedirectResponse
