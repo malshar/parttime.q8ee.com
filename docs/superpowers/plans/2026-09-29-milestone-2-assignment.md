@@ -1694,7 +1694,7 @@ class JadawilParserTest extends TestCase
     {
         $t = (new JadawilParser)->parseCsv($this->csv());
 
-        $this->assertCount(4, $t->sections);
+        $this->assertCount(3, $t->sections); // 7230330/1 is excluded by its error row
         $s = $t->sections['7220220|1'];
         $this->assertSame('الإلكترونيات الصناعية', $s->courseName);
         $this->assertSame('10231', $s->referenceNumber);
@@ -2760,7 +2760,6 @@ class AssignmentTest extends TestCase
         $svc = app(AssignmentService::class);
 
         $draft = Application::factory()->for($this->term)->create();
-        $this->expectExceptionMessageMatches('/.+/');
         try { $svc->assign($this->section, $draft, $this->admin); $this->fail('draft assigned'); } catch (\DomainException) {}
 
         $otherTerm = Application::factory()->approved()->for(Term::factory()->create(['academic_year' => '2025-2026', 'type' => 'summer', 'status' => 'closed']))->create();
