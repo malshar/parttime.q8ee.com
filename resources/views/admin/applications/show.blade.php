@@ -72,6 +72,13 @@
 
 {{-- 2. Checklist --}}
 <h2 class="h6">{{ __('app.review.checklist') }}</h2>
+@if ($pendingNotices !== [] && $termOpen && ! $application->isFinal())
+    <form method="post" action="{{ route('admin.applications.notify_rejections', $application) }}" class="mb-2">
+        @csrf
+        <button type="submit" class="btn btn-warning btn-sm">{{ __('app.review.notify_rejections') }} ({{ count($pendingNotices) }})</button>
+        <span class="form-text d-inline">{{ __('app.review.notify_hint') }}</span>
+    </form>
+@endif
 <div class="table-responsive mb-4">
     <table class="table table-striped align-middle">
         <thead>

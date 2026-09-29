@@ -45,6 +45,7 @@ class ApplicationController extends Controller
             'revealed' => in_array($application->id, session('revealed_applications', []), true),
             'canComplete' => in_array($application->status, [Application::STATUS_UNDER_REVIEW, Application::STATUS_INCOMPLETE], true)
                 && $application->term->isOpen() && $this->workflow->allRequiredAccepted($application),
+            'pendingNotices' => $this->workflow->pendingRejectionNotices($application),
         ]);
     }
 
@@ -69,6 +70,18 @@ class ApplicationController extends Controller
         }
 
         return back()->with('status', __('app.review.committee_saved'));
+    }
+
+    public function notifyRejections(Request $request, Application $application): RedirectResponse
+    {
+        $this->authorize('review', $application);
+        try {
+            $n = $this->workflow->notifyRejections($application, $request->user());
+        } catch (\DomainException $e) {
+            return back()->withErrors(['notify' => $e->getMessage()]);
+        }
+
+        return back()->with('status', __('app.review.notified', ['count' => $n]));
     }
 
     public function complete(Request $request, Application $application): RedirectResponse

@@ -17,11 +17,11 @@ class Document extends Model
     public const STATUS_REJECTED = 'rejected';
 
     protected $fillable = ['application_id', 'checklist_item_id', 'path', 'original_name', 'mime', 'size',
-        'status', 'rejection_reason', 'reviewed_by', 'reviewed_at', 'version'];
+        'status', 'rejection_reason', 'reviewed_by', 'reviewed_at', 'version', 'notified_at'];
 
     protected function casts(): array
     {
-        return ['reviewed_at' => 'datetime'];
+        return ['reviewed_at' => 'datetime', 'notified_at' => 'datetime'];
     }
 
     public function application(): BelongsTo

@@ -135,10 +135,34 @@ class ApplicationWorkflow
         $application = $document->application->fresh();
         if ($status === Document::STATUS_REJECTED && ! $application->isFinal()) {
             $application->update(['status' => Application::STATUS_INCOMPLETE, 'complete_at' => null]);
-            $rejected = $this->checklist($application);
-            $rejected = array_filter($rejected, fn ($row) => $row['state'] === 'rejected');
-            $this->safeSend($application->instructor->user->email, new DocumentsRejected($application, array_values($rejected)));
         }
+    }
+
+    /** @return array<int, array{item: ChecklistItem, document: ?Document, state: string}> */
+    public function pendingRejectionNotices(Application $application): array
+    {
+        return array_values(array_filter(
+            $this->checklist($application),
+            fn ($row) => $row['state'] === 'rejected' && $row['document']?->notified_at === null,
+        ));
+    }
+
+    public function notifyRejections(Application $application, User $admin): int
+    {
+        if (! $application->term->isOpen()) {
+            throw new \DomainException(__('app.applications.term_closed'));
+        }
+        if ($this->pendingRejectionNotices($application) === []) {
+            throw new \DomainException(__('app.review.nothing_to_notify'));
+        }
+        $rejected = array_values(array_filter($this->checklist($application), fn ($row) => $row['state'] === 'rejected'));
+        foreach ($rejected as $row) {
+            $row['document']->update(['notified_at' => now()]);
+        }
+        AuditLog::record($admin->id, 'notify_rejections', $application);
+        $this->safeSend($application->instructor->user->email, new DocumentsRejected($application, $rejected));
+
+        return count($rejected);
     }
 
     public function markComplete(Application $application, User $admin): void

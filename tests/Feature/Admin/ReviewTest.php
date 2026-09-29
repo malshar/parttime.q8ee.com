@@ -65,7 +65,7 @@ class ReviewTest extends TestCase
         $this->assertDatabaseHas('audit_log', ['user_id' => $this->admin->id, 'action' => 'reveal_sensitive', 'subject_id' => $this->application->id]);
     }
 
-    public function test_rejecting_a_document_marks_incomplete_and_mails_instructor(): void
+    public function test_rejecting_a_document_marks_incomplete_without_mailing(): void
     {
         $doc = $this->application->latestDocuments()->get('iban');
 
@@ -75,7 +75,7 @@ class ReviewTest extends TestCase
         $this->assertSame('rejected', $doc->fresh()->status);
         $this->assertSame('غير واضح', $doc->fresh()->rejection_reason);
         $this->assertSame(Application::STATUS_INCOMPLETE, $this->application->fresh()->status);
-        Mail::assertSent(DocumentsRejected::class, fn ($m) => $m->hasTo($this->instructorUser->email));
+        Mail::assertNothingSent();
     }
 
     public function test_reject_requires_reason(): void
