@@ -62,6 +62,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('applications/{application}/complete', [AdminApplicationController::class, 'complete'])->name('applications.complete');
     Route::post('applications/{application}/notify-rejections', [AdminApplicationController::class, 'notifyRejections'])->name('applications.notify_rejections');
     Route::post('applications/{application}/committee', [AdminApplicationController::class, 'committee'])->name('applications.committee');
+    Route::post('applications/{application}/reopen', [AdminApplicationController::class, 'reopen'])->name('applications.reopen');
     Route::post('applications/{application}/decision', [AdminApplicationController::class, 'decision'])->name('applications.decision');
     Route::post('documents/{document}/review', [AdminDocumentController::class, 'review'])->name('documents.review');
     Route::get('documents/{document}', [AdminDocumentController::class, 'download'])->name('documents.download');

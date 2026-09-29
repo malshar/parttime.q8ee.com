@@ -96,6 +96,18 @@ class ApplicationController extends Controller
         return back()->with('status', __('app.review.completed'));
     }
 
+    public function reopen(Request $request, Application $application): RedirectResponse
+    {
+        $this->authorize('review', $application);
+        try {
+            $this->workflow->reopen($application, $request->user());
+        } catch (\DomainException $e) {
+            return back()->withErrors(['reopen' => $e->getMessage()]);
+        }
+
+        return back()->with('status', __('app.review.reopened'));
+    }
+
     public function decision(Request $request, Application $application): RedirectResponse
     {
         $this->authorize('review', $application);

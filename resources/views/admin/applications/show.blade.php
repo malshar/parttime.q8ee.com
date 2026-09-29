@@ -192,6 +192,12 @@
                     @if ($application->committee_note)<div>{{ $application->committee_note }}</div>@endif
                 </div>
             @endif
+            @if ($application->status === \App\Models\Application::STATUS_WITHDRAWN && $termOpen)
+                <form method="post" action="{{ route('admin.applications.reopen', $application) }}" class="mt-2" onsubmit="return confirm(@js(__('app.review.reopen_confirm')))">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-primary btn-sm">{{ __('app.review.reopen') }}</button>
+                </form>
+            @endif
             @if ($application->status === \App\Models\Application::STATUS_APPROVED)
                 <form method="post" action="{{ route('admin.applications.decision', $application) }}" class="row g-2 align-items-end mt-2">
                     @csrf

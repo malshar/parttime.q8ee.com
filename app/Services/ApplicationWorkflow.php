@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\TermClosedException;
 use App\Mail\ApplicationApproved;
 use App\Mail\ApplicationRejected;
+use App\Mail\ApplicationReopened;
 use App\Mail\ApplicationSubmitted;
 use App\Mail\DocumentsRejected;
 use App\Models\Application;
@@ -207,6 +208,19 @@ class ApplicationWorkflow
             $application->instructor->user->email,
             $approved ? new ApplicationApproved($application) : new ApplicationRejected($application),
         );
+    }
+
+    public function reopen(Application $application, User $admin): void
+    {
+        if ($application->status !== Application::STATUS_WITHDRAWN) {
+            throw new \DomainException(__('app.review.reopen_wrong_status'));
+        }
+        if (! $application->term->isOpen()) {
+            throw new \DomainException(__('app.applications.term_closed'));
+        }
+        $application->update(['status' => Application::STATUS_DRAFT, 'decided_at' => null]);
+        AuditLog::record($admin->id, 'reopen_application', $application);
+        $this->safeSend($application->instructor->user->email, new ApplicationReopened($application));
     }
 
     private function notifyAdmin(Application $application): void
