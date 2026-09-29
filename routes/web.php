@@ -4,6 +4,8 @@ use App\Http\Controllers\Admin\ApplicationController as AdminApplicationControll
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController as AdminDocumentController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
+use App\Http\Controllers\Admin\SectionController;
+use App\Http\Controllers\Admin\SectionImportController;
 use App\Http\Controllers\Admin\TermController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -70,4 +72,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('documents/{document}/review', [AdminDocumentController::class, 'review'])->name('documents.review');
     Route::get('documents/{document}', [AdminDocumentController::class, 'download'])->name('documents.download');
     Route::get('documents/{document}/view', [AdminDocumentController::class, 'view'])->name('documents.view');
+    Route::get('sections', [SectionController::class, 'index'])->name('sections.index');
+    Route::get('sections/import', [SectionImportController::class, 'form'])->name('sections.import.form');
+    Route::post('sections/import/preview', [SectionImportController::class, 'preview'])->name('sections.import.preview');
+    Route::post('sections/import/confirm', [SectionImportController::class, 'confirm'])->name('sections.import.confirm');
 });
