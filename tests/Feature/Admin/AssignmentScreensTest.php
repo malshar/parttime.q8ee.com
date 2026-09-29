@@ -8,6 +8,7 @@ use App\Models\Instructor;
 use App\Models\Section;
 use App\Models\Term;
 use App\Models\User;
+use App\Services\Sections\AssignmentService;
 use Database\Seeders\ChecklistItemSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -46,7 +47,7 @@ class AssignmentScreensTest extends TestCase
     {
         $s = Section::factory()->for($this->term)->withMeetings()->create();
         Assignment::create(['application_id' => $this->application->id, 'section_id' => $s->id]);
-        app(\App\Services\Sections\AssignmentService::class)->recomputeHours($this->application);
+        app(AssignmentService::class)->recomputeHours($this->application);
 
         $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))->assertOk()
             ->assertSee(__('app.assignments.my_sections'))->assertSee($s->course_code)->assertSee('4.2');

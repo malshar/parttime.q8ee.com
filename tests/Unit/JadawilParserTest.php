@@ -3,6 +3,10 @@
 namespace Tests\Unit;
 
 use App\Services\Sections\JadawilParser;
+use Illuminate\Support\Facades\Exceptions;
+use PhpOffice\PhpSpreadsheet\Reader\Exception;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
 
 class JadawilParserTest extends TestCase
@@ -91,13 +95,13 @@ class JadawilParserTest extends TestCase
 
     public function test_parses_xlsx_with_numeric_cells_and_seats(): void
     {
-        $sheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet;
+        $sheet = new Spreadsheet;
         $ws = $sheet->getActiveSheet();
         $ws->fromArray(['#', 'رقم المقرر', 'الرقم المرجعي', 'الشعبة', 'اسم المقرر', 'الحالة', 'الرابط', 'الحد الأقصى', 'مسجلة', 'متبقية', 'الوحدات', 'النشاط', 'من', 'الى', 'المبنى', 'القاعة', 'الأيام', 'المدرس', 'الفرع'], null, 'A1');
         $ws->fromArray([1, 7220220, 10231, 1, 'الإلكترونيات الصناعية', 'مفتوحة', 'A', 25, 20, 5, 3, 'محاضرة', '8:00', '9:15', '04A', 'D-101', 'الأحد / الثلاثاء', 'د. فلان', 'ش'], null, 'A2');
         $ws->fromArray([2, 7220220, 10231, 1, 'الإلكترونيات الصناعية', 'مفتوحة', 'A', 25, 20, 5, 3, 'مختبر', 9.5 / 24, 11.0 / 24, '04A', 'L-12', 'الإثنين', 'م. علان', 'ش'], null, 'A3');
         $path = tempnam(sys_get_temp_dir(), 'jad').'.xlsx';
-        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($sheet))->save($path);
+        (new Xlsx($sheet))->save($path);
 
         $t = (new JadawilParser)->parse(file_get_contents($path), 'xlsx');
         unlink($path);
@@ -113,12 +117,12 @@ class JadawilParserTest extends TestCase
 
     public function test_corrupt_xlsx_yields_unreadable_error_and_reports_exception(): void
     {
-        \Illuminate\Support\Facades\Exceptions::fake();
+        Exceptions::fake();
 
         $t = (new JadawilParser)->parse('not a zip file at all', 'xlsx');
 
         $this->assertTrue($t->hasErrors());
         $this->assertContains(__('app.sections.unreadable_xlsx'), $t->errors);
-        \Illuminate\Support\Facades\Exceptions::assertReported(\PhpOffice\PhpSpreadsheet\Reader\Exception::class);
+        Exceptions::assertReported(Exception::class);
     }
 }

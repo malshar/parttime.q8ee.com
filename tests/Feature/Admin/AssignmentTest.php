@@ -57,17 +57,34 @@ class AssignmentTest extends TestCase
         $svc = app(AssignmentService::class);
 
         $draft = Application::factory()->for($this->term)->create();
-        try { $svc->assign($this->section, $draft, $this->admin); $this->fail('draft assigned'); } catch (\DomainException) {}
+        try {
+            $svc->assign($this->section, $draft, $this->admin);
+            $this->fail('draft assigned');
+        } catch (\DomainException) {
+        }
 
         $otherTerm = Application::factory()->approved()->for(Term::factory()->create(['academic_year' => '2025-2026', 'type' => 'summer', 'status' => 'closed']))->create();
-        try { $svc->assign($this->section, $otherTerm, $this->admin); $this->fail('cross-term assigned'); } catch (\DomainException) {}
+        try {
+            $svc->assign($this->section, $otherTerm, $this->admin);
+            $this->fail('cross-term assigned');
+        } catch (\DomainException) {
+        }
 
         $svc->assign($this->section, $this->application, $this->admin);
         $second = Application::factory()->approved()->for($this->term)->create();
-        try { $svc->assign($this->section, $second, $this->admin); $this->fail('double assigned'); } catch (\DomainException) {}
+        try {
+            $svc->assign($this->section, $second, $this->admin);
+            $this->fail('double assigned');
+        } catch (\DomainException) {
+        }
 
         $this->term->update(['status' => 'closed']);
-        try { $svc->unassign($this->section->fresh(), $this->admin); $this->fail('unassigned on closed term'); } catch (\DomainException $e) { $this->assertTrue(true); }
+        try {
+            $svc->unassign($this->section->fresh(), $this->admin);
+            $this->fail('unassigned on closed term');
+        } catch (\DomainException $e) {
+            $this->assertTrue(true);
+        }
     }
 
     public function test_controller_maps_rule_violations_to_errors(): void

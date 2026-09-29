@@ -4,7 +4,6 @@ namespace Tests\Feature\Admin;
 
 use App\Mail\DocumentsRejected;
 use App\Models\Application;
-use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\Instructor;
 use App\Models\Term;

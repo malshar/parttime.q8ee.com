@@ -11,6 +11,7 @@ use App\Models\User;
 use Database\Seeders\ChecklistItemSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class CommitteeDecisionTest extends TestCase
@@ -95,8 +96,8 @@ class CommitteeDecisionTest extends TestCase
 
     public function test_old_approve_and_reject_routes_are_gone(): void
     {
-        $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.applications.approve'));
-        $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.applications.reject'));
+        $this->assertFalse(Route::has('admin.applications.approve'));
+        $this->assertFalse(Route::has('admin.applications.reject'));
     }
 
     public function test_outcome_is_preserved_after_validation_failure(): void

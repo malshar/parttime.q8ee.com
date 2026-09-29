@@ -3,6 +3,7 @@
 namespace App\Services\Sections;
 
 use App\Support\ArabicNameNormaliser;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class JadawilParser
 {
@@ -70,12 +71,14 @@ class JadawilParser
             $section = $cell($c, 'الشعبة');
             if ($section === '') {
                 $t->errors[] = __('app.sections.row_error', ['row' => $n, 'message' => __('app.sections.missing_section')]);
+
                 continue;
             }
             $from = $this->time($cell($c, 'من'));
             $to = $this->time($cell($c, 'الى'));
             if ($from === null || $to === null || $to <= $from) {
                 $t->errors[] = __('app.sections.row_error', ['row' => $n, 'message' => __('app.sections.bad_time', ['from' => $cell($c, 'من'), 'to' => $cell($c, 'الى')])]);
+
                 continue;
             }
             $dayCell = $cell($c, 'الأيام');
@@ -94,6 +97,7 @@ class JadawilParser
             }
             if ($badDay !== null || $days === []) {
                 $t->errors[] = __('app.sections.row_error', ['row' => $n, 'message' => __('app.sections.bad_day', ['day' => $badDay ?? '—'])]);
+
                 continue;
             }
             $activity = $cell($c, 'النشاط');
@@ -117,6 +121,7 @@ class JadawilParser
                 $dup = array_filter($ps->meetings, fn ($x) => $x->key() === $m->key());
                 if ($dup !== []) {
                     $t->warnings[] = __('app.sections.duplicate_meeting', ['row' => $n, 'course' => $code, 'section' => $section]);
+
                     continue;
                 }
                 $ps->meetings[] = $m;
@@ -156,7 +161,7 @@ class JadawilParser
         $tmp = tempnam(sys_get_temp_dir(), 'jadawil');
         file_put_contents($tmp, $contents);
         try {
-            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReader('Xlsx');
+            $reader = IOFactory::createReader('Xlsx');
             $reader->setReadDataOnly(true);
             $sheet = $reader->load($tmp)->getSheet(0);
             $rows = [];
