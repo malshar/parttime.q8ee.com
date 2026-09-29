@@ -157,4 +157,15 @@ return [
     'countries' => ['KW' => 'Kuwait', 'SA' => 'Saudi Arabia', 'AE' => 'United Arab Emirates', 'BH' => 'Bahrain', 'QA' => 'Qatar', 'OM' => 'Oman',
         'EG' => 'Egypt', 'JO' => 'Jordan', 'GB' => 'United Kingdom', 'US' => 'United States', 'CA' => 'Canada', 'AU' => 'Australia',
         'MY' => 'Malaysia', 'IN' => 'India', 'PK' => 'Pakistan', 'TR' => 'Turkey', 'DE' => 'Germany', 'FR' => 'France', 'ZZ' => 'Other country'],
+    'sections' => [
+        'unsupported_file' => 'Unsupported file type. Accepted: CSV or XLSX from the schedule system.',
+        'no_header' => 'The file is empty or has no header row.',
+        'missing_column' => 'The required column ":column" is missing from the file.',
+        'row_error' => 'Row :row: :message',
+        'missing_section' => 'The section number is empty.',
+        'bad_time' => 'Invalid time (:from - :to).',
+        'bad_day' => 'Unknown day ":day".',
+        'unknown_activity' => 'Row :row: unknown activity ":activity", treated as theory.',
+        'duplicate_meeting' => 'Row :row: duplicate meeting for course :course section :section, ignored.',
+    ],
 ];
