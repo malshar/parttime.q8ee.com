@@ -20,6 +20,11 @@ class Application extends Model
 
     public const STATUS_INCOMPLETE = 'incomplete';
 
+    public const STATUS_COMPLETE = 'complete';
+
+    /** Statuses in which the admin may still act on documents. */
+    public const REVIEWABLE_STATUSES = [self::STATUS_UNDER_REVIEW, self::STATUS_INCOMPLETE, self::STATUS_COMPLETE];
+
     public const STATUS_APPROVED = 'approved';
 
     public const STATUS_REJECTED = 'rejected';
@@ -30,12 +35,12 @@ class Application extends Model
 
     public const FINAL_STATUSES = [self::STATUS_APPROVED, self::STATUS_REJECTED, self::STATUS_WITHDRAWN];
 
-    protected $fillable = ['term_id', 'instructor_id', 'status', 'submitted_at', 'reviewed_at', 'decided_at',
+    protected $fillable = ['term_id', 'instructor_id', 'status', 'submitted_at', 'reviewed_at', 'complete_at', 'decided_at',
         'assignment_decision_number', 'assignment_decision_date', 'weekly_hours', 'admin_note', 'rejection_reason'];
 
     protected function casts(): array
     {
-        return ['submitted_at' => 'datetime', 'reviewed_at' => 'datetime', 'decided_at' => 'datetime',
+        return ['submitted_at' => 'datetime', 'reviewed_at' => 'datetime', 'complete_at' => 'datetime', 'decided_at' => 'datetime',
             'assignment_decision_date' => 'date'];
     }
 

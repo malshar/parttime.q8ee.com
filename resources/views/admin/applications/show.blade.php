@@ -198,6 +198,17 @@
         @elseif (! $termOpen)
             <div class="alert alert-warning py-2 mb-0">{{ __('app.applications.term_closed') }}</div>
         @else
+            @if ($application->status === \App\Models\Application::STATUS_COMPLETE)
+                <div class="alert alert-info py-2">{{ __('app.review.awaiting_committee') }}</div>
+            @elseif ($canComplete)
+                <form method="post" action="{{ route('admin.applications.complete', $application) }}" class="mb-3">
+                    @csrf
+                    <button type="submit" class="btn btn-eet btn-sm">{{ __('app.review.mark_complete') }}</button>
+                </form>
+            @else
+                <div class="alert alert-warning py-2">{{ __('app.review.complete_blocked') }}</div>
+            @endif
+
             @if ($canApprove)
                 <form method="post" action="{{ route('admin.applications.approve', $application) }}" class="row g-2 align-items-end mb-3">
                     @csrf

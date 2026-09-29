@@ -25,4 +25,14 @@ class ApplicationFactory extends Factory
     {
         return $this->state(fn () => ['status' => Application::STATUS_SUBMITTED, 'submitted_at' => now()]);
     }
+
+    public function complete(): static
+    {
+        return $this->state(fn () => ['status' => Application::STATUS_COMPLETE, 'complete_at' => now()]);
+    }
+
+    public function approved(): static
+    {
+        return $this->state(fn () => ['status' => Application::STATUS_APPROVED, 'decided_at' => now()]);
+    }
 }

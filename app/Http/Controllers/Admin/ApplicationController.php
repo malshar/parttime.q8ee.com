@@ -43,6 +43,8 @@ class ApplicationController extends Controller
             'history' => $application->documents()->with('checklistItem')->orderBy('checklist_item_id')->orderByDesc('version')->get(),
             'revealed' => in_array($application->id, session('revealed_applications', []), true),
             'canApprove' => $this->workflow->allRequiredAccepted($application) && $application->term->isOpen() && ! $application->isFinal(),
+            'canComplete' => in_array($application->status, [Application::STATUS_UNDER_REVIEW, Application::STATUS_INCOMPLETE], true)
+                && $application->term->isOpen() && $this->workflow->allRequiredAccepted($application),
         ]);
     }
 
@@ -84,6 +86,18 @@ class ApplicationController extends Controller
         }
 
         return back()->with('status', __('app.review.rejected'));
+    }
+
+    public function complete(Request $request, Application $application): RedirectResponse
+    {
+        $this->authorize('review', $application);
+        try {
+            $this->workflow->markComplete($application, $request->user());
+        } catch (\DomainException $e) {
+            return back()->withErrors(['complete' => $e->getMessage()]);
+        }
+
+        return back()->with('status', __('app.review.completed'));
     }
 
     public function decision(Request $request, Application $application): RedirectResponse

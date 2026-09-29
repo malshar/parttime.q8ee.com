@@ -8,41 +8,56 @@
 </div>
 
 <div class="d-flex flex-wrap gap-2 mb-4">
-    @foreach (['submitted', 'under_review', 'incomplete', 'approved', 'rejected', 'withdrawn'] as $status)
+    @foreach (['submitted', 'under_review', 'incomplete', 'complete', 'approved', 'rejected', 'withdrawn'] as $status)
         <span class="badge bg-secondary">
             {{ __('app.applications.statuses.'.$status) }}: {{ $counts[$status] ?? 0 }}
         </span>
     @endforeach
 </div>
 
-<h2 class="h6">{{ __('app.review.attention') }}</h2>
-@if ($attention->isEmpty())
+<h2 class="h6">{{ __('app.review.group_department') }}</h2>
+@include('admin._attention_table', ['rows' => $department, 'dateField' => 'submitted_at'])
+
+<h2 class="h6 mt-4">{{ __('app.review.group_committee') }}</h2>
+@if ($committee->isEmpty())
     <div class="alert alert-info">{{ __('app.review.no_attention') }}</div>
 @else
     <div class="table-responsive">
         <table class="table table-striped align-middle">
-            <thead>
-            <tr>
+            <thead><tr>
                 <th>{{ __('app.review.applicant') }}</th>
                 <th>{{ __('app.review.term') }}</th>
-                <th>{{ __('app.applications.title') }}</th>
-                <th>{{ __('app.review.submitted_at') }}</th>
+                <th>{{ __('app.review.complete_at') }}</th>
+                <th>{{ __('app.review.waiting') }}</th>
                 <th>{{ __('app.common.actions') }}</th>
-            </tr>
-            </thead>
+            </tr></thead>
             <tbody>
-            @foreach ($attention as $application)
+            @foreach ($committee as $application)
                 <tr>
                     <td>{{ $application->instructor->full_name }}</td>
                     <td>{{ $application->term->label() }}</td>
-                    <td><span class="badge bg-secondary">{{ __('app.applications.statuses.'.$application->status) }}</span></td>
-                    <td>{{ format_date($application->submitted_at) }}</td>
+                    <td>{{ format_date($application->complete_at) }}</td>
+                    <td>{{ __('app.review.waiting_days', ['days' => (int) $application->complete_at->diffInDays(now())]) }}</td>
                     <td><a href="{{ route('admin.applications.show', $application) }}" class="btn btn-sm btn-eet">{{ __('app.review.open') }}</a></td>
                 </tr>
             @endforeach
             </tbody>
         </table>
     </div>
+@endif
+
+<h2 class="h6 mt-4">{{ __('app.review.group_alerts') }}</h2>
+@if ($alerts->isEmpty())
+    <div class="alert alert-info">{{ __('app.review.no_alerts') }}</div>
+@else
+    <ul class="list-group">
+        @foreach ($alerts as $alert)
+            <li class="list-group-item d-flex justify-content-between">
+                <span>{{ $alert['text'] }}</span>
+                <a href="{{ $alert['url'] }}" class="btn btn-sm btn-outline-secondary">{{ __('app.review.open') }}</a>
+            </li>
+        @endforeach
+    </ul>
 @endif
 
 @endsection

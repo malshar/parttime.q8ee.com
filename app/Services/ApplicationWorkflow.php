@@ -134,11 +134,26 @@ class ApplicationWorkflow
 
         $application = $document->application->fresh();
         if ($status === Document::STATUS_REJECTED && ! $application->isFinal()) {
-            $application->update(['status' => Application::STATUS_INCOMPLETE]);
+            $application->update(['status' => Application::STATUS_INCOMPLETE, 'complete_at' => null]);
             $rejected = $this->checklist($application);
             $rejected = array_filter($rejected, fn ($row) => $row['state'] === 'rejected');
             $this->safeSend($application->instructor->user->email, new DocumentsRejected($application, array_values($rejected)));
         }
+    }
+
+    public function markComplete(Application $application, User $admin): void
+    {
+        if (! in_array($application->status, [Application::STATUS_UNDER_REVIEW, Application::STATUS_INCOMPLETE], true)) {
+            throw new \DomainException(__('app.review.complete_wrong_status'));
+        }
+        if (! $application->term->isOpen()) {
+            throw new \DomainException(__('app.applications.term_closed'));
+        }
+        if (! $this->allRequiredAccepted($application)) {
+            throw new \DomainException(__('app.review.complete_blocked'));
+        }
+        $application->update(['status' => Application::STATUS_COMPLETE, 'complete_at' => now()]);
+        AuditLog::record($admin->id, 'mark_complete', $application);
     }
 
     public function approve(Application $application, User $admin, ?string $decisionNumber, ?string $decisionDate): void
