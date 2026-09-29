@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ImportSectionsRequest;
+use App\Models\Section;
 use App\Models\Term;
 use App\Services\Sections\JadawilParser;
 use App\Services\Sections\ParsedMeeting;
@@ -20,11 +21,14 @@ class SectionImportController extends Controller
 
     public function form(): View
     {
+        $this->authorize('import', Section::class);
+
         return view('admin.sections.import', ['term' => Term::current()]);
     }
 
     public function preview(ImportSectionsRequest $request): View
     {
+        $this->authorize('import', Section::class);
         $term = Term::current();
         $file = $request->file('file');
         $timetable = $this->parser->parse($file->get(), $file->getClientOriginalExtension());
@@ -37,6 +41,7 @@ class SectionImportController extends Controller
 
     public function confirm(Request $request): RedirectResponse
     {
+        $this->authorize('import', Section::class);
         $payload = session('sections_import');
         abort_if(! $payload, 419);
         $term = Term::findOrFail($payload['term_id']);

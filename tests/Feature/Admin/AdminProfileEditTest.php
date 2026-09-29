@@ -29,6 +29,19 @@ class AdminProfileEditTest extends TestCase
         $this->application = Application::factory()->approved()->for(Term::factory()->open())->for($instructor)->create();
     }
 
+    public function test_opening_edit_form_is_audited_as_reveal(): void
+    {
+        $this->actingAs($this->admin)->get(route('admin.applications.profile.edit', $this->application))->assertOk();
+
+        $this->assertDatabaseHas('audit_log', [
+            'user_id' => $this->admin->id,
+            'action' => 'reveal_sensitive',
+            'subject_type' => $this->application->getMorphClass(),
+            'subject_id' => $this->application->id,
+            'details' => 'profile_edit_form',
+        ]);
+    }
+
     public function test_admin_updates_profile_and_audit_lists_changed_fields(): void
     {
         $payload = ProfileTest::payload(['civil_id' => $this->application->instructor->civil_id, 'job_title' => 'مهندس أول', 'mobile' => '99887766']);

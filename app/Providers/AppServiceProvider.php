@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Models\Application;
 use App\Models\Document;
+use App\Models\Section;
 use App\Policies\ApplicationPolicy;
 use App\Policies\DocumentPolicy;
+use App\Policies\SectionPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
@@ -33,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(Application::class, ApplicationPolicy::class);
         Gate::policy(Document::class, DocumentPolicy::class);
+        Gate::policy(Section::class, SectionPolicy::class);
 
         Paginator::useBootstrapFive();
     }

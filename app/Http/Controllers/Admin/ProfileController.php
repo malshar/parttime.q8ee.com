@@ -7,6 +7,7 @@ use App\Http\Requests\AdminProfileRequest;
 use App\Models\Application;
 use App\Models\AuditLog;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -14,9 +15,11 @@ class ProfileController extends Controller
     /** Date fields whose cast original must be formatted before comparing to the submitted string. */
     private const DATE_FIELDS = ['civil_id_expires_on', 'degree_obtained_on'];
 
-    public function edit(Application $application): View
+    public function edit(Request $request, Application $application): View
     {
         $this->authorize('review', $application);
+        // The form pre-fills decrypted civil ID / IBAN / salaries, so every render is a sensitive reveal.
+        AuditLog::record($request->user()->id, 'reveal_sensitive', $application, null, 'profile_edit_form');
 
         return view('admin.applications.profile', ['application' => $application, 'instructor' => $application->instructor]);
     }

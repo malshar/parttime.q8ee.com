@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Section;
 use App\Models\Term;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -11,6 +12,7 @@ class SectionController extends Controller
 {
     public function index(Request $request): View
     {
+        $this->authorize('viewAny', Section::class);
         $term = $request->filled('term') ? Term::findOrFail($request->term) : Term::current();
         $sections = $term
             ? $term->sections()->with(['meetings', 'assignment.application.instructor'])

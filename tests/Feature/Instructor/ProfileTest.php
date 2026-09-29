@@ -117,6 +117,23 @@ class ProfileTest extends TestCase
         $this->assertSame('الاسم الأصلي', $instructor->fresh()->full_name);
     }
 
+    public function test_profile_locked_while_application_complete(): void
+    {
+        $user = User::factory()->instructor()->create();
+        $instructor = Instructor::factory()->for($user)->create(['full_name' => 'الاسم الأصلي']);
+        Application::factory()->for(Term::factory()->open())->for($instructor)->create(['status' => Application::STATUS_COMPLETE]);
+
+        $this->actingAs($user)->get(route('instructor.profile.edit'))->assertOk()
+            ->assertSee(__('app.profile.locked'));
+
+        $this->actingAs($user)->from(route('instructor.profile.edit'))
+            ->put(route('instructor.profile.update'), self::payload(['full_name' => 'اسم جديد']))
+            ->assertRedirect(route('instructor.profile.edit'))
+            ->assertSessionHasErrors(['profile' => __('app.profile.locked')]);
+
+        $this->assertSame('الاسم الأصلي', $instructor->fresh()->full_name);
+    }
+
     public function test_profile_editable_while_application_incomplete(): void
     {
         $user = User::factory()->instructor()->create();
