@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
@@ -46,5 +47,30 @@ class RolesTest extends TestCase
             ->assertExitCode(0);
 
         $this->assertDatabaseHas('users', ['email' => 'admin@example.com', 'role' => 'admin']);
+    }
+
+    public function test_create_admin_command_reads_password_from_file(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'pw');
+        file_put_contents($file, "file-password-123456\n");
+
+        $this->artisan('app:create-admin', ['email' => 'file@example.com', 'name' => 'Admin', '--password-file' => $file])
+            ->assertExitCode(0);
+
+        unlink($file);
+        $this->assertDatabaseHas('users', ['email' => 'file@example.com', 'role' => 'admin']);
+        $this->assertTrue(Hash::check('file-password-123456', User::where('email', 'file@example.com')->first()->password));
+    }
+
+    public function test_create_admin_command_rejects_short_password_from_file(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'pw');
+        file_put_contents($file, "short\n");
+
+        $this->artisan('app:create-admin', ['email' => 'short@example.com', 'name' => 'Admin', '--password-file' => $file])
+            ->assertExitCode(1);
+
+        unlink($file);
+        $this->assertDatabaseMissing('users', ['email' => 'short@example.com']);
     }
 }

@@ -9,6 +9,19 @@ sections import, assignments) are merged on `main` and pushed
 (`php artisan test` green, 147 tests). Nothing below has been run against
 the real server yet — this is the checklist for the first deploy.
 
+## Fast path (2026-09-29)
+
+Steps 2-7 and 9 are automated in **`./deploy/first-deploy.sh`** (run once
+from the Mac; idempotent). It generates the DB password
+(`/root/.parttime-db-pass`) and the admin's initial password
+(`/root/parttime-admin-initial.txt`), points mail at this server's mailcow
+(`mail.alsharidah.me:587`, sender `noreply@q8ee.com`, notifications to
+`mishal@q8ee.com`) and issues a Let's Encrypt certificate with certbot,
+like help.q8ee.com. Afterwards do steps 8 (Turnstile keys), 11 (the
+mailcow mailbox password) and 9a (firewall) by hand. Step 0 was verified
+on 2026-09-29: PHP 8.4.25, all extensions, Composer 2.8.5, MySQL 8.0.46,
+`php8.4-fpm.sock`. The sections below remain as the manual reference.
+
 ## 0. Prerequisites to verify on the server
 
 ```bash
@@ -149,14 +162,20 @@ a2ensite parttime.q8ee.com
 apache2ctl configtest && systemctl reload apache2
 ```
 
-`apache-vhost.conf` expects a Cloudflare **origin certificate** at
-`/etc/ssl/cloudflare/parttime.q8ee.com.{pem,key}` (generate it in Cloudflare
-→ SSL/TLS → Origin Server, paste the cert and key into those two files on
-the server) and hands `.php` requests to PHP-FPM — confirm the socket path
-in the `<FilesMatch \.php$>` block matches `ls /run/php/` from step 0.
+`apache-vhost.conf` is the HTTP vhost only, on the origin IP like the
+other sites on this server. The certificate comes from Let's Encrypt via
+certbot's apache plugin, which writes the `*-le-ssl.conf` twin and the
+HTTPS redirect (Cloudflare proxies the ACME HTTP challenge to the origin):
 
-Cloudflare SSL/TLS mode: set to **Full (strict)** for parttime.q8ee.com,
-matching help.q8ee.com.
+```bash
+certbot --apache -d parttime.q8ee.com --redirect
+```
+
+The vhost hands `.php` requests to PHP-FPM — confirm the socket path in the
+`<FilesMatch \.php$>` block matches `ls /run/php/` from step 0.
+
+Cloudflare SSL/TLS mode: **Full (strict)** for parttime.q8ee.com, matching
+help.q8ee.com.
 
 Once the vhost is live and `.env` is in place, `./deploy/deploy.sh` (no
 `--dry`) works end-to-end, including its own health check.
@@ -202,11 +221,18 @@ https://www.cloudflare.com/ips/ announces a change.
   form; both must be accepted (checks libmagic's MIME detection on the server)
 - Check `storage/logs/laravel.log` for unexpected errors
 
-## 11. SMTP
+## 11. SMTP (mailcow on this server)
 
-Set in `.env`: `MAIL_MAILER=smtp`, `MAIL_HOST`, `MAIL_PORT`,
-`MAIL_USERNAME`, `MAIL_PASSWORD`, then `php artisan config:cache`. Submit a
-test application to confirm `ADMIN_NOTIFY_EMAIL` receives the notification.
+Outgoing mail goes through the server's own mailcow (`mail.alsharidah.me`,
+submission port 587, STARTTLS), authenticated as the mailbox
+`noreply@q8ee.com` (create it in the mailcow UI: Mailboxes → Add, domain
+`q8ee.com`). Put its password in `.env` as `MAIL_PASSWORD`, then
+`php artisan config:cache`. For deliverability q8ee.com needs, in
+Cloudflare DNS (proxy off): SPF `v=spf1 a:mail.alsharidah.me -all`, the
+DKIM TXT for selector `dkim` (mailcow → domain → DNS tab), and DMARC
+`v=DMARC1; p=quarantine; rua=mailto:mishal@q8ee.com`; MX → `mail.alsharidah.me`
+only if q8ee.com should also receive mail. Submit a test application to
+confirm `ADMIN_NOTIFY_EMAIL` receives the notification.
 
 ## 12. Backups
 
