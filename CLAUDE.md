@@ -1,13 +1,27 @@
 # CLAUDE.md — parttime.q8ee.com (المنتدبون / Part-timers & Interns Management)
 
-> **Status (2026-09-28): Milestone 1 (intake) implemented, deploy pending
-> server setup.** Laravel 12 app on branch `milestone-1-intake`
-> (`php artisan test` green). Scope, design and the milestone 1 plan are
-> recorded in `docs/superpowers/specs/2026-09-28-parttime-system-design.md`
-> and `docs/superpowers/plans/2026-09-28-milestone-1-intake.md`. Deploy
-> scripts/docs are in `deploy/` (`deploy/DEPLOY.md` for first-time server
-> setup, `./deploy/deploy.sh` for routine deploys) — the first real deploy
-> to parttime.q8ee.com has not been run yet.
+> **Status (2026-09-29): Milestone 2 (committee workflow, sections import,
+> assignments) implemented on branch `milestone-2-assignment`, deploy
+> pending.** Laravel 12 app (`php artisan test` green). Milestone 1 (intake)
+> shipped first; milestone 2 adds: the `complete` application status with a
+> three-group attention list, a committee decision step (replacing direct
+> approve/reject) with a consolidated rejection notice, reopening of
+> withdrawn applications, audited admin profile edits (new
+> `audit_log.details` column), a sections/meetings/assignments schema, an
+> importer for the term's timetable exported from **jadawil** (CSV or XLSX,
+> parsed with `phpoffice/phpspreadsheet`) at `/admin/sections/import`, the
+> section list at `/admin/sections`, and instructor-to-section assignment at
+> `/admin/assignments` with dashboard alerts. Design:
+> `docs/superpowers/specs/2026-09-28-parttime-system-design.md` (milestone 1)
+> and `docs/superpowers/specs/2026-09-29-milestone-2-assignment-design.md`
+> (milestone 2). Deploy scripts/docs are in `deploy/` (`deploy/DEPLOY.md` for
+> first-time server setup, `./deploy/deploy.sh` for routine deploys) — the
+> first real deploy to parttime.q8ee.com has not been run yet.
+>
+> Application status pipeline: `draft` → `submitted` → `under_review` →
+> (`incomplete` ⇄ `under_review`) → `complete` → committee decision →
+> `approved` / `rejected`, or `withdrawn` at any point before a final
+> decision (withdrawn applications can be reopened by an admin).
 >
 > Real applicant files continue to arrive in `../part-time/` (10 applicants
 > as of 2026-09-27). See the root `../CLAUDE.md` for what is there and how
@@ -88,6 +102,7 @@ Pick per scope. Arabic-first, RTL, complete translation coverage from day one.
 
 ## Next step
 
-Milestone 1 (intake) is built — see the status header above. Next: Dr.
-Mishal runs the first deploy per `deploy/DEPLOY.md`, then merge
-`milestone-1-intake` to main; after that, plan milestone 2 (assignment).
+Milestones 1 and 2 are built — see the status header above. Next: review and
+merge `milestone-2-assignment` to main, then Dr. Mishal runs the first
+deploy per `deploy/DEPLOY.md`; after that, brainstorm/plan milestone 3
+(monthly (خ-3) attestation).

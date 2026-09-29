@@ -161,6 +161,10 @@ contents to a `ParsedTimetable` value object (`sections[]` each with
 `str_getcsv`; XLSX via `maatwebsite/excel` (already a known dependency in the
 sibling project; add `^4.0`). No database access in the parser.
 
+> **Implementation note (2026-09-29):** built with `phpoffice/phpspreadsheet`
+> (`^5.10`) directly for XLSX reading instead of `maatwebsite/excel`; row/
+> section semantics and the parser's pure-function shape are unchanged.
+
 ### 4.3 Import flow (admin, open term only)
 
 1. `admin.sections.import.form`: upload field, link to the current term's

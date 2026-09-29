@@ -4,10 +4,11 @@ Target: the same Ubuntu + Apache server that hosts help.q8ee.com
 (SSH: `root@alsharidah.shop`). Routine updates afterwards use
 `./deploy/deploy.sh`.
 
-**Status:** milestone 1 (intake) is implemented on branch `milestone-1-intake`
-(`php artisan test` green). Nothing below has been run against the real
-server yet — this is the checklist for when Dr. Mishal is ready to do the
-first deploy.
+**Status:** milestone 1 (intake) and milestone 2 (committee workflow,
+sections import, assignments) are implemented, milestone 2 on branch
+`milestone-2-assignment` (`php artisan test` green). Nothing below has been
+run against the real server yet — this is the checklist for when Dr. Mishal
+is ready to do the first deploy.
 
 ## 0. Prerequisites to verify on the server
 
@@ -232,3 +233,14 @@ help.q8ee.com backs up its attachments, not just the database.
 
 `storage/app` (applicant uploads) is excluded from the rsync on every
 deploy, so files on the server are never touched by a code deploy.
+`composer install` (run by `deploy.sh` on every deploy) also installs
+`phpoffice/phpspreadsheet`, needed by the sections importer below — no
+separate step required.
+
+## Routine per-term setup
+
+Each new term, after creating the term at `/admin/terms`:
+
+Export the term's timetable from jadawil (CSV or XLSX) and import it at
+`/admin/sections/import`; re-import whenever the timetable changes —
+assigned sections are never deleted automatically.
