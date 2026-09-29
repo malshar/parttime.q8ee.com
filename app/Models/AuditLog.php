@@ -11,15 +11,16 @@ class AuditLog extends Model
 
     protected $table = 'audit_log';
 
-    protected $fillable = ['user_id', 'action', 'subject_type', 'subject_id', 'ip'];
+    protected $fillable = ['user_id', 'action', 'subject_type', 'subject_id', 'details', 'ip'];
 
-    public static function record(?int $userId, string $action, ?Model $subject = null, ?string $ip = null): self
+    public static function record(?int $userId, string $action, ?Model $subject = null, ?string $ip = null, ?string $details = null): self
     {
         return self::create([
             'user_id' => $userId,
             'action' => $action,
             'subject_type' => $subject?->getMorphClass(),
             'subject_id' => $subject?->getKey(),
+            'details' => $details,
             'ip' => $ip ?? request()?->ip(),
         ]);
     }

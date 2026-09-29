@@ -40,10 +40,14 @@ class AdminProfileEditTest extends TestCase
         $this->assertSame('مهندس أول', $i->job_title);
         $this->assertSame('99887766', $i->mobile);
         $this->assertDatabaseHas('audit_log', ['action' => 'admin_edit_profile', 'subject_id' => $i->id]);
-        $detail = AuditLog::where('action', 'like', 'admin_edit_profile:%')->latest('id')->first();
-        $this->assertNotNull($detail);
-        $this->assertStringContainsString('job_title', $detail->action);
-        $this->assertStringNotContainsString('99887766', $detail->action);
+
+        $row = AuditLog::where('action', 'admin_edit_profile')->where('subject_id', $i->id)->latest('id')->first();
+        $this->assertNotNull($row);
+        $this->assertStringContainsString('job_title', $row->details);
+        $this->assertStringContainsString('mobile', $row->details);
+        $this->assertStringNotContainsString('99887766', $row->details);
+        $this->assertStringNotContainsString('iban', $row->details);
+        $this->assertFalse(in_array('civil_id', explode(',', $row->details), true));
     }
 
     public function test_works_even_when_profile_is_locked_for_the_instructor(): void

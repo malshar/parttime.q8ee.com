@@ -43,11 +43,8 @@ class ProfileController extends Controller
 
         $instructor->fill($data)->save();
 
-        AuditLog::record($request->user()->id, 'admin_edit_profile', $instructor);
-        if ($changed !== []) {
-            sort($changed);
-            AuditLog::record($request->user()->id, mb_substr('admin_edit_profile:'.implode(',', $changed), 0, 60), $instructor);
-        }
+        sort($changed);
+        AuditLog::record($request->user()->id, 'admin_edit_profile', $instructor, null, $changed === [] ? null : implode(',', $changed));
 
         return redirect()->route('admin.applications.show', $application)->with('status', __('app.common.saved'));
     }
