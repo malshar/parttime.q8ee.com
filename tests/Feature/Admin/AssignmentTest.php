@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Sections\AssignmentService;
 use Database\Seeders\ChecklistItemSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery;
 use Tests\TestCase;
 
 class AssignmentTest extends TestCase
@@ -93,6 +94,50 @@ class AssignmentTest extends TestCase
         $twin->delete();
         $s = app(AssignmentService::class)->suggestionsFor($this->term);
         $this->assertSame($this->application->id, $s[$this->section->id]);
+    }
+
+    /**
+     * A real Assignment::creating() event hook was tried first (per the review note): make the
+     * hook insert a competing row for the same section right before the real Assignment::create()
+     * call. That reliably reproduces the unique-constraint violation, but AssignmentService::assign()
+     * runs inside DB::transaction(), so the hook's insert happens inside that same transaction — when
+     * the real insert then fails and the transaction rolls back, the hook's "competing" row is rolled
+     * back with it, leaving zero rows and making the row-count assertion impossible to satisfy on a
+     * single-connection SQLite :memory: test database. So this uses the review's sanctioned fallback:
+     * a real, already-committed competing assignment (created via a first, real call to assign()),
+     * plus a partial mock of Section that forces the exists() guard to (falsely) report "unassigned" —
+     * exactly the state a losing concurrent request would observe — so the real Assignment::create()
+     * call goes on to hit the real unique constraint on section_id.
+     */
+    public function test_concurrent_assign_race_yields_domain_error_not_500(): void
+    {
+        $svc = app(AssignmentService::class);
+
+        $other = Application::factory()->approved()->for($this->term)->create();
+        $svc->assign($this->section, $other, $this->admin);
+        $this->assertDatabaseCount('assignments', 1);
+
+        $racedSection = Mockery::mock(Section::class)->makePartial();
+        $racedSection->forceFill($this->section->getAttributes());
+        // Eloquent's implicit belongsTo() name-guessing reads the calling method name off
+        // debug_backtrace(), which resolves incorrectly once the call passes through a Mockery
+        // partial-mock proxy; supplying the real relation (built off the real, unmocked $this->section)
+        // sidesteps that rather than relying on passthrough to the inherited term() body.
+        $racedSection->shouldReceive('term')->andReturn($this->section->term());
+        $racedSection->shouldReceive('assignment->exists')->andReturn(false);
+
+        try {
+            $svc->assign($racedSection, $this->application, $this->admin);
+            $this->fail('race should have raised a DomainException, not a raw unique-constraint 500');
+        } catch (\DomainException $e) {
+            $this->assertSame(__('app.assignments.already_assigned'), $e->getMessage());
+        } finally {
+            Mockery::close();
+        }
+
+        $this->assertDatabaseCount('assignments', 1);
+        $this->assertDatabaseHas('assignments', ['section_id' => $this->section->id, 'application_id' => $other->id]);
+        $this->assertDatabaseMissing('assignments', ['application_id' => $this->application->id]);
     }
 
     public function test_instructor_cannot_assign(): void

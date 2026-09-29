@@ -9,6 +9,7 @@ use App\Models\Section;
 use App\Models\Term;
 use App\Models\User;
 use App\Support\ArabicNameNormaliser;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 class AssignmentService
@@ -29,7 +30,11 @@ class AssignmentService
         }
 
         return DB::transaction(function () use ($section, $application, $admin) {
-            $a = Assignment::create(['application_id' => $application->id, 'section_id' => $section->id, 'created_by' => $admin->id]);
+            try {
+                $a = Assignment::create(['application_id' => $application->id, 'section_id' => $section->id, 'created_by' => $admin->id]);
+            } catch (UniqueConstraintViolationException) {
+                throw new \DomainException(__('app.assignments.already_assigned'));
+            }
             $this->recomputeHours($application);
             AuditLog::record($admin->id, 'assign_section', $section);
 
