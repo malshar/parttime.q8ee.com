@@ -50,9 +50,15 @@ class ProfileRequest extends FormRequest
     {
         $v->after(function (Validator $v) {
             $existing = Instructor::findByCivilId((string) $this->civil_id);
-            if ($existing && $existing->user_id !== $this->user()->id) {
+            if ($existing && $existing->user_id !== $this->ownerUserId()) {
                 $v->errors()->add('civil_id', __('app.profile.civil_id_taken'));
             }
         });
+    }
+
+    /** The user who owns the profile being edited; overridden by the admin request. */
+    protected function ownerUserId(): ?int
+    {
+        return $this->user()?->id;
     }
 }

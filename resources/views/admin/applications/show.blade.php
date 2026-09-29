@@ -21,14 +21,17 @@
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span>{{ __('app.review.profile') }}</span>
-        @if (! $revealed)
-            <form method="post" action="{{ route('admin.applications.reveal', $application) }}">
-                @csrf
-                <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('app.review.reveal') }}</button>
-            </form>
-        @else
-            <span class="badge bg-warning text-dark">{{ __('app.review.revealed') }}</span>
-        @endif
+        <div class="d-flex gap-2 align-items-center">
+            <a href="{{ route('admin.applications.profile.edit', $application) }}" class="btn btn-sm btn-outline-secondary">{{ __('app.review.edit_profile') }}</a>
+            @if (! $revealed)
+                <form method="post" action="{{ route('admin.applications.reveal', $application) }}">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('app.review.reveal') }}</button>
+                </form>
+            @else
+                <span class="badge bg-warning text-dark">{{ __('app.review.revealed') }}</span>
+            @endif
+        </div>
     </div>
     <div class="card-body">
         @if ($instructor->highest_degree === 'bachelor' && (int) $instructor->experience_years < 10)

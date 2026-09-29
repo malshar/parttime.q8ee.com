@@ -112,6 +112,7 @@ return [
         'applicant' => 'Applicant', 'term' => 'Term', 'submitted_at' => 'Submitted on', 'open' => 'Open',
         'filter' => 'Filter', 'all_statuses' => 'All statuses',
         'profile' => 'Applicant details', 'reveal' => 'Reveal sensitive data', 'revealed' => 'Sensitive data is revealed (logged in the audit trail)',
+        'edit_profile' => 'Edit details', 'profile_edit_warning' => 'Editing the applicant details on their request. Every edit is recorded in the audit trail.',
         'checklist' => 'Document checklist', 'history' => 'File history', 'decision' => 'Decision',
         'decision_number' => 'Assignment decision number', 'decision_date' => 'Assignment decision date',
         'already_final' => 'The application is in a final status and cannot be changed.',

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ApplicationController as AdminApplicationController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController as AdminDocumentController;
+use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Admin\TermController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -57,6 +58,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('terms/{term}/close', [TermController::class, 'close'])->name('terms.close');
     Route::get('applications', [AdminApplicationController::class, 'index'])->name('applications.index');
     Route::get('applications/{application}', [AdminApplicationController::class, 'show'])->name('applications.show');
+    Route::get('applications/{application}/profile', [AdminProfileController::class, 'edit'])->name('applications.profile.edit');
+    Route::put('applications/{application}/profile', [AdminProfileController::class, 'update'])->name('applications.profile.update');
     Route::get('applications/{application}/checklist', [AdminApplicationController::class, 'checklist'])->name('applications.checklist');
     Route::post('applications/{application}/reveal', [AdminApplicationController::class, 'reveal'])->name('applications.reveal');
     Route::post('applications/{application}/complete', [AdminApplicationController::class, 'complete'])->name('applications.complete');
