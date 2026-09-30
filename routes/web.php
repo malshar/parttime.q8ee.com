@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ApplicationController as AdminApplicationController;
 use App\Http\Controllers\Admin\AssignmentController;
+use App\Http\Controllers\Admin\AttestationController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController as AdminDocumentController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
@@ -80,4 +81,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('assignments', [AssignmentController::class, 'index'])->name('assignments.index');
     Route::post('sections/{section}/assign', [AssignmentController::class, 'store'])->name('assignments.store');
     Route::delete('sections/{section}/assign', [AssignmentController::class, 'destroy'])->name('assignments.destroy');
+    Route::get('attestations', [AttestationController::class, 'index'])->name('attestations.index');
+    Route::post('attestations/generate', [AttestationController::class, 'generate'])->name('attestations.generate');
 });

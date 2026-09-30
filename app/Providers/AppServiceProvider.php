@@ -3,9 +3,11 @@
 namespace App\Providers;
 
 use App\Models\Application;
+use App\Models\Attestation;
 use App\Models\Document;
 use App\Models\Section;
 use App\Policies\ApplicationPolicy;
+use App\Policies\AttestationPolicy;
 use App\Policies\DocumentPolicy;
 use App\Policies\SectionPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -36,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Application::class, ApplicationPolicy::class);
         Gate::policy(Document::class, DocumentPolicy::class);
         Gate::policy(Section::class, SectionPolicy::class);
+        Gate::policy(Attestation::class, AttestationPolicy::class);
 
         Paginator::useBootstrapFive();
     }
