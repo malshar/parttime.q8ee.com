@@ -266,5 +266,7 @@ return [
         'decision_number' => 'رقم القرار',
         'decision_date' => 'تاريخ القرار',
         'back_to_month' => 'العودة إلى الشهر',
+        'category' => '(من خارج الهيئة - كادر عام)',
+        'term_labels' => ['first' => 'للفصل الأول', 'second' => 'للفصل الثاني', 'summer' => 'للفصل الصيفي'],
     ],
 ];

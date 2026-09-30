@@ -260,5 +260,7 @@ return [
         'decision_number' => 'Decision number',
         'decision_date' => 'Decision date',
         'back_to_month' => 'Back to the month',
+        'category' => '(external - general cadre)',
+        'term_labels' => ['first' => 'first semester', 'second' => 'second semester', 'summer' => 'summer semester'],
     ],
 ];
