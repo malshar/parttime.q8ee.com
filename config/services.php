@@ -40,4 +40,8 @@ return [
         'secret' => env('TURNSTILE_SECRET'),
     ],
 
+    'soffice' => [
+        'path' => env('SOFFICE_PATH', 'soffice'),
+    ],
+
 ];

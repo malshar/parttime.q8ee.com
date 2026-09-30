@@ -109,9 +109,7 @@
             <button type="submit" class="btn btn-outline-warning">{{ __('app.attestations.unlock') }}</button>
         </form>
     @endif
-    @if (Route::has('admin.attestations.download'))
-        <a class="btn btn-outline-secondary" href="{{ route('admin.attestations.download', [$attestation, 'format' => 'docx']) }}">{{ __('app.attestations.word') }}</a>
-        <a class="btn btn-outline-secondary" href="{{ route('admin.attestations.download', [$attestation, 'format' => 'pdf']) }}">{{ __('app.attestations.pdf') }}</a>
-    @endif
+    <a class="btn btn-outline-secondary" href="{{ route('admin.attestations.download', [$attestation, 'format' => 'docx']) }}">{{ __('app.attestations.word') }}</a>
+    <a class="btn btn-outline-secondary" href="{{ route('admin.attestations.download', [$attestation, 'format' => 'pdf']) }}">{{ __('app.attestations.pdf') }}</a>
 </div>
 @endsection

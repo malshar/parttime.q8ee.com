@@ -48,9 +48,7 @@
                 <button type="submit" class="btn btn-eet">{{ __('app.attestations.generate_missing') }}</button>
             </form>
         @endif
-        @if (Route::has('admin.attestations.combined'))
-            <a class="btn btn-outline-secondary @if (($existingCount ?? 0) === 0) disabled @endif" href="{{ route('admin.attestations.combined', ['term' => $term->id, 'month' => $month['index']]) }}">{{ __('app.attestations.combined_pdf') }}</a>
-        @endif
+        <a class="btn btn-outline-secondary @if (($existingCount ?? 0) === 0) disabled @endif" href="{{ route('admin.attestations.combined', ['term' => $term->id, 'month' => $month['index']]) }}">{{ __('app.attestations.combined_pdf') }}</a>
     </div>
 
     <div class="table-responsive">
@@ -83,10 +81,8 @@
                     <td>{{ $a?->generated_at?->format('Y-m-d') }}</td>
                     <td>{{ $a?->exported_at?->format('Y-m-d') }}</td>
                     <td>
-                        @if ($a && Route::has('admin.attestations.show'))
+                        @if ($a)
                             <a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.attestations.show', $a) }}">{{ __('app.attestations.open') }}</a>
-                        @endif
-                        @if ($a && Route::has('admin.attestations.download'))
                             <a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.attestations.download', [$a, 'format' => 'docx']) }}">{{ __('app.attestations.word') }}</a>
                             <a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.attestations.download', [$a, 'format' => 'pdf']) }}">{{ __('app.attestations.pdf') }}</a>
                         @endif
