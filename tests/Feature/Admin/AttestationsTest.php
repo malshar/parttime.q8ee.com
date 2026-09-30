@@ -9,6 +9,7 @@ use App\Models\Instructor;
 use App\Models\Section;
 use App\Models\Term;
 use App\Models\User;
+use App\Services\Attestations\AttestationGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -99,5 +100,104 @@ class AttestationsTest extends TestCase
         $this->assertDatabaseHas('attestations', ['id' => $a->id]);
         $r = $this->actingAs($this->admin)->get(route('admin.attestations.index', ['term' => $this->term->id, 'month' => 1]));
         $r->assertDontSee('أحمد سالم');
+    }
+
+    private function generated(): Attestation
+    {
+        return app(AttestationGenerator::class)->generate($this->assigned, 2026, 6, $this->admin);
+    }
+
+    public function test_show_page_lists_weeks_and_generated_values(): void
+    {
+        $a = $this->generated();
+        $a->weeks[0]->update(['theory_minutes' => 60]);
+
+        $r = $this->actingAs($this->admin)->get(route('admin.attestations.show', $a))->assertOk();
+
+        $r->assertSee('الشهر الأول/ يونيو');
+        $r->assertSee('7-11');
+        $r->assertSee(__('app.attestations.generated_value', ['value' => '2.5']));
+        $r->assertSee('name="weeks['.$a->weeks[0]->id.'][theory_hours]"', false);
+        $r->assertSee('value="1"', false);
+    }
+
+    public function test_save_converts_hours_to_minutes_keeps_twins_and_audits_changed_columns(): void
+    {
+        $a = $this->generated();
+        $w = $a->weeks[1];
+
+        $this->actingAs($this->admin)->put(route('admin.attestations.update', $a), ['weeks' => [
+            $w->id => ['courses_text' => $w->courses_text, 'student_count' => 21, 'theory_hours' => '1.333', 'practical_hours' => '1.5', 'field_hours' => '0', 'note_ar' => $w->note_ar],
+        ]])->assertRedirect(route('admin.attestations.show', $a))->assertSessionHas('status', __('app.attestations.saved'));
+
+        $w->refresh();
+        $this->assertSame(21, $w->student_count);
+        $this->assertSame(80, $w->theory_minutes);
+        $this->assertSame(90, $w->practical_minutes);
+        $this->assertSame(150, $w->generated_theory_minutes);
+        $this->assertTrue($w->isEdited());
+        $this->assertDatabaseHas('audit_log', ['action' => 'update_attestation', 'subject_id' => $a->id, 'details' => 'practical_minutes,student_count,theory_minutes']);
+    }
+
+    public function test_save_rejects_comma_decimals_and_negative_counts(): void
+    {
+        $a = $this->generated();
+        $w = $a->weeks[0];
+
+        $this->actingAs($this->admin)->from(route('admin.attestations.show', $a))->put(route('admin.attestations.update', $a), ['weeks' => [
+            $w->id => ['courses_text' => '', 'student_count' => -1, 'theory_hours' => '2,5', 'practical_hours' => '0', 'field_hours' => '0', 'note_ar' => ''],
+        ]])->assertRedirect(route('admin.attestations.show', $a))->assertSessionHasErrors(["weeks.{$w->id}.theory_hours", "weeks.{$w->id}.student_count"]);
+
+        $this->assertSame(150, $w->fresh()->theory_minutes);
+    }
+
+    public function test_save_refused_when_exported_or_term_closed(): void
+    {
+        $a = $this->generated();
+        $w = $a->weeks[0];
+        $payload = ['weeks' => [$w->id => ['courses_text' => 'x', 'student_count' => 1, 'theory_hours' => '1', 'practical_hours' => '0', 'field_hours' => '0', 'note_ar' => '']]];
+
+        $a->update(['status' => Attestation::STATUS_EXPORTED]);
+        $this->actingAs($this->admin)->put(route('admin.attestations.update', $a), $payload)->assertSessionHasErrors('attestation');
+
+        $a->update(['status' => Attestation::STATUS_GENERATED]);
+        $this->term->update(['status' => Term::STATUS_CLOSED]);
+        $this->actingAs($this->admin)->put(route('admin.attestations.update', $a), $payload)->assertSessionHasErrors('attestation');
+        $this->assertSame(150, $w->fresh()->theory_minutes);
+    }
+
+    public function test_regenerate_discards_edits_and_audits(): void
+    {
+        $a = $this->generated();
+        $a->weeks[0]->update(['student_count' => 99]);
+
+        $this->actingAs($this->admin)->post(route('admin.attestations.regenerate', $a))->assertRedirect(route('admin.attestations.show', $a));
+
+        $this->assertSame(0, $a->fresh()->weeks[0]->student_count);
+        $this->assertDatabaseHas('audit_log', ['action' => 'generate_attestation', 'subject_id' => $a->id, 'details' => 'regenerated']);
+    }
+
+    public function test_unlock_returns_exported_to_generated_and_regenerate_then_works(): void
+    {
+        $a = $this->generated();
+        $a->update(['status' => Attestation::STATUS_EXPORTED, 'exported_at' => now()]);
+
+        $this->actingAs($this->admin)->post(route('admin.attestations.unlock', $a))->assertRedirect(route('admin.attestations.show', $a));
+        $this->assertSame(Attestation::STATUS_GENERATED, $a->fresh()->status);
+        $this->assertNotNull($a->fresh()->exported_at);
+        $this->assertDatabaseHas('audit_log', ['action' => 'unlock_attestation', 'subject_id' => $a->id]);
+
+        $this->actingAs($this->admin)->post(route('admin.attestations.regenerate', $a))->assertSessionHasNoErrors();
+        $this->actingAs($this->admin)->post(route('admin.attestations.unlock', $a))->assertSessionHasErrors('attestation');
+    }
+
+    public function test_instructor_forbidden_on_show_update_regenerate_unlock(): void
+    {
+        $a = $this->generated();
+        $user = User::factory()->instructor()->create();
+        $this->actingAs($user)->get(route('admin.attestations.show', $a))->assertForbidden();
+        $this->actingAs($user)->put(route('admin.attestations.update', $a), [])->assertForbidden();
+        $this->actingAs($user)->post(route('admin.attestations.regenerate', $a))->assertForbidden();
+        $this->actingAs($user)->post(route('admin.attestations.unlock', $a))->assertForbidden();
     }
 }

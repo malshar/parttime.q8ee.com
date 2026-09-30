@@ -83,4 +83,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::delete('sections/{section}/assign', [AssignmentController::class, 'destroy'])->name('assignments.destroy');
     Route::get('attestations', [AttestationController::class, 'index'])->name('attestations.index');
     Route::post('attestations/generate', [AttestationController::class, 'generate'])->name('attestations.generate');
+    Route::get('attestations/{attestation}', [AttestationController::class, 'show'])->name('attestations.show');
+    Route::put('attestations/{attestation}', [AttestationController::class, 'update'])->name('attestations.update');
+    Route::post('attestations/{attestation}/regenerate', [AttestationController::class, 'regenerate'])->name('attestations.regenerate');
+    Route::post('attestations/{attestation}/unlock', [AttestationController::class, 'unlock'])->name('attestations.unlock');
 });

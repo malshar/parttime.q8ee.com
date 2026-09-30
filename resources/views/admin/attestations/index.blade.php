@@ -85,6 +85,8 @@
                     <td>
                         @if ($a && Route::has('admin.attestations.show'))
                             <a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.attestations.show', $a) }}">{{ __('app.attestations.open') }}</a>
+                        @endif
+                        @if ($a && Route::has('admin.attestations.download'))
                             <a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.attestations.download', [$a, 'format' => 'docx']) }}">{{ __('app.attestations.word') }}</a>
                             <a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.attestations.download', [$a, 'format' => 'pdf']) }}">{{ __('app.attestations.pdf') }}</a>
                         @endif

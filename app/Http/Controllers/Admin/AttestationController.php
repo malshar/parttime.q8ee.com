@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AttestationUpdateRequest;
 use App\Models\Attestation;
 use App\Models\Term;
 use App\Services\Attestations\AttestationService;
@@ -47,5 +48,49 @@ class AttestationController extends Controller
 
         return redirect()->route('admin.attestations.index', ['term' => $term->id, 'month' => $month['index']])
             ->with('status', __('app.attestations.generated_count', ['n' => $n]));
+    }
+
+    public function show(Attestation $attestation): View
+    {
+        $this->authorize('view', $attestation);
+        $attestation->load(['weeks', 'application.instructor', 'application.term']);
+
+        return view('admin.attestations.show', ['attestation' => $attestation, 'totals' => $attestation->totals(), 'term' => $attestation->application->term]);
+    }
+
+    public function update(AttestationUpdateRequest $request, Attestation $attestation): RedirectResponse
+    {
+        $this->authorize('update', $attestation);
+        try {
+            $this->service->update($attestation, $request->weeks(), $request->user());
+        } catch (\DomainException $e) {
+            return back()->withErrors(['attestation' => $e->getMessage()]);
+        }
+
+        return redirect()->route('admin.attestations.show', $attestation)->with('status', __('app.attestations.saved'));
+    }
+
+    public function regenerate(Request $request, Attestation $attestation): RedirectResponse
+    {
+        $this->authorize('regenerate', $attestation);
+        try {
+            $this->service->regenerate($attestation, $request->user());
+        } catch (\DomainException $e) {
+            return back()->withErrors(['attestation' => $e->getMessage()]);
+        }
+
+        return redirect()->route('admin.attestations.show', $attestation)->with('status', __('app.attestations.regenerated'));
+    }
+
+    public function unlock(Request $request, Attestation $attestation): RedirectResponse
+    {
+        $this->authorize('unlock', $attestation);
+        try {
+            $this->service->unlock($attestation, $request->user());
+        } catch (\DomainException $e) {
+            return back()->withErrors(['attestation' => $e->getMessage()]);
+        }
+
+        return redirect()->route('admin.attestations.show', $attestation)->with('status', __('app.attestations.unlocked'));
     }
 }
