@@ -84,6 +84,7 @@ class AttestationDocumentTest extends TestCase
         $this->assertStringNotContainsString('${', $xml);
         $this->assertSame(1, substr_count($xml, 'استمارة مزاولة فعلية'));
         $this->assertSame(0, substr_count($xml, '<w:pageBreakBefore/>'));
+        $this->assertSame(0, substr_count($xml, '<w:br w:type="page"/>'));   // single page: the block's trailing break is stripped
         // twelve civil-ID boxes, in order, each its own cell
         $this->assertMatchesRegularExpression('~'.implode('.*?', array_map(fn ($d) => preg_quote("<w:t xml:space=\"preserve\">$d</w:t>", '~'), str_split('290010112345'))).'~s', $xml);
         $this->assertStringContainsString('الدوائر الكهربائية', $xml);
@@ -189,8 +190,11 @@ class AttestationDocumentTest extends TestCase
         $xml = $this->documentXml(app(AttestationDocument::class)->combinedDocx(collect([$b, $a])));
 
         $this->assertSame(2, substr_count($xml, 'استمارة مزاولة فعلية'));
-        $this->assertSame(1, substr_count($xml, '<w:pageBreakBefore/>'));
+        $this->assertSame(0, substr_count($xml, '<w:pageBreakBefore/>'));
+        $this->assertSame(1, substr_count($xml, '<w:br w:type="page"/>'));   // between the two pages, none after the last
         $this->assertLessThan(mb_strpos($xml, 'يوسف كامل'), mb_strpos($xml, 'أحمد سالم'));
+        $this->assertLessThan(mb_strpos($xml, 'يوسف كامل'), mb_strpos($xml, '<w:br w:type="page"/>'));
+        $this->assertGreaterThan(mb_strpos($xml, 'أحمد سالم'), mb_strpos($xml, '<w:br w:type="page"/>'));
         $this->assertStringNotContainsString('${', $xml);
     }
 }

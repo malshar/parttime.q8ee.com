@@ -55,7 +55,7 @@ final class AttestationDocument
             }
             $tp->setValues($this->totalValues($attestation, $p));
         }
-        $tp->stripFirstPageBreak();
+        $tp->stripLastPageBreak();
 
         $dir = Storage::disk('local')->path('generated/tmp');
         File::ensureDirectoryExists($dir);

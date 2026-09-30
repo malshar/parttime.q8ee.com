@@ -106,11 +106,14 @@ for c, name in reversed(list(zip(tcells, sums))):
 new_t2 = t2[:rows[0].start()] + r0 + rows[1].group(0) + new_week + new_tot + t2[rows[6].end():]
 body = body[:tables[1].start()] + new_t1 + body[tables[1].end():tables[2].start()] + new_t2 + body[tables[2].end():]
 
-# 4. page block: ${page} + a page-break paragraph before the first table, ${/page} at the end
+# 4. page block: ${page} before the first table; a page-break paragraph at the END of the block, then ${/page}.
+#    (A break at the start added a blank line to every page after the first.) Kh3TemplateProcessor::stripLastPageBreak()
+#    removes the break after the last cloned page.
 first_tbl = body.index('<w:tbl>')
 body = (body[:first_tbl]
-        + '<w:p><w:r><w:t>${page}</w:t></w:r></w:p><w:p><w:pPr><w:pageBreakBefore/></w:pPr></w:p>'
+        + '<w:p><w:r><w:t>${page}</w:t></w:r></w:p>'
         + body[first_tbl:]
+        + '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
         + '<w:p><w:r><w:t>${/page}</w:t></w:r></w:p>')
 
 new_xml = head + '<w:body>' + body + tail
