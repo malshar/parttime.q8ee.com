@@ -61,14 +61,14 @@ echo "⚙️  Server setup..."
 ssh "$SERVER" bash -s <<REMOTE
 set -euo pipefail
 cd $APP_DIR
-umask 077
+umask 022   # world-readable code; secret files below are created with 600 explicitly
 
 # --- 2. Database ---
 # MySQL validate_password (MEDIUM) wants upper, lower, digit and a special
 # character; the suffix guarantees each class, the 24 random chars carry the
 # entropy. Regenerate an older file that lacks the special character.
 if [ ! -f /root/.parttime-db-pass ] || ! grep -q -- '-' /root/.parttime-db-pass; then
-  echo "\$(openssl rand -base64 30 | tr -d '/+=' | cut -c1-24)Aa1-" > /root/.parttime-db-pass
+  (umask 077; echo "\$(openssl rand -base64 30 | tr -d '/+=' | cut -c1-24)Aa1-" > /root/.parttime-db-pass)
 fi
 DBP=\$(cat /root/.parttime-db-pass)
 # MySQL root needs a password on this server; the Debian maintenance account
@@ -108,7 +108,7 @@ php artisan db:seed --class=ChecklistItemSeeder --force
 
 # --- 6. Admin account ---
 if [ ! -f /root/parttime-admin-initial.txt ]; then
-  openssl rand -base64 24 | tr -d '/+=' | cut -c1-20 > /root/parttime-admin-initial.txt
+  (umask 077; openssl rand -base64 24 | tr -d '/+=' | cut -c1-20 > /root/parttime-admin-initial.txt)
 fi
 php artisan app:create-admin "$ADMIN_EMAIL" "$ADMIN_NAME" --password-file=/root/parttime-admin-initial.txt
 
@@ -117,6 +117,7 @@ mkdir -p storage/app/private/applications storage/app/private/generated storage/
 php artisan config:cache && php artisan route:cache && php artisan view:cache
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R ug+rwX storage bootstrap/cache
+chmod -R o+rX vendor public app bootstrap config database lang resources routes   # php-fpm (www-data) must read the code
 
 # --- 9. Apache vhost + certbot ---
 cp deploy/apache-vhost.conf /etc/apache2/sites-available/parttime.q8ee.com.conf
