@@ -3,6 +3,7 @@
 namespace Tests\Feature\Instructor;
 
 use App\Models\Application;
+use App\Models\AuditLog;
 use App\Models\Instructor;
 use App\Models\Term;
 use App\Models\User;
@@ -149,5 +150,38 @@ class ProfileTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->assertSame('اسم جديد', $instructor->fresh()->full_name);
+    }
+
+    public function test_profile_update_audits_changed_field_names_only(): void
+    {
+        $user = User::factory()->instructor()->create();
+        $this->actingAs($user)->put(route('instructor.profile.update'), self::payload())->assertSessionHasNoErrors();
+        $before = AuditLog::where('action', 'edit_profile')->count();
+
+        $this->actingAs($user)->put(route('instructor.profile.update'), self::payload([
+            'mobile' => '99887766', 'iban' => 'KW16NBOK0000000000001234560101', 'bank_name' => 'بنك الخليج',
+        ]))->assertSessionHasNoErrors();
+
+        $rows = AuditLog::where('action', 'edit_profile')->orderBy('id')->get()->slice($before);
+        $this->assertCount(1, $rows);
+        $row = $rows->first();
+        $instructor = $user->fresh()->instructor;
+        $this->assertSame($user->id, $row->user_id);
+        $this->assertSame($instructor->getMorphClass(), $row->subject_type);
+        $this->assertSame($instructor->id, $row->subject_id);
+        $this->assertSame('bank_name,iban,mobile', $row->details);
+        $this->assertStringNotContainsString('99887766', $row->details);
+        $this->assertStringNotContainsString('KW16', $row->details);
+    }
+
+    public function test_profile_update_without_changes_writes_no_audit_row(): void
+    {
+        $user = User::factory()->instructor()->create();
+        $this->actingAs($user)->put(route('instructor.profile.update'), self::payload())->assertSessionHasNoErrors();
+        $before = AuditLog::where('action', 'edit_profile')->count();
+
+        $this->actingAs($user)->put(route('instructor.profile.update'), self::payload())->assertSessionHasNoErrors();
+
+        $this->assertSame($before, AuditLog::where('action', 'edit_profile')->count());
     }
 }

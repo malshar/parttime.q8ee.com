@@ -102,6 +102,20 @@ For each required item of the plan, in this order:
    application's term → `on_file`, `source` = that document.
 6. Otherwise `missing`.
 
+**Rule 4b (implementation note, ruled in the final fix wave).** A source
+found by rule 5 is dropped (the row falls through to `missing`) when a
+profile field the item certifies changed after the source was accepted. The
+mapping is `ChecklistItem::PROFILE_FIELDS` (civil_id: civil ID and expiry;
+degree and equivalency: degree fields; experience: experience years and
+highest degree; social_insurance: employer and sector; iban: IBAN, bank
+and branch; other items have no profile dependency). Changes are read from
+the audit log: `edit_profile` (instructor self-edit, now audited) and
+`admin_edit_profile` rows whose subject is the instructor or one of the
+instructor's applications, with `created_at` after the source's
+`reviewed_at` and whose `details` (a comma list of field names, never
+values) names a mapped field. `onFileDocuments()` reads all such rows for
+the instructor in one query and filters in PHP.
+
 "Latest" = highest `reviewed_at`, then highest id. Only `accepted` documents
 qualify; `pending`/`rejected` never do. Drafts from other terms can hold
 accepted documents only if they were reviewed, which cannot happen, so the

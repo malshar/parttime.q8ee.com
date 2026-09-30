@@ -18,7 +18,10 @@
 > Milestone 4 is implemented on branch `milestone-4-term-close-on-file`:
 > term close rules (closing refuses unfinished applications, withdraws
 > drafts, drops archived ones), on-file documents (accepted documents from
-> earlier applications count, with admin requests for a fresh copy), and
+> earlier applications count, with admin requests for a fresh copy; a copy
+> stops counting once a profile field it certifies changes after it was
+> accepted, read from the `edit_profile`/`admin_edit_profile` audit rows,
+> which carry field names only), and
 > the parked attestation fixes (locked saves refusing stale forms,
 > regenerate refused without assignments, nested placeholder markers,
 > converter working directory and leftovers, the last-day line on a

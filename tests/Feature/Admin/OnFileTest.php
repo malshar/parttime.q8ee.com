@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Application;
+use App\Models\AuditLog;
 use App\Models\ChecklistItem;
 use App\Models\ChecklistRenewal;
 use App\Models\Document;
@@ -153,5 +154,50 @@ class OnFileTest extends TestCase
 
         $this->assertTrue($this->workflow()->allRequiredUploaded($this->application));
         $this->assertTrue($this->workflow()->allRequiredAccepted($this->application));
+    }
+
+    public function test_instructor_iban_edit_after_acceptance_drops_only_iban(): void
+    {
+        $this->accepted($this->previous, 'iban');
+        $this->accepted($this->previous, 'degree');
+        AuditLog::record($this->instructor->user_id, 'edit_profile', $this->instructor, null, 'bank_name,iban');
+
+        $c = $this->workflow()->checklist($this->application);
+
+        $this->assertSame('missing', $c['iban']['state']);
+        $this->assertNull($c['iban']['source']);
+        $this->assertSame('on_file', $c['degree']['state']);
+    }
+
+    public function test_unrelated_or_other_instructor_edit_keeps_copy_on_file(): void
+    {
+        $this->accepted($this->previous, 'iban');
+        AuditLog::record($this->instructor->user_id, 'edit_profile', $this->instructor, null, 'mobile');
+        $stranger = Instructor::factory()->for(User::factory()->instructor())->create();
+        AuditLog::record($stranger->user_id, 'edit_profile', $stranger, null, 'iban');
+
+        $this->assertSame('on_file', $this->workflow()->checklist($this->application)['iban']['state']);
+    }
+
+    public function test_admin_edit_of_civil_id_after_acceptance_drops_civil_id(): void
+    {
+        $this->accepted($this->previous, 'civil_id');
+        $this->assertSame('on_file', $this->workflow()->checklist($this->application)['civil_id']['state']);
+
+        // Subject is one of the instructor's applications: both subject forms count.
+        $admin = User::factory()->admin()->create();
+        AuditLog::record($admin->id, 'admin_edit_profile', $this->previous, null, 'civil_id,mobile');
+
+        $this->assertSame('missing', $this->workflow()->checklist($this->application->fresh())['civil_id']['state']);
+    }
+
+    public function test_edit_before_acceptance_keeps_copy_on_file(): void
+    {
+        $this->travelTo(now()->subMonths(2));
+        AuditLog::record($this->instructor->user_id, 'edit_profile', $this->instructor, null, 'iban');
+        $this->travelBack();
+        $this->accepted($this->previous, 'iban');
+
+        $this->assertSame('on_file', $this->workflow()->checklist($this->application)['iban']['state']);
     }
 }

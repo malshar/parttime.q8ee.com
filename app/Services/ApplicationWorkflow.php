@@ -75,7 +75,8 @@ class ApplicationWorkflow
 
     /**
      * Latest accepted document per item code from the instructor's other applications in earlier terms
-     * (spec §4.2 rule 5). Keyed by item code; `checklistItem` and `application.term` are loaded.
+     * (spec §4.2 rule 5), minus any whose certified profile fields changed after it was accepted
+     * (rule 4b). Keyed by item code; `checklistItem` and `application.term` are loaded.
      *
      * @return Collection<string, Document>
      */
@@ -83,7 +84,7 @@ class ApplicationWorkflow
     {
         $termStart = $application->term->teaching_starts_on;
 
-        return Document::query()
+        $sources = Document::query()
             ->where('status', Document::STATUS_ACCEPTED)
             ->whereHas('application', fn ($q) => $q->where('instructor_id', $application->instructor_id)
                 ->whereKeyNot($application->id)
@@ -93,6 +94,37 @@ class ApplicationWorkflow
             ->get()
             ->unique('checklist_item_id')
             ->keyBy(fn (Document $d) => $d->checklistItem->code);
+
+        $edits = $this->profileEditsSince($application->instructor_id, $sources->min('reviewed_at'));
+
+        return $sources->reject(function (Document $source, string $code) use ($edits) {
+            $fields = ChecklistItem::PROFILE_FIELDS[$code] ?? [];
+
+            return $fields !== [] && $edits->contains(fn (AuditLog $log) => $log->created_at > $source->reviewed_at
+                && array_intersect($fields, explode(',', (string) $log->details)) !== []);
+        });
+    }
+
+    /**
+     * Profile-edit audit rows (instructor or admin) about this instructor, newer than $since. The
+     * subject is the instructor or one of the instructor's applications.
+     *
+     * @return Collection<int, AuditLog>
+     */
+    private function profileEditsSince(int $instructorId, mixed $since): Collection
+    {
+        if ($since === null) {
+            return collect();
+        }
+
+        return AuditLog::query()
+            ->whereIn('action', ['edit_profile', 'admin_edit_profile'])
+            ->where('created_at', '>', $since)
+            ->where(fn ($q) => $q
+                ->where(fn ($s) => $s->where('subject_type', (new Instructor)->getMorphClass())->where('subject_id', $instructorId))
+                ->orWhere(fn ($s) => $s->where('subject_type', (new Application)->getMorphClass())
+                    ->whereIn('subject_id', Application::query()->select('id')->where('instructor_id', $instructorId))))
+            ->get(['id', 'action', 'details', 'created_at']);
     }
 
     public function plan(Application $application): ChecklistPlan
