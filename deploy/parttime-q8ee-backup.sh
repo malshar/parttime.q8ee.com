@@ -9,6 +9,6 @@ TS=$(date +%Y%m%d)
 mkdir -p "$D"; chmod 700 "$D"
 mysqldump --defaults-file=/etc/mysql/debian.cnf --single-transaction parttime | gzip > "$D/db-$TS.sql.gz"
 cp /srv/www/parttime.q8ee.com/app/.env "$D/env-$TS"
-tar -czf "$D/private-$TS.tar.gz" -C /srv/www/parttime.q8ee.com/app/storage/app private 2>/dev/null || true
+tar -czf "$D/private-$TS.tar.gz" --exclude=private/generated/tmp -C /srv/www/parttime.q8ee.com/app/storage/app private 2>/dev/null || true
 chmod 600 "$D"/*
 find "$D" -type f -mtime +14 -delete

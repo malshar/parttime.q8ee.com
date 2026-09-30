@@ -8,8 +8,11 @@ use RuntimeException;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 
-/** LibreOffice headless docx → pdf (spec §6.2). One throw-away profile per call so concurrent runs never share a lock. */
-final class PdfConverter
+/**
+ * LibreOffice headless docx → pdf (spec §6.2). One throw-away profile per call so concurrent runs never share a lock.
+ * Not final: feature tests bind a subclass whose convert() throws, to cover the controller's failure paths.
+ */
+class PdfConverter
 {
     private string $binary;
 

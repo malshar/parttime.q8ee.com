@@ -113,9 +113,15 @@ class AttestationController extends Controller
         $name = "kh3-{$attestation->application_id}-{$attestation->year}-{$attestation->month}";
         $docx = $doc->docx($attestation);
         if ($format === 'docx') {
-            $this->service->markExported($attestation, $request->user(), 'docx');
+            try {
+                $this->service->markExported($attestation, $request->user(), 'docx');
 
-            return response()->download($docx, "$name.docx", ['Content-Type' => self::DOCX_MIME])->deleteFileAfterSend(true);
+                return response()->download($docx, "$name.docx", ['Content-Type' => self::DOCX_MIME])->deleteFileAfterSend(true);
+            } catch (\Throwable $e) {
+                @unlink($docx);
+
+                throw $e;
+            }
         }
         if (($file = $this->toPdfOrNull($pdf, $docx)) === null) {
             return back()->withErrors(['export' => __('app.attestations.pdf_unavailable')]);
@@ -166,15 +172,13 @@ class AttestationController extends Controller
     private function toPdfOrNull(PdfConverter $pdf, string $docx): ?string
     {
         try {
-            $file = $pdf->convert($docx);
-        } catch (\RuntimeException $e) {
+            return $pdf->convert($docx);
+        } catch (\Throwable $e) {
             report($e);
-            @unlink($docx);
 
             return null;
+        } finally {
+            @unlink($docx);
         }
-        @unlink($docx);
-
-        return $file;
     }
 }

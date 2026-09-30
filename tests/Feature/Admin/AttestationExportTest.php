@@ -11,6 +11,7 @@ use App\Models\Section;
 use App\Models\Term;
 use App\Models\User;
 use App\Services\Attestations\AttestationGenerator;
+use App\Services\Attestations\PdfConverter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
@@ -48,7 +49,9 @@ class AttestationExportTest extends TestCase
         $r = $this->actingAs($this->admin)->get(route('admin.attestations.download', [$this->a, 'format' => 'docx']));
 
         $r->assertOk()->assertDownload("kh3-{$this->a->application_id}-2026-6.docx");
+        ob_start();
         $r->baseResponse->sendContent();
+        ob_end_clean();
         $this->assertSame(Attestation::STATUS_EXPORTED, $this->a->fresh()->status);
         $this->assertNotNull($this->a->fresh()->exported_at);
         $this->assertDatabaseHas('audit_log', ['action' => 'export_attestation', 'subject_id' => $this->a->id, 'details' => 'docx', 'user_id' => $this->admin->id]);
@@ -60,7 +63,9 @@ class AttestationExportTest extends TestCase
         $r = $this->actingAs($this->admin)->get(route('admin.attestations.download', [$this->a, 'format' => 'pdf']));
 
         $r->assertOk()->assertDownload("kh3-{$this->a->application_id}-2026-6.pdf");
+        ob_start();
         $r->baseResponse->sendContent();
+        ob_end_clean();
         $this->assertDatabaseHas('audit_log', ['action' => 'export_attestation', 'subject_id' => $this->a->id, 'details' => 'pdf']);
         $this->assertSame([], array_filter($this->tmpFiles(), fn ($f) => str_ends_with($f, '.docx')));
     }
@@ -89,6 +94,35 @@ class AttestationExportTest extends TestCase
         $this->actingAs($this->admin)->get(route('admin.attestations.download', [$this->a, 'format' => 'docx']))->assertOk();
     }
 
+    public function test_word_download_failing_to_mark_exported_leaves_no_temp_file(): void
+    {
+        Schema::drop('audit_log');   // markExported's AuditLog::record() fails
+
+        $this->actingAs($this->admin)->get(route('admin.attestations.download', [$this->a, 'format' => 'docx']))
+            ->assertServerError();
+
+        $this->assertSame([], $this->tmpFiles());
+    }
+
+    public function test_converter_throwing_a_non_runtime_exception_reports_unavailable_and_cleans_up(): void
+    {
+        $this->app->instance(PdfConverter::class, new class extends PdfConverter
+        {
+            public function convert(string $docxPath): string
+            {
+                throw new \LogicException('converter bug');
+            }
+        });
+
+        $this->actingAs($this->admin)->from(route('admin.attestations.show', $this->a))
+            ->get(route('admin.attestations.download', [$this->a, 'format' => 'pdf']))
+            ->assertRedirect(route('admin.attestations.show', $this->a))
+            ->assertSessionHasErrors(['export' => __('app.attestations.pdf_unavailable')]);
+
+        $this->assertSame(Attestation::STATUS_GENERATED, $this->a->fresh()->status);
+        $this->assertSame([], $this->tmpFiles());
+    }
+
     public function test_pdf_with_missing_binary_reports_unavailable(): void
     {
         config(['services.soffice.path' => '/nonexistent/soffice']);
@@ -113,7 +147,9 @@ class AttestationExportTest extends TestCase
         $r = $this->actingAs($this->admin)->get(route('admin.attestations.combined', ['term' => $this->term->id, 'month' => 1]));
 
         $r->assertOk()->assertDownload("kh3-{$this->term->id}-2026-6.pdf");
+        ob_start();
         $r->baseResponse->sendContent();
+        ob_end_clean();
         $this->assertSame(Attestation::STATUS_EXPORTED, $this->a->fresh()->status);
         $this->assertSame(Attestation::STATUS_EXPORTED, $b->fresh()->status);
         $this->assertSame(2, AuditLog::where('action', 'export_attestation')->where('details', 'combined_pdf')->count());
