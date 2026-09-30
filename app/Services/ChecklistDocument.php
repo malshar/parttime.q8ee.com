@@ -12,6 +12,7 @@ use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\Shared\Converter;
 use PhpOffice\PhpWord\SimpleType\Jc;
+use PhpOffice\PhpWord\Style\Language;
 
 class ChecklistDocument
 {
@@ -27,7 +28,7 @@ class ChecklistDocument
         $word = new PhpWord;
         $word->setDefaultFontName('Arial');
         $word->setDefaultFontSize(11);
-        $word->getSettings()->setThemeFontLang(new \PhpOffice\PhpWord\Style\Language(null, null, 'ar-KW'));
+        $word->getSettings()->setThemeFontLang(new Language(null, null, 'ar-KW'));
         $section = $word->addSection(['marginTop' => Converter::cmToTwip(2), 'marginBottom' => Converter::cmToTwip(2)]);
         $rtl = ['bidi' => true, 'alignment' => Jc::START];
         $bold = ['bold' => true];
@@ -60,7 +61,7 @@ class ChecklistDocument
             if ($item->isDepartment()) {
                 $mark = '☐';
             } elseif (isset($checklist[$item->code])) {
-                $mark = $checklist[$item->code]['state'] === 'accepted' ? '☑' : '☐';
+                $mark = in_array($checklist[$item->code]['state'], ['accepted', ApplicationWorkflow::STATE_ON_FILE], true) ? '☑' : '☐';
             } else {
                 $mark = '—';
             }

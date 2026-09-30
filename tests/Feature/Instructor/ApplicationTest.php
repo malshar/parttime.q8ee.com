@@ -3,6 +3,9 @@
 namespace Tests\Feature\Instructor;
 
 use App\Models\Application;
+use App\Models\ChecklistItem;
+use App\Models\ChecklistRenewal;
+use App\Models\Document;
 use App\Models\Instructor;
 use App\Models\Term;
 use App\Models\User;
@@ -108,5 +111,25 @@ class ApplicationTest extends TestCase
 
         $this->assertFalse($app->isEditable());
         $this->actingAs($this->user)->get(route('instructor.applications.show', $app))->assertOk()->assertSee(__('app.applications.term_closed'));
+    }
+
+    public function test_on_file_row_shows_badge_source_term_and_optional_upload(): void
+    {
+        $this->seed(ChecklistItemSeeder::class);
+        $user = User::factory()->instructor()->create();
+        $instructor = Instructor::factory()->for($user)->create();
+        $old = Term::factory()->create(['academic_year' => '2025-2026', 'type' => 'second', 'teaching_starts_on' => '2026-01-11', 'teaching_ends_on' => '2026-05-14', 'status' => Term::STATUS_CLOSED]);
+        $previous = Application::factory()->for($old)->for($instructor)->create(['status' => Application::STATUS_APPROVED]);
+        Document::factory()->for($previous)->forItem('degree')->accepted()->create(['reviewed_at' => now()->subMonth()]);
+        $application = Application::factory()->for(Term::factory()->open()->create(['academic_year' => '2026-2027']))->for($instructor)->create();
+        $item = ChecklistItem::where('code', 'iban')->first();
+        ChecklistRenewal::factory()->for($application)->create(['checklist_item_id' => $item->id, 'reason' => 'الآيبان تغير']);
+
+        $r = $this->actingAs($user)->get(route('instructor.applications.show', $application))->assertOk();
+
+        $r->assertSee(__('app.documents.states.on_file'));
+        $r->assertSee(__('app.documents.on_file_from', ['term' => $old->label()]));
+        $r->assertSee(__('app.documents.newer_copy'));
+        $r->assertSee(__('app.documents.renewal_requested', ['reason' => 'الآيبان تغير']));
     }
 }

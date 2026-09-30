@@ -115,6 +115,7 @@ return [
         'uploaded' => 'تم رفع الملف.',
         'accept' => 'قبول', 'reject' => 'رفض', 'reason' => 'سبب الرفض', 'reviewed' => 'تم تحديث حالة المستند.',
         'renewal_requested' => 'مطلوب نسخة جديدة: :reason',
+        'on_file_from' => 'على الملف من :term', 'newer_copy' => 'رفع نسخة أحدث (اختياري)',
     ],
     'review' => [
         'attention' => 'يحتاج انتباهي', 'applications' => 'الطلبات', 'no_attention' => 'لا توجد طلبات بانتظار المراجعة.',

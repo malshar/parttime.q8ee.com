@@ -43,9 +43,15 @@
                         @endif
                     </td>
                     <td>
-                        <span class="badge bg-secondary">{{ __('app.documents.states.'.$row['state']) }}</span>
+                        <span class="badge {{ $row['state'] === 'on_file' ? 'bg-info text-dark' : 'bg-secondary' }}">{{ __('app.documents.states.'.$row['state']) }}</span>
+                        @if ($row['state'] === 'on_file')
+                            <div class="small text-muted">{{ __('app.documents.on_file_from', ['term' => $row['source']->application->term->label()]) }}</div>
+                        @endif
                         @if ($row['state'] === 'rejected' && $document?->rejection_reason)
                             <div class="small text-danger">{{ $document->rejection_reason }}</div>
+                        @endif
+                        @if ($row['renewal'] && ! $document)
+                            <div class="small text-danger">{{ __('app.documents.renewal_requested', ['reason' => $row['renewal']->reason]) }}</div>
                         @endif
                     </td>
                     <td>
@@ -56,7 +62,7 @@
                     </td>
                     <td>
                         @if (Route::has('instructor.documents.store'))
-                            @include('instructor._upload', ['application' => $application, 'item' => $item, 'document' => $document])
+                            @include('instructor._upload', ['application' => $application, 'item' => $item, 'document' => $document, 'onFile' => $row['state'] === 'on_file'])
                         @endif
                     </td>
                 </tr>

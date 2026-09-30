@@ -112,4 +112,20 @@ class ChecklistDocumentTest extends TestCase
 
         $this->assertSame([], Storage::disk('local')->files('generated'), 'generated checklist file must be deleted after being sent');
     }
+
+    public function test_on_file_items_print_as_present(): void
+    {
+        $this->seed(ChecklistItemSeeder::class);
+        $admin = User::factory()->admin()->create();
+        $instructor = Instructor::factory()->for(User::factory()->instructor())->create();
+        $old = Term::factory()->create(['academic_year' => '2025-2026', 'type' => 'second', 'teaching_starts_on' => '2026-01-11', 'teaching_ends_on' => '2026-05-14', 'status' => Term::STATUS_CLOSED]);
+        $previous = Application::factory()->for($old)->for($instructor)->create(['status' => Application::STATUS_APPROVED]);
+        Document::factory()->for($previous)->forItem('degree')->accepted()->create(['reviewed_at' => now()->subMonth()]);
+        $app = Application::factory()->for(Term::factory()->open()->create(['academic_year' => '2026-2027', 'type' => 'first']))->for($instructor)->create();
+
+        $text = $this->docxText(app(ChecklistDocument::class)->build($app, $admin));
+
+        $this->assertStringContainsString('☑ صورة من المؤهل العلمي', $text);
+        $this->assertStringContainsString('☐ صورة البطاقة المدنية سارية المفعول', $text);
+    }
 }

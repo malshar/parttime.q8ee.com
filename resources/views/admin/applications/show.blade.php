@@ -17,6 +17,10 @@
     <div class="alert alert-danger">{{ $application->rejection_reason }}</div>
 @endif
 
+@if ($errors->has('renewal'))
+    <div class="alert alert-danger">{{ $errors->first('renewal') }}</div>
+@endif
+
 {{-- 1. Profile card --}}
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -104,17 +108,24 @@
                     @endif
                 </td>
                 <td>
-                    <span class="badge bg-secondary">{{ __('app.documents.states.'.$row['state']) }}</span>
+                    <span class="badge {{ $row['state'] === 'on_file' ? 'bg-info text-dark' : 'bg-secondary' }}">{{ __('app.documents.states.'.$row['state']) }}</span>
+                    @if ($row['state'] === 'on_file')
+                        <div class="small text-muted">{{ __('app.documents.on_file_from', ['term' => $row['source']->application->term->label()]) }}</div>
+                    @endif
                     @if ($row['state'] === 'rejected' && $document?->rejection_reason)
                         <div class="small text-danger">{{ $document->rejection_reason }}</div>
                     @endif
+                    @if ($row['renewal'] && ! $document)
+                        <div class="small text-danger">{{ __('app.documents.renewal_requested', ['reason' => $row['renewal']->reason]) }} ({{ $row['renewal']->requester?->name }})</div>
+                    @endif
                 </td>
                 <td>
-                    @if ($document)
-                        <a href="{{ route('admin.documents.view', $document) }}" target="_blank">{{ __('app.review.view') }}</a>
+                    @php($file = $document ?? $row['source'])
+                    @if ($file)
+                        <a href="{{ route('admin.documents.view', $file) }}" target="_blank">{{ __('app.review.view') }}</a>
                         —
-                        <a href="{{ route('admin.documents.download', $document) }}">{{ __('app.documents.download') }}</a>
-                        ({{ __('app.documents.version') }} {{ $document->version }})
+                        <a href="{{ route('admin.documents.download', $file) }}">{{ __('app.documents.download') }}</a>
+                        ({{ __('app.documents.version') }} {{ $file->version }})
                     @endif
                 </td>
                 <td>
@@ -132,6 +143,12 @@
                                 <button type="submit" class="btn btn-sm btn-outline-danger text-nowrap">{{ __('app.documents.reject') }}</button>
                             </form>
                         </div>
+                    @elseif ($row['state'] === 'on_file' && $termOpen && in_array($application->status, \App\Models\Application::UNFINISHED_STATUSES, true))
+                        <form method="post" action="{{ route('admin.applications.renewals.store', [$application, $item->code]) }}" class="d-flex gap-1">
+                            @csrf
+                            <input type="text" name="reason" class="form-control form-control-sm" placeholder="{{ __('app.review.fresh_copy_reason') }}" maxlength="500" required>
+                            <button type="submit" class="btn btn-sm btn-outline-warning text-nowrap">{{ __('app.review.request_fresh_copy') }}</button>
+                        </form>
                     @endif
                 </td>
             </tr>

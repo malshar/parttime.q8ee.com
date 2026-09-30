@@ -233,4 +233,22 @@ class ReviewTest extends TestCase
         $this->assertNull($this->application->fresh()->assignment_decision_number);
         $this->assertDatabaseMissing('audit_log', ['action' => 'set_decision']);
     }
+
+    public function test_admin_sees_on_file_link_and_fresh_copy_form_only_when_allowed(): void
+    {
+        $instructor = $this->application->instructor;
+        $old = Term::factory()->create(['academic_year' => '2025-2026', 'type' => 'second', 'teaching_starts_on' => '2026-01-11', 'teaching_ends_on' => '2026-05-14', 'status' => Term::STATUS_CLOSED]);
+        $previous = Application::factory()->for($old)->for($instructor)->create(['status' => Application::STATUS_APPROVED]);
+        $src = Document::factory()->for($previous)->forItem('degree')->accepted()->create(['reviewed_at' => now()->subMonth()]);
+        $this->application->latestDocuments()->get('degree')->delete();
+
+        $r = $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))->assertOk();
+        $r->assertSee(__('app.documents.states.on_file'));
+        $r->assertSee(route('admin.documents.view', $src));
+        $r->assertSee(route('admin.applications.renewals.store', [$this->application, 'degree']));
+
+        $this->application->update(['status' => Application::STATUS_APPROVED]);
+        $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))
+            ->assertDontSee(route('admin.applications.renewals.store', [$this->application, 'degree']));
+    }
 }
