@@ -103,7 +103,69 @@ class AttestationDocumentTest extends TestCase
         $xml = $this->documentXml(app(AttestationDocument::class)->docx($a->fresh()->load('weeks', 'application.instructor', 'application.term')));
 
         $this->assertStringContainsString('الإلكترونيات، الآلات الكهربائية', $xml);
-        $this->assertStringContainsString('<w:t xml:space="preserve"></w:t>', $xml);   // a blank field cell
+        $row = $this->rowXml($xml, '7-11');     // week 1 row of page 1
+        $this->assertSame('4', $this->cellTexts($row)[4]);    // theory 240 min
+        $this->assertSame('', $this->cellTexts($row)[6]);     // field 0 min prints blank
+        $this->assertStringContainsString('<w:t xml:space="preserve"></w:t>', $this->cellsXml($row)[6]);
+    }
+
+    public function test_attestation_without_weeks_prints_one_blank_week_row(): void
+    {
+        $a = $this->attestation();
+        $a->weeks()->delete();
+
+        $xml = $this->documentXml(app(AttestationDocument::class)->docx($a->fresh()->load('weeks', 'application.instructor', 'application.term')));
+
+        $this->assertStringNotContainsString('${', $xml);
+        $table = collect($this->tables($xml))->last();
+        $rows = $this->rows($table);
+        $this->assertCount(4, $rows);           // heading, sub-heading, one week row, totals
+        $this->assertSame(array_fill(0, 9, ''), $this->cellTexts($rows[2]));
+    }
+
+    /** @return list<string> */
+    private function tables(string $xml): array
+    {
+        preg_match_all('~<w:tbl>.*?</w:tbl>~s', $xml, $m);
+
+        return $m[0];
+    }
+
+    /** @return list<string> */
+    private function rows(string $xml): array
+    {
+        preg_match_all('~<w:tr\b.*?</w:tr>~s', $xml, $m);
+
+        return $m[0];
+    }
+
+    /** @return list<string> */
+    private function cellsXml(string $row): array
+    {
+        preg_match_all('~<w:tc>.*?</w:tc>~s', $row, $m);
+
+        return $m[0];
+    }
+
+    /** @return list<string> */
+    private function cellTexts(string $row): array
+    {
+        return array_map(function (string $tc) {
+            preg_match_all('~<w:t(?:\s[^>]*)?>([^<]*)</w:t>~', $tc, $t);
+
+            return implode('', $t[1]);
+        }, $this->cellsXml($row));
+    }
+
+    /** The first table row (document order, so page 1) whose cells include the exact text $needle. */
+    private function rowXml(string $xml, string $needle): string
+    {
+        foreach ($this->rows($xml) as $row) {
+            if (in_array($needle, $this->cellTexts($row), true)) {
+                return $row;
+            }
+        }
+        $this->fail("no row with a cell reading {$needle}");
     }
 
     public function test_combined_document_has_one_page_block_per_attestation_in_name_order(): void

@@ -17,6 +17,8 @@ use PhpOffice\PhpWord\Settings;
  */
 final class AttestationDocument
 {
+    private const WEEK_FIELDS = ['week_no', 'week_dates', 'week_courses', 'week_students', 'week_theory', 'week_practical', 'week_field', 'week_total', 'week_note'];
+
     public function __construct(private ?string $template = null)
     {
         $this->template ??= resource_path('forms/kh3-template.docx');
@@ -47,6 +49,9 @@ final class AttestationDocument
             $tp->cloneRow('week_no'.$p, max(1, $weeks->count()));
             foreach ($weeks as $k => $week) {
                 $tp->setValues($this->weekValues($week, $p.'#'.($k + 1)));
+            }
+            if ($weeks->isEmpty()) {   // no weeks: keep the single cloned row, printed blank
+                $tp->setValues($this->suffixed(array_fill_keys(self::WEEK_FIELDS, ''), $p.'#1'));
             }
             $tp->setValues($this->totalValues($attestation, $p));
         }
