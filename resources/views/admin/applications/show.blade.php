@@ -142,7 +142,12 @@
 
 {{-- 2.5 Assigned sections (Task 12) --}}
 @php($canUnassign = $termOpen && $application->status === \App\Models\Application::STATUS_APPROVED)
-<h2 class="h6">{{ __('app.assignments.my_sections') }}</h2>
+<div class="d-flex justify-content-between align-items-center">
+    <h2 class="h6">{{ __('app.assignments.my_sections') }}</h2>
+    @if ($application->status === \App\Models\Application::STATUS_APPROVED && $sections->isNotEmpty())
+        <a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.attestations.index', ['term' => $application->term_id]) }}">{{ __('app.attestations.title') }}</a>
+    @endif
+</div>
 <div class="card mb-4">
     <div class="card-body">
         @if ($sections->isEmpty())

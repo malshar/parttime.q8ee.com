@@ -11,7 +11,12 @@
 > importer for the term's timetable exported from **jadawil** (CSV or XLSX,
 > parsed with `phpoffice/phpspreadsheet`) at `/admin/sections/import`, the
 > section list at `/admin/sections`, and instructor-to-section assignment at
-> `/admin/assignments` with dashboard alerts. Design:
+> `/admin/assignments` with dashboard alerts. **Milestone 3 (monthly (خ-3)
+> attestation: generator, admin screens at `/admin/attestations`, Word/PDF
+> and combined PDF via LibreOffice) is implemented on branch
+> `milestone-3-attestation`; deploy pending.** The (خ-3) Word template is
+> `resources/forms/kh3-template.docx`, rebuilt by
+> `scripts/build-kh3-template.py` from the official blank form. Design:
 > `docs/superpowers/specs/2026-09-28-parttime-system-design.md` (milestone 1)
 > and `docs/superpowers/specs/2026-09-29-milestone-2-assignment-design.md`
 > (milestone 2); final reviews with rulings and deferred minors are in

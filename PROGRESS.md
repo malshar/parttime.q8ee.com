@@ -2,8 +2,10 @@
 
 ## Status (2026-09-30)
 **Live at https://parttime.q8ee.com** since 2026-09-30 (first deploy of
-milestones 1 + 2, merged on `main`). `php artisan test` green (149 tests).
-Milestone 2 review record: `docs/superpowers/reviews/2026-09-29-milestone-2-final-review.md`
+milestones 1 + 2, merged on `main`). Milestone 3 (monthly (خ-3) attestation)
+is now implemented, Tasks 1-7, on branch `milestone-3-attestation`
+(`php artisan test` green, 195 tests) — deploy not yet run. Milestone 2
+review record: `docs/superpowers/reviews/2026-09-29-milestone-2-final-review.md`
 (deferred minors + rulings, start there for milestone 3). Deploy runbook and
 scripts: `deploy/` (`DEPLOY.md`, "After the first deploy"). Milestone 1
 (intake) shipped first on branch `milestone-1-intake`
@@ -18,9 +20,10 @@ Real applicant documents are accumulating in `../part-time/` (10 applicants
 as of 2026-09-27; sensitive — see root `../CLAUDE.md`).
 
 ## Next
-1. Post-deploy: trusted proxies + backups scripts, browser checks (DEPLOY.md
-   step 10), admin password change, import the term's jadawil export.
-2. Brainstorm milestone 3 (monthly (خ-3) attestation).
+1. Deploy milestone 3 (`./deploy/deploy.sh`, then the LibreOffice/font check
+   under "After the first deploy" in `deploy/DEPLOY.md`) and browser-check a
+   generated (خ-3) PDF.
+2. Brainstorm/plan milestone 4 (term close + on-file logic).
 
 ## Decided (2026-09-28 brainstorm)
 Approach A: one Laravel 12 app, three milestones (intake → assignment →
@@ -68,3 +71,16 @@ Sections imported per term from Excel. Full details in the spec.
   `mail.q8ee.com` (mailcow's certificate had been expired since 2024-10;
   fixed with `SKIP_IP_CHECK` + `ADDITIONAL_SAN`, DNS-only records), q8ee.com
   SPF/DKIM/DMARC published. Test mail delivered. Scripts under `deploy/`.
+- 2026-09-30 — milestone 3 (monthly (خ-3) attestation) implemented on branch
+  `milestone-3-attestation`, Tasks 1-7: `AttestationGenerator` reproducing
+  the official summer 2026 form from section meetings + term calendar,
+  `AttestationService` (listed/resolveMonth/generateMissing/update/
+  regenerate/unlock/markExported, all audited), the admin screens at
+  `/admin/attestations` (month picker, generate missing, per-attestation
+  edit with locking, regenerate, unlock), the Word template
+  (`resources/forms/kh3-template.docx`, rebuilt by
+  `scripts/build-kh3-template.py`) and document builder, LibreOffice-backed
+  PDF conversion with per-instructor and combined-monthly downloads, and
+  dashboard alerts for months with missing or unexported attestations plus
+  a link from the application page to the term's attestations. `php artisan
+  test` green (195 tests). Deploy pending.

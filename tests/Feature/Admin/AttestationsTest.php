@@ -200,4 +200,30 @@ class AttestationsTest extends TestCase
         $this->actingAs($user)->post(route('admin.attestations.regenerate', $a))->assertForbidden();
         $this->actingAs($user)->post(route('admin.attestations.unlock', $a))->assertForbidden();
     }
+
+    public function test_dashboard_alerts_missing_for_started_month_and_unexported_for_finished_month(): void
+    {
+        $this->travelTo('2026-07-10');
+        Attestation::factory()->for($this->assigned)->create(['year' => 2026, 'month' => 6]);   // generated, June ended → unexported
+
+        $r = $this->actingAs($this->admin)->get(route('admin.dashboard'))->assertOk();
+
+        $r->assertSee(__('app.attestations.alert_unexported', ['n' => 1, 'month' => 'الشهر الأول/ يونيو']));
+        $r->assertSee(__('app.attestations.alert_missing', ['n' => 1, 'month' => 'الشهر الثاني/ يوليو']));
+        $r->assertDontSee(__('app.attestations.alert_missing', ['n' => 1, 'month' => 'الشهر الأول/ يونيو']));
+        $r->assertSee(route('admin.attestations.index', ['term' => $this->term->id, 'month' => 2]));
+    }
+
+    public function test_dashboard_has_no_attestation_alerts_before_the_term_starts(): void
+    {
+        $this->travelTo('2026-05-01');
+
+        $r = $this->actingAs($this->admin)->get(route('admin.dashboard'))->assertOk();
+
+        // Not a bare assertDontSee('مزاولة'): the nav bar always links to
+        // app.attestations.title ("المزاولة الشهرية"), which contains that
+        // substring regardless of alerts. Assert on the alert phrasing itself.
+        $r->assertDontSee('غير مولدة لشهر');
+        $r->assertDontSee('مصدرة لشهر');
+    }
 }

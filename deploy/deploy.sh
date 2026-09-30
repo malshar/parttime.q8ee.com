@@ -58,7 +58,7 @@ ssh "$SERVER" "set -e; cd $APP_DIR && \
   php artisan migrate --force && \
   php artisan db:seed --class=ChecklistItemSeeder --force && \
   php artisan config:cache && php artisan route:cache && php artisan view:cache && \
-  mkdir -p storage/app/private/applications storage/app/private/generated && \
+  mkdir -p storage/app/private/applications storage/app/private/generated storage/app/private/generated/tmp && \
   mkdir -p storage/framework/{cache,sessions,views} && \
   chown -R www-data:www-data storage bootstrap/cache && \
   chmod -R ug+rwX storage bootstrap/cache"

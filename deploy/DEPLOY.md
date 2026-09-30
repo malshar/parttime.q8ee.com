@@ -275,6 +275,9 @@ assigned sections are never deleted automatically. Read the preview's
 warnings and errors before confirming, and always re-import a term using the
 same format (CSV or XLSX) you used first.
 
+Each month: `/admin/attestations` → توليد الناقص → review → PDF / combined
+PDF; exported forms are locked, unlock to edit.
+
 ## After the first deploy (2026-09-30)
 
 Done by `first-deploy.sh` and by hand: DB, `.env`, key, migrations, seed,
@@ -285,3 +288,8 @@ for `mail.q8ee.com` (and fixed its expired one). Still to run once:
 (12). Then step 10's manual checks in the browser, and the admin changes the
 initial password (`/root/parttime-admin-initial.txt`) via "forgot password"
 and deletes that file. Routine deploys: `./deploy/deploy.sh`.
+
+Milestone 3 needs LibreOffice (`soffice`, present: 7.3) and an Arabic font
+(Amiri present); after deploying, download one PDF and check the Arabic
+renders and the table fits one page — if a font substitution looks wrong,
+`apt install fonts-sil-scheherazade fonts-kacst` and retry.

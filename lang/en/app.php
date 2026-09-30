@@ -263,5 +263,7 @@ return [
         'category' => '(external - general cadre)',
         'term_labels' => ['first' => 'first semester', 'second' => 'second semester', 'summer' => 'summer semester'],
         'pdf_unavailable' => 'The server could not produce the PDF; download the Word file instead.',
+        'alert_missing' => ':n attestation(s) not generated for :month.',
+        'alert_unexported' => ':n attestation(s) generated but not exported for :month.',
     ],
 ];
