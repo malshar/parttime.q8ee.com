@@ -2,7 +2,7 @@
 
 > **Status (2026-09-30): live at https://parttime.q8ee.com — milestones 1
 > and 2 merged on `main` and deployed (first deploy 2026-09-30).** Laravel 12
-> app (`php artisan test` green, 234 tests on branch
+> app (`php artisan test` green, 250 tests on branch
 > `milestone-4-term-close-on-file`). Milestone 1 (intake)
 > shipped first; milestone 2 adds: the `complete` application status with a
 > three-group attention list, a committee decision step (replacing direct
@@ -14,10 +14,11 @@
 > section list at `/admin/sections`, and instructor-to-section assignment at
 > `/admin/assignments` with dashboard alerts. **Milestone 3 (monthly (خ-3)
 > attestation: generator, admin screens at `/admin/attestations`, Word/PDF
-> and combined PDF via LibreOffice) is merged on `main`; deploy pending.
-> Milestone 4 is implemented on branch `milestone-4-term-close-on-file`:
+> and combined PDF via LibreOffice) is merged on `main` and deployed
+> (2026-09-30).**
+> **Milestone 4 is implemented on branch `milestone-4-term-close-on-file`:
 > term close rules (closing refuses unfinished applications, withdraws
-> drafts, drops archived ones), on-file documents (accepted documents from
+> drafts; the unused `archived` term status is removed from the code), on-file documents (accepted documents from
 > earlier applications count, with admin requests for a fresh copy; a copy
 > stops counting once a profile field it certifies changes after it was
 > accepted, read from the `edit_profile`/`admin_edit_profile` audit rows,
@@ -124,9 +125,10 @@ Pick per scope. Arabic-first, RTL, complete translation coverage from day one.
 
 ## Next step
 
-Milestones 1 and 2 are live — see the status header above. Next: deploy
-milestone 3 and do the one-time LibreOffice/font setup and PDF visual check
-in `deploy/DEPLOY.md` ("Milestone 3: PDF export"), then brainstorm/plan
-milestone 4 (term close + on-file logic). The remaining post-deploy items
-(browser checks, admin password, jadawil import) are listed in
-`deploy/DEPLOY.md` ("After the first deploy").
+Milestones 1-3 are live — see the status header above. Next: merge and
+deploy milestone 4 with `./deploy/deploy.sh` (one new migration,
+`checklist_renewals`; run the pre-deploy check in `deploy/DEPLOY.md`,
+"Milestone 4: deploy note", first), then the remaining post-deploy checks:
+the milestone 3 PDF visual check if not done yet (`deploy/DEPLOY.md`,
+"Milestone 3: PDF export") and the items under "After the first deploy"
+(browser checks, admin password, jadawil import).

@@ -356,3 +356,14 @@ template. Once, on the server, before or right after deploying milestone 3:
    letters), the week table and totals fit, and the footer signature lines
    are present. If a page spills, check `fc-match` above before changing the
    template.
+
+## Milestone 4: deploy note
+
+A routine `./deploy/deploy.sh` (one new migration, `checklist_renewals`).
+Before deploying, check on the server that no term uses the removed
+`archived` status (milestone 4 drops it from the code and its label, so
+such a term would show a missing label):
+
+```sql
+select count(*) from terms where status='archived';   -- must be 0
+```

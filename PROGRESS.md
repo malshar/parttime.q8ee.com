@@ -3,11 +3,11 @@
 ## Status (2026-09-30)
 **Live at https://parttime.q8ee.com** since 2026-09-30 (first deploy of
 milestones 1 + 2, merged on `main`). Milestone 3 (monthly (خ-3) attestation)
-is merged on `main` (207 tests at merge); it is not deployed yet.
+is merged on `main` (207 tests at merge) and was deployed on 2026-09-30.
 Milestone 4 (term close, on-file documents, parked attestation fixes) is
 implemented, Tasks 1-5, on branch `milestone-4-term-close-on-file`
-(`php artisan test` green, 234 tests, one skip without `soffice`); not
-deployed yet. Milestone 2
+plus the final-review fix wave (`php artisan test` green, 250 tests, one
+skip without `soffice`); not deployed yet. Milestone 2
 review record: `docs/superpowers/reviews/2026-09-29-milestone-2-final-review.md`
 (deferred minors + rulings, start there for milestone 3). Deploy runbook and
 scripts: `deploy/` (`DEPLOY.md`, "After the first deploy"). Milestone 1
@@ -24,9 +24,10 @@ as of 2026-09-27; sensitive — see root `../CLAUDE.md`).
 
 ## Next
 1. Final review of milestone 4, merge to `main`, then deploy it with
-   `./deploy/deploy.sh` (this also ships milestone 3), followed by the
-   one-time setup and PDF visual check in `deploy/DEPLOY.md` ("Milestone 3:
-   PDF export").
+   `./deploy/deploy.sh` (ships milestone 4 only: one new migration;
+   run the pre-deploy check in `deploy/DEPLOY.md`, "Milestone 4: deploy
+   note", first). Then the milestone 3 PDF visual check if not done yet
+   (`deploy/DEPLOY.md`, "Milestone 3: PDF export").
 2. Remaining post-deploy items (`deploy/DEPLOY.md`, "After the first
    deploy"): step 10's browser checks; the admin password change and
    deleting `/root/parttime-admin-initial.txt`; the term's jadawil import.
@@ -98,8 +99,8 @@ the admin and signed on paper; there is no instructor confirmation step.
   deploy steps, and the review minors (207 tests). Deploy pending.
 - 2026-09-30 — milestone 4 (term close, on-file documents, parked fixes)
   implemented on branch `milestone-4-term-close-on-file`, Tasks 1-5: closing
-  a term refuses unfinished applications, withdraws drafts and drops
-  archived ones; checklist rows derive "on file" from accepted documents of
+  a term refuses unfinished applications and withdraws drafts, and the
+  unused `archived` term status is removed from the code; checklist rows derive "on file" from accepted documents of
   earlier applications, with a renewal-overrides table and an admin request
   for a fresh copy (covered by the notice email and shown on the instructor
   and admin screens and the printed Check List); attestation fixes: saves
@@ -110,3 +111,12 @@ the admin and signed on paper; there is no instructor confirmation step.
   1st/2nd is noted in the previous month, the (خ-3) note cell is no longer
   underlined (template rebuilt); unused `Term::attestations()` removed.
   `php artisan test` green (234 tests). Deploy pending.
+- 2026-09-30 — milestone 4 final-review fix wave: an on-file copy stops
+  counting once a profile field it certifies changes after acceptance
+  (instructor self-edits now audited as `edit_profile`, field names only;
+  shared `App\Support\ProfileDiff`); civil-ID expiry no longer changes final
+  applications; end-to-end on-file test from submission to approval; term
+  close runs under a row lock with a confirm dialog; messages shown once;
+  neutral "need correction or updating" notice wording; docs corrected
+  (milestone 3 deployed on 2026-09-30). `php artisan test` green (250
+  tests, one skip).
