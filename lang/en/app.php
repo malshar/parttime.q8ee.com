@@ -226,6 +226,7 @@ return [
         'month_outside_term' => 'The month is outside the term.',
         'no_assignments' => 'This instructor has no assigned sections.',
         'locked' => 'The attestation has been exported; unlock it first.',
+        'stale_form' => 'The attestation changed since the page was opened; reload and try again.',
         'title' => 'Monthly attestation (KH-3)',
         'term' => 'Term',
         'month' => 'Month',

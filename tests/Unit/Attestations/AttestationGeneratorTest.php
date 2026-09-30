@@ -248,4 +248,17 @@ class AttestationGeneratorTest extends TestCase
             $this->assertSame(__('app.attestations.term_closed'), $e->getMessage());
         }
     }
+
+    public function test_last_day_line_on_a_saturday_first_of_month_goes_to_the_previous_month(): void
+    {
+        $term = Term::factory()->open()->create(['academic_year' => '2026-2027', 'type' => 'summer', 'teaching_starts_on' => '2026-06-07', 'teaching_ends_on' => '2026-08-01']); // Saturday
+        $app = Application::factory()->approved()->for($term)->create();
+        Assignment::factory()->for($app)->for(Section::factory()->for($term)->withMeetings()->create())->create();
+
+        $july = $this->generator()->generate($app, 2026, 7);
+        $this->assertStringContainsString('آخر يوم دراسي 1 أغسطس 2026', $july->weeks->last()->note_ar);
+
+        $august = $this->generator()->generate($app, 2026, 8);
+        $this->assertCount(0, $august->weeks);
+    }
 }

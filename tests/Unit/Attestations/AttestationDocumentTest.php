@@ -197,4 +197,28 @@ class AttestationDocumentTest extends TestCase
         $this->assertGreaterThan(mb_strpos($xml, 'أحمد سالم'), mb_strpos($xml, '<w:br w:type="page"/>'));
         $this->assertStringNotContainsString('${', $xml);
     }
+
+    public function test_nested_placeholder_markers_in_free_text_print_literally(): void
+    {
+        $a = $this->attestation();
+        $a->weeks[0]->update(['note_ar' => 'ملاحظة $${{cid1#1} ونهاية']);
+
+        $xml = $this->documentXml(app(AttestationDocument::class)->docx($a->fresh()->load('weeks', 'application.instructor', 'application.term')));
+
+        // "$${{" -> "${" after one pass -> gone after the second: no marker can re-form.
+        $this->assertStringContainsString('ملاحظة cid1#1} ونهاية', $xml);
+        $this->assertStringNotContainsString('ملاحظة 2 ونهاية', $xml);
+    }
+
+    public function test_template_note_cell_has_no_underline(): void
+    {
+        $zip = new \ZipArchive;
+        $zip->open(resource_path('forms/kh3-template.docx'));
+        $xml = $zip->getFromName('word/document.xml');
+        $zip->close();
+        preg_match('~<w:tc>(?:(?!<w:tc>).)*?\$\{week_note\}.*?</w:tc>~s', $xml, $m);
+        $this->assertNotEmpty($m, 'week_note cell not found');
+        $this->assertStringNotContainsString('<w:u ', $m[0]);
+        $this->assertStringNotContainsString('<w:u/>', $m[0]);
+    }
 }

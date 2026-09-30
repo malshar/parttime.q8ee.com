@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /** Admin-facing operations around AttestationGenerator, each audited (spec §5, §7). */
 final class AttestationService
@@ -83,6 +84,9 @@ final class AttestationService
     public function regenerate(Attestation $attestation, User $by): Attestation
     {
         $this->assertEditable($attestation);
+        if ($attestation->application->assignments()->doesntExist()) {
+            throw new DomainException(__('app.attestations.no_assignments'));
+        }
         $fresh = $this->generator->generate($attestation->application, (int) $attestation->year, (int) $attestation->month, $by);
         AuditLog::record($by->id, 'generate_attestation', $fresh, null, 'regenerated');
 
@@ -95,27 +99,35 @@ final class AttestationService
      */
     public function update(Attestation $attestation, array $weeks, User $by): array
     {
-        $this->assertEditable($attestation);
-        $changed = [];
-        foreach ($attestation->weeks as $week) {
-            if (! isset($weeks[$week->id])) {
-                continue;
-            }
-            $data = array_intersect_key($weeks[$week->id], array_flip(AttestationWeek::EDITABLE));
-            foreach ($data as $col => $value) {
-                if ((string) $week->$col !== (string) $value) {
-                    $changed[] = $col;
+        return DB::transaction(function () use ($attestation, $weeks, $by) {
+            $attestation = Attestation::whereKey($attestation->id)->lockForUpdate()->with(['weeks', 'application.term'])->firstOrFail();
+            $this->assertEditable($attestation);
+            $matched = false;
+            $changed = [];
+            foreach ($attestation->weeks as $week) {
+                if (! isset($weeks[$week->id])) {
+                    continue;
                 }
+                $matched = true;
+                $data = array_intersect_key($weeks[$week->id], array_flip(AttestationWeek::EDITABLE));
+                foreach ($data as $col => $value) {
+                    if ((string) $week->$col !== (string) $value) {
+                        $changed[] = $col;
+                    }
+                }
+                $week->fill($data)->save();
             }
-            $week->fill($data)->save();
-        }
-        $changed = array_values(array_unique($changed));
-        sort($changed);
-        if ($changed !== []) {
-            AuditLog::record($by->id, 'update_attestation', $attestation, null, implode(',', $changed));
-        }
+            if (! $matched) {
+                throw new DomainException(__('app.attestations.stale_form'));
+            }
+            $changed = array_values(array_unique($changed));
+            sort($changed);
+            if ($changed !== []) {
+                AuditLog::record($by->id, 'update_attestation', $attestation, null, implode(',', $changed));
+            }
 
-        return $changed;
+            return $changed;
+        });
     }
 
     public function unlock(Attestation $attestation, User $by): void

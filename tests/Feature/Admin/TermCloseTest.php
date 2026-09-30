@@ -78,7 +78,10 @@ class TermCloseTest extends TestCase
         $this->actingAs($this->admin)->post(route('admin.terms.close', $this->term))->assertSessionHasNoErrors();
 
         $this->assertSame(Term::STATUS_CLOSED, $this->term->fresh()->status);
-        $this->actingAs($this->admin)->get(route('admin.attestations.download', [$a, 'format' => 'docx']))->assertOk();
+        $r = $this->actingAs($this->admin)->get(route('admin.attestations.download', [$a, 'format' => 'docx']))->assertOk();
+        ob_start();
+        $r->baseResponse->sendContent();   // deleteFileAfterSend: leave no temp .docx behind
+        ob_end_clean();
     }
 
     public function test_close_on_closed_term_is_forbidden_and_instructor_cannot_close(): void

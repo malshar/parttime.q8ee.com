@@ -2,7 +2,8 @@
 
 > **Status (2026-09-30): live at https://parttime.q8ee.com — milestones 1
 > and 2 merged on `main` and deployed (first deploy 2026-09-30).** Laravel 12
-> app (`php artisan test` green, 207 tests). Milestone 1 (intake)
+> app (`php artisan test` green, 234 tests on branch
+> `milestone-4-term-close-on-file`). Milestone 1 (intake)
 > shipped first; milestone 2 adds: the `complete` application status with a
 > three-group attention list, a committee decision step (replacing direct
 > approve/reject) with a consolidated rejection notice, reopening of
@@ -13,14 +14,23 @@
 > section list at `/admin/sections`, and instructor-to-section assignment at
 > `/admin/assignments` with dashboard alerts. **Milestone 3 (monthly (خ-3)
 > attestation: generator, admin screens at `/admin/attestations`, Word/PDF
-> and combined PDF via LibreOffice) is implemented on branch
-> `milestone-3-attestation`; deploy pending.** The (خ-3) Word template is
+> and combined PDF via LibreOffice) is merged on `main`; deploy pending.
+> Milestone 4 is implemented on branch `milestone-4-term-close-on-file`:
+> term close rules (closing refuses unfinished applications, withdraws
+> drafts, drops archived ones), on-file documents (accepted documents from
+> earlier applications count, with admin requests for a fresh copy), and
+> the parked attestation fixes (locked saves refusing stale forms,
+> regenerate refused without assignments, nested placeholder markers,
+> converter working directory and leftovers, the last-day line on a
+> Friday/Saturday 1st of month, no underline in the note cell); deploy
+> pending.** The (خ-3) Word template is
 > `resources/forms/kh3-template.docx`, rebuilt by
 > `scripts/build-kh3-template.py` from the official blank form. Design:
 > `docs/superpowers/specs/2026-09-28-parttime-system-design.md` (milestone 1)
 > and `docs/superpowers/specs/2026-09-29-milestone-2-assignment-design.md`
 > (milestone 2) and `docs/superpowers/specs/2026-09-30-milestone-3-attestation-design.md`
-> (milestone 3); final reviews with rulings and deferred minors are in
+> (milestone 3) and `docs/superpowers/specs/2026-09-30-milestone-4-term-close-on-file-design.md`
+> (milestone 4); final reviews with rulings and deferred minors are in
 > `docs/superpowers/reviews/`. Deploy scripts/docs are in `deploy/` (`deploy/DEPLOY.md` for
 > the server setup as done on 2026-09-30, `./deploy/deploy.sh` for routine
 > deploys; mail goes through the server's mailcow as `mail.q8ee.com`).

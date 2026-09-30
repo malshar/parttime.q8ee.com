@@ -295,4 +295,27 @@ class AttestationsTest extends TestCase
         $r->assertDontSee('غير مولدة في');
         $r->assertDontSee('غير مصدرة في');
     }
+
+    public function test_save_with_stale_week_ids_is_refused_and_writes_nothing(): void
+    {
+        $a = $this->generated();
+        $oldId = $a->weeks[0]->id;
+        $this->actingAs($this->admin)->post(route('admin.attestations.regenerate', $a));   // new week rows, new ids
+
+        $this->actingAs($this->admin)->put(route('admin.attestations.update', $a), ['weeks' => [
+            $oldId => ['courses_text' => 'x', 'student_count' => 5, 'theory_hours' => '1', 'practical_hours' => '0', 'field_hours' => '0', 'note_ar' => ''],
+        ]])->assertSessionHasErrors(['attestation' => __('app.attestations.stale_form')]);
+
+        $this->assertSame(0, $a->fresh()->weeks->where('student_count', 5)->count());
+        $this->assertDatabaseMissing('audit_log', ['action' => 'update_attestation']);
+    }
+
+    public function test_regenerate_button_hidden_and_action_refused_without_assignments(): void
+    {
+        $a = $this->generated();
+        Assignment::where('application_id', $this->assigned->id)->delete();
+
+        $this->actingAs($this->admin)->get(route('admin.attestations.show', $a))->assertDontSee(route('admin.attestations.regenerate', $a));
+        $this->actingAs($this->admin)->post(route('admin.attestations.regenerate', $a))->assertSessionHasErrors(['attestation' => __('app.attestations.no_assignments')]);
+    }
 }

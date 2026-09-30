@@ -100,7 +100,7 @@
 </form>
 
 <div class="d-flex gap-2 mt-3">
-    @if ($editable)
+    @if ($editable && $attestation->application->assignments()->exists())
         <form method="post" action="{{ route('admin.attestations.regenerate', $attestation) }}" onsubmit="return confirm(@js(__('app.attestations.regenerate_confirm')))">
             @csrf
             <button type="submit" class="btn btn-outline-danger">{{ __('app.attestations.regenerate') }}</button>

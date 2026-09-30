@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Term extends Model
 {
@@ -59,11 +58,6 @@ class Term extends Model
     public function label(): string
     {
         return __('app.terms.types.'.$this->type).' '.$this->academic_year;
-    }
-
-    public function attestations(): HasManyThrough
-    {
-        return $this->hasManyThrough(Attestation::class, Application::class);
     }
 
     /** Calendar months of the teaching window, indexed from 1 (spec §3 "Months of a term"). */

@@ -3,9 +3,11 @@
 ## Status (2026-09-30)
 **Live at https://parttime.q8ee.com** since 2026-09-30 (first deploy of
 milestones 1 + 2, merged on `main`). Milestone 3 (monthly (خ-3) attestation)
-is implemented, Tasks 1-7 plus the final-review fix wave, on branch
-`milestone-3-attestation` (`php artisan test` green, 207 tests); it is
-not deployed yet. Milestone 2
+is merged on `main` (207 tests at merge); it is not deployed yet.
+Milestone 4 (term close, on-file documents, parked attestation fixes) is
+implemented, Tasks 1-5, on branch `milestone-4-term-close-on-file`
+(`php artisan test` green, 234 tests, one skip without `soffice`); not
+deployed yet. Milestone 2
 review record: `docs/superpowers/reviews/2026-09-29-milestone-2-final-review.md`
 (deferred minors + rulings, start there for milestone 3). Deploy runbook and
 scripts: `deploy/` (`DEPLOY.md`, "After the first deploy"). Milestone 1
@@ -15,17 +17,19 @@ scripts: `deploy/` (`DEPLOY.md`, "After the first deploy"). Milestone 1
 `docs/superpowers/specs/2026-09-28-parttime-system-design.md` for the
 milestone 1 spec and `docs/superpowers/specs/2026-09-29-milestone-2-assignment-design.md`
 for the milestone 2 spec, `docs/superpowers/specs/2026-09-30-milestone-3-attestation-design.md`
-for milestone 3.
+for milestone 3, `docs/superpowers/specs/2026-09-30-milestone-4-term-close-on-file-design.md`
+for milestone 4.
 Real applicant documents are accumulating in `../part-time/` (10 applicants
 as of 2026-09-27; sensitive — see root `../CLAUDE.md`).
 
 ## Next
-1. Remaining post-deploy items (`deploy/DEPLOY.md`, "After the first
+1. Final review of milestone 4, merge to `main`, then deploy it with
+   `./deploy/deploy.sh` (this also ships milestone 3), followed by the
+   one-time setup and PDF visual check in `deploy/DEPLOY.md` ("Milestone 3:
+   PDF export").
+2. Remaining post-deploy items (`deploy/DEPLOY.md`, "After the first
    deploy"): step 10's browser checks; the admin password change and
    deleting `/root/parttime-admin-initial.txt`; the term's jadawil import.
-2. Deploy milestone 3 (`./deploy/deploy.sh`), then the one-time setup and
-   PDF visual check in `deploy/DEPLOY.md` ("Milestone 3: PDF export").
-3. Brainstorm/plan milestone 4 (term close + on-file logic).
 
 ## Decided (2026-09-28 brainstorm)
 Approach A: one Laravel 12 app, three milestones (intake → assignment →
@@ -92,3 +96,17 @@ the admin and signed on paper; there is no instructor confirmation step.
   assignments, CRLF-safe edits, temp-file cleanup + backup exclusion, page
   break moved to the end of the template block, fontconfig/SOFFICE_PATH
   deploy steps, and the review minors (207 tests). Deploy pending.
+- 2026-09-30 — milestone 4 (term close, on-file documents, parked fixes)
+  implemented on branch `milestone-4-term-close-on-file`, Tasks 1-5: closing
+  a term refuses unfinished applications, withdraws drafts and drops
+  archived ones; checklist rows derive "on file" from accepted documents of
+  earlier applications, with a renewal-overrides table and an admin request
+  for a fresh copy (covered by the notice email and shown on the instructor
+  and admin screens and the printed Check List); attestation fixes: saves
+  run under a row lock and refuse a stale form, regenerate is refused (and
+  its button hidden) without assignments, nested `${` markers in free text
+  cannot re-form a placeholder, LibreOffice runs in the output directory and
+  a failed run leaves no PDF, a Friday/Saturday last teaching day on the
+  1st/2nd is noted in the previous month, the (خ-3) note cell is no longer
+  underlined (template rebuilt); unused `Term::attestations()` removed.
+  `php artisan test` green (234 tests). Deploy pending.

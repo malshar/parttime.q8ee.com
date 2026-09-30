@@ -42,10 +42,14 @@ class PdfConverter
         try {
             $process = new Process([$this->binary, '--headless', '--norestore', '-env:UserInstallation=file://'.$profile,
                 '--convert-to', 'pdf', '--outdir', $dir, $docxPath]);
+            $process->setWorkingDirectory($dir);
             $process->setTimeout(90);
             $process->run();
             $pdf = substr($docxPath, 0, -5).'.pdf';
             if (! $process->isSuccessful() || ! is_file($pdf)) {
+                if (is_file($pdf)) {
+                    @unlink($pdf);
+                }
                 throw new RuntimeException('PDF conversion failed: '.trim($process->getErrorOutput().' '.$process->getOutput()));
             }
 

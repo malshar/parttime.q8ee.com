@@ -32,11 +32,14 @@ def set_para(p, new):
         '<w:t xml:space="preserve">' + new + '</w:t></w:r></w:p>'
 
 
-def set_cell(tc, new):
-    """Keep tcPr; one paragraph (the cell's first) with the new text."""
+def set_cell(tc, new, strip_underline=False):
+    """Keep tcPr; one paragraph (the cell's first) with the new text. strip_underline drops <w:u …/> from its rPr."""
     tcpr = re.search(r'<w:tcPr>.*?</w:tcPr>', tc, re.S)
     first = re.search(P, tc, re.S).group(0)
-    return '<w:tc>' + (tcpr.group(0) if tcpr else '') + set_para(first, new) + '</w:tc>'
+    para = set_para(first, new)
+    if strip_underline:
+        para = re.sub(r'<w:u\b[^>]*/>', '', para)
+    return '<w:tc>' + (tcpr.group(0) if tcpr else '') + para + '</w:tc>'
 
 
 def replace_para_containing(body, needle, new, occurrence=1):
@@ -93,7 +96,8 @@ assert len(wcells) == 9, len(wcells)
 names = ['week_no', 'week_dates', 'week_courses', 'week_students', 'week_theory', 'week_practical', 'week_field', 'week_total', 'week_note']
 new_week = week
 for c, name in reversed(list(zip(wcells, names))):
-    new_week = new_week[:c.start()] + set_cell(c.group(0), '${%s}' % name) + new_week[c.end():]
+    # The official note cell is underlined; the generated notes are multi-line prose, so print them plain.
+    new_week = new_week[:c.start()] + set_cell(c.group(0), '${%s}' % name, strip_underline=(name == 'week_note')) + new_week[c.end():]
 tot = rows[6].group(0)
 tcells = list(re.finditer(TC, tot, re.S))
 assert len(tcells) == 7, len(tcells)

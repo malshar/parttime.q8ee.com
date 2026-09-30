@@ -136,10 +136,15 @@ final class AttestationDocument
         ], $suffix);
     }
 
-    /** Admin-edited free text must never expand a later ${placeholder}: drop every "${". */
+    /** Admin-edited free text must never expand a later ${placeholder}: drop every "${", repeatedly, so nested "$${{" cannot re-form one. */
     private function plain(string $text): string
     {
-        return str_replace('${', '', $text);
+        do {
+            $before = $text;
+            $text = str_replace('${', '', $text);
+        } while ($text !== $before);
+
+        return $text;
     }
 
     /** @param  array<string, string>  $values  @return array<string, string> */

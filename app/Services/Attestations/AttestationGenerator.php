@@ -125,12 +125,22 @@ final class AttestationGenerator
         return $rows;
     }
 
-    /** The block's whole Sunday..Saturday range, so a Friday or Saturday last day is still noted; only in its own month. */
+    /**
+     * The block's whole Sunday..Saturday range, so a Friday or Saturday last day is still noted: in its own month,
+     * or in the previous month when it falls on the 1st/2nd and that month holds the block's working days.
+     */
     private function holdsLastTeachingDay(Term $term, Carbon $sunday, Carbon $monthStart, Carbon $monthEnd): bool
     {
         $end = $term->teaching_ends_on->copy()->startOfDay();
+        if (! $end->between($sunday, $sunday->copy()->addDays(6))) {
+            return false;
+        }
+        if ($end->between($monthStart, $monthEnd)) {
+            return true;
+        }
 
-        return $end->between($sunday, $sunday->copy()->addDays(6)) && $end->between($monthStart, $monthEnd);
+        // A Friday/Saturday end on the 1st/2nd of the next month: this block's Thursday is still in this month.
+        return $end->gt($monthEnd) && $sunday->copy()->addDays(4)->between($monthStart, $monthEnd);
     }
 
     /** @param  list<Carbon>  $working  @param  list<\App\Models\TermHoliday>  $holidays */
