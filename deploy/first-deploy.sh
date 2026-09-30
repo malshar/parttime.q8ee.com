@@ -64,8 +64,11 @@ cd $APP_DIR
 umask 077
 
 # --- 2. Database ---
-if [ ! -f /root/.parttime-db-pass ]; then
-  openssl rand -base64 30 | tr -d '/+=' | cut -c1-32 > /root/.parttime-db-pass
+# MySQL validate_password (MEDIUM) wants upper, lower, digit and a special
+# character; the suffix guarantees each class, the 24 random chars carry the
+# entropy. Regenerate an older file that lacks the special character.
+if [ ! -f /root/.parttime-db-pass ] || ! grep -q -- '-' /root/.parttime-db-pass; then
+  echo "\$(openssl rand -base64 30 | tr -d '/+=' | cut -c1-24)Aa1-" > /root/.parttime-db-pass
 fi
 DBP=\$(cat /root/.parttime-db-pass)
 # MySQL root needs a password on this server; the Debian maintenance account
