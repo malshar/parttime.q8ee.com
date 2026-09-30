@@ -336,8 +336,9 @@ class ApplicationWorkflow
     /**
      * Spec §3.1: refuse while any application is unfinished; otherwise withdraw never-submitted
      * drafts and close, in one transaction. Returns the number of drafts withdrawn.
-     * The term row is locked and both checks run under the lock, so a concurrent close or a
-     * submission racing the close cannot slip between the check and the UPDATE.
+     * The term row is locked and both checks run under the lock, so a second concurrent close is
+     * refused and the blocker check sees the statuses current at the UPDATE. submit() does not take
+     * this lock (a submission committing in the same instant is not serialised against the close).
      */
     public function closeTerm(Term $term, User $admin): int
     {
