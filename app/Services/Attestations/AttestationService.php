@@ -10,6 +10,7 @@ use App\Models\Term;
 use App\Models\User;
 use Carbon\Carbon;
 use DomainException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /** Admin-facing operations around AttestationGenerator, each audited (spec §5, §7). */
@@ -22,6 +23,17 @@ final class AttestationService
     {
         return $term->applications()->where('status', Application::STATUS_APPROVED)->has('assignments')->with('instructor')->get()
             ->sortBy(fn ($a) => $a->instructor->full_name)->values();
+    }
+
+    /**
+     * Every attestation of the term for that month, whether or not its application is still listed (spec §5.1).
+     *
+     * @return Builder<Attestation>
+     */
+    public function monthAttestations(Term $term, int $year, int $month)
+    {
+        return Attestation::whereHas('application', fn ($q) => $q->where('term_id', $term->id))
+            ->where(['year' => $year, 'month' => $month]);
     }
 
     /** @return array{year:int, month:int, index:int, label:string}|null */

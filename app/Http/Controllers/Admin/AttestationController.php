@@ -31,10 +31,15 @@ class AttestationController extends Controller
         }
         $month = $this->service->resolveMonth($term, $request->filled('month') ? (int) $request->month : null);
         abort_if($month === null, 404);
-        $listed = $this->service->listed($term);
-        $existing = Attestation::whereIn('application_id', $listed->pluck('id'))
-            ->where(['year' => $month['year'], 'month' => $month['month']])->get()->keyBy('application_id');
-        $rows = $listed->map(fn ($a) => ['application' => $a, 'attestation' => $existing[$a->id] ?? null]);
+        // Listed applications plus any application that already has an attestation for the month (spec §5.1).
+        $existing = $this->service->monthAttestations($term, $month['year'], $month['month'])
+            ->with('application.instructor')->get()->keyBy('application_id');
+        $applications = $this->service->listed($term)->keyBy('id');
+        foreach ($existing as $attestation) {
+            $applications[$attestation->application_id] ??= $attestation->application;
+        }
+        $rows = $applications->sortBy(fn ($a) => $a->instructor->full_name)->values()
+            ->map(fn ($a) => ['application' => $a, 'attestation' => $existing[$a->id] ?? null]);
 
         return view('admin.attestations.index', ['term' => $term, 'terms' => $terms, 'months' => $term->months(), 'month' => $month, 'rows' => $rows, 'existingCount' => $existing->count()]);
     }
@@ -133,8 +138,8 @@ class AttestationController extends Controller
         $term = Term::findOrFail($data['term']);
         $month = $this->service->resolveMonth($term, (int) $data['month']);
         abort_if($month === null, 404);
-        $attestations = Attestation::whereIn('application_id', $this->service->listed($term)->pluck('id'))
-            ->where(['year' => $month['year'], 'month' => $month['month']])->with('weeks', 'application.instructor', 'application.term')->get();
+        $attestations = $this->service->monthAttestations($term, $month['year'], $month['month'])
+            ->with('weeks', 'application.instructor', 'application.term')->get();
         if ($attestations->isEmpty()) {
             return back()->withErrors(['export' => __('app.attestations.none_for_month')]);
         }

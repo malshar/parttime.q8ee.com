@@ -119,6 +119,24 @@ class AttestationExportTest extends TestCase
         $this->assertSame(2, AuditLog::where('action', 'export_attestation')->where('details', 'combined_pdf')->count());
     }
 
+    public function test_combined_pdf_includes_attestation_of_instructor_whose_assignments_were_removed(): void
+    {
+        $second = Application::factory()->approved()->for($this->term)->for(Instructor::factory()->for(User::factory()->instructor())->create(['full_name' => 'بدر ناصر']))->create();
+        Assignment::factory()->for($second)->for(Section::factory()->for($this->term)->withMeetings()->create())->create();
+        $b = app(AttestationGenerator::class)->generate($second, 2026, 6, $this->admin);
+        Assignment::where('application_id', $this->a->application_id)->delete();
+
+        $r = $this->actingAs($this->admin)->get(route('admin.attestations.combined', ['term' => $this->term->id, 'month' => 1]));
+
+        $r->assertOk()->assertDownload("kh3-{$this->term->id}-2026-6.pdf");
+        ob_start();
+        $r->baseResponse->sendContent();
+        ob_end_clean();
+        $this->assertSame(Attestation::STATUS_EXPORTED, $this->a->fresh()->status);
+        $this->assertSame(Attestation::STATUS_EXPORTED, $b->fresh()->status);
+        $this->assertDatabaseHas('audit_log', ['action' => 'export_attestation', 'subject_id' => $this->a->id, 'details' => 'combined_pdf']);
+    }
+
     public function test_combined_pdf_failure_mid_export_leaves_nothing_exported_or_audited(): void
     {
         $second = Application::factory()->approved()->for($this->term)->for(Instructor::factory()->for(User::factory()->instructor())->create(['full_name' => 'بدر ناصر']))->create();

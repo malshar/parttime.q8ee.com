@@ -32,23 +32,22 @@ class DashboardController extends Controller
             }
 
             $listedIds = $this->attestations->listed($term)->pluck('id');
-            if ($listedIds->isNotEmpty()) {
-                $today = Carbon::today();
-                foreach ($term->months() as $m) {
-                    $start = Carbon::create($m['year'], $m['month'], 1);
-                    $url = route('admin.attestations.index', ['term' => $term->id, 'month' => $m['index']]);
-                    $existing = Attestation::whereIn('application_id', $listedIds)->where(['year' => $m['year'], 'month' => $m['month']]);
-                    if ($start->lte($today)) {
-                        $missing = $listedIds->count() - (clone $existing)->count();
-                        if ($missing > 0) {
-                            $alerts->push(['text' => __('app.attestations.alert_missing', ['n' => $missing, 'month' => $m['label']]), 'url' => $url]);
-                        }
+            $today = Carbon::today();
+            foreach ($term->months() as $m) {
+                $start = Carbon::create($m['year'], $m['month'], 1);
+                $url = route('admin.attestations.index', ['term' => $term->id, 'month' => $m['index']]);
+                if ($start->lte($today) && $listedIds->isNotEmpty()) {
+                    // "missing" is about listed applications only: they are the ones "generate missing" would create.
+                    $missing = $listedIds->count() - Attestation::whereIn('application_id', $listedIds)->where(['year' => $m['year'], 'month' => $m['month']])->count();
+                    if ($missing > 0) {
+                        $alerts->push(['text' => __('app.attestations.alert_missing', ['n' => $missing, 'month' => $m['label']]), 'url' => $url]);
                     }
-                    if ($start->copy()->endOfMonth()->lt($today)) {
-                        $pending = (clone $existing)->where('status', Attestation::STATUS_GENERATED)->count();
-                        if ($pending > 0) {
-                            $alerts->push(['text' => __('app.attestations.alert_unexported', ['n' => $pending, 'month' => $m['label']]), 'url' => $url]);
-                        }
+                }
+                if ($start->copy()->endOfMonth()->lt($today)) {
+                    // "unexported" covers every attestation of the month, listed or not.
+                    $pending = $this->attestations->monthAttestations($term, $m['year'], $m['month'])->where('status', Attestation::STATUS_GENERATED)->count();
+                    if ($pending > 0) {
+                        $alerts->push(['text' => __('app.attestations.alert_unexported', ['n' => $pending, 'month' => $m['label']]), 'url' => $url]);
                     }
                 }
             }

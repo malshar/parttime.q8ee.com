@@ -98,8 +98,15 @@ class AttestationsTest extends TestCase
             ->assertSessionHas('status', __('app.attestations.generated_count', ['n' => 0]));
 
         $this->assertDatabaseHas('attestations', ['id' => $a->id]);
-        $r = $this->actingAs($this->admin)->get(route('admin.attestations.index', ['term' => $this->term->id, 'month' => 1]));
-        $r->assertDontSee('أحمد سالم');
+        $this->assertSame(1, Attestation::count());
+        // The existing attestation stays reachable: its row is still on the month page (spec §5.1) ...
+        $r = $this->actingAs($this->admin)->get(route('admin.attestations.index', ['term' => $this->term->id, 'month' => 1]))->assertOk();
+        $r->assertSee('أحمد سالم');
+        $r->assertSee(route('admin.attestations.show', $a));
+        $r->assertDontSee('بدر ناصر');
+        // ... and the application page still links to the attestations.
+        $this->actingAs($this->admin)->get(route('admin.applications.show', $this->assigned))
+            ->assertSee(route('admin.attestations.index', ['term' => $this->term->id]));
     }
 
     private function generated(): Attestation
@@ -212,6 +219,17 @@ class AttestationsTest extends TestCase
         $r->assertSee(__('app.attestations.alert_missing', ['n' => 1, 'month' => 'الشهر الثاني/ يوليو']));
         $r->assertDontSee(__('app.attestations.alert_missing', ['n' => 1, 'month' => 'الشهر الأول/ يونيو']));
         $r->assertSee(route('admin.attestations.index', ['term' => $this->term->id, 'month' => 2]));
+    }
+
+    public function test_dashboard_unexported_alert_counts_attestations_of_unlisted_instructors(): void
+    {
+        $this->travelTo('2026-07-10');
+        Attestation::factory()->for($this->assigned)->create(['year' => 2026, 'month' => 6]);
+        Assignment::where('application_id', $this->assigned->id)->delete();
+
+        $r = $this->actingAs($this->admin)->get(route('admin.dashboard'))->assertOk();
+
+        $r->assertSee(__('app.attestations.alert_unexported', ['n' => 1, 'month' => 'الشهر الأول/ يونيو']));
     }
 
     public function test_dashboard_has_no_attestation_alerts_before_the_term_starts(): void
