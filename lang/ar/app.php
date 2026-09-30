@@ -108,7 +108,7 @@ return [
     ],
     'documents' => [
         'item' => 'البند', 'status' => 'الحالة', 'file' => 'الملف',
-        'states' => ['missing' => 'غير مرفوع', 'pending' => 'بانتظار المراجعة', 'accepted' => 'مقبول', 'rejected' => 'مرفوض'],
+        'states' => ['missing' => 'غير مرفوع', 'pending' => 'بانتظار المراجعة', 'accepted' => 'مقبول', 'rejected' => 'مرفوض', 'on_file' => 'على الملف'],
         'upload' => 'رفع الملف', 'replace' => 'رفع نسخة جديدة', 'download' => 'تحميل', 'version' => 'النسخة',
         'file_rules' => 'PDF أو JPG أو PNG أو DOCX، بحد أقصى 10 ميغابايت.',
         'zip_rejected' => 'ملفات ZIP غير مقبولة، يرجى رفع كل مستند على حدة.',

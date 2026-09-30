@@ -83,6 +83,11 @@ class Application extends Model
         return $this->hasMany(Attestation::class);
     }
 
+    public function renewals(): HasMany
+    {
+        return $this->hasMany(ChecklistRenewal::class);
+    }
+
     public function weeklyHoursLabel(): string
     {
         return Section::hoursFromMinutes((int) $this->weekly_minutes);

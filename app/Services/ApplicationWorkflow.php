@@ -12,17 +12,21 @@ use App\Mail\DocumentsRejected;
 use App\Models\Application;
 use App\Models\AuditLog;
 use App\Models\ChecklistItem;
+use App\Models\ChecklistRenewal;
 use App\Models\Document;
 use App\Models\Instructor;
 use App\Models\Term;
 use App\Models\User;
 use Illuminate\Mail\Mailable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class ApplicationWorkflow
 {
+    public const STATE_ON_FILE = 'on_file';
+
     public function __construct(private ChecklistResolver $resolver) {}
 
     public function start(Instructor $instructor, Term $term): Application
@@ -38,19 +42,57 @@ class ApplicationWorkflow
     }
 
     /**
-     * @return array<string, array{item: ChecklistItem, document: ?Document, state: string}>
+     * Spec §4.2. One row per required item:
+     * ['item' => ChecklistItem, 'document' => ?Document, 'state' => string, 'source' => ?Document, 'renewal' => ?ChecklistRenewal]
+     *
+     * @return array<string, array{item: ChecklistItem, document: ?Document, state: string, source: ?Document, renewal: ?ChecklistRenewal}>
      */
     public function checklist(Application $application): array
     {
         $plan = $this->resolver->for($application->instructor);
         $docs = $application->latestDocuments();
+        $renewals = $application->renewals()->get()->keyBy('checklist_item_id');
+        $onFile = null;
         $out = [];
         foreach ($plan->required as $item) {
             $doc = $docs->get($item->code);
-            $out[$item->code] = ['item' => $item, 'document' => $doc, 'state' => $doc?->status ?? 'missing'];
+            $row = ['item' => $item, 'document' => $doc, 'state' => 'missing', 'source' => null, 'renewal' => $renewals->get($item->id)];
+            if ($doc) {
+                $row['state'] = $doc->status;
+            } elseif ($row['renewal'] === null && ! $item->renews_each_term
+                && ! ($item->code === 'civil_id' && $application->instructor->civilIdExpired())) {
+                $onFile ??= $this->onFileDocuments($application);
+                if ($source = $onFile->get($item->code)) {
+                    $row['state'] = self::STATE_ON_FILE;
+                    $row['source'] = $source;
+                }
+            }
+            $out[$item->code] = $row;
         }
 
         return $out;
+    }
+
+    /**
+     * Latest accepted document per item code from the instructor's other applications in earlier terms
+     * (spec §4.2 rule 5). Keyed by item code; `checklistItem` and `application.term` are loaded.
+     *
+     * @return Collection<string, Document>
+     */
+    public function onFileDocuments(Application $application): Collection
+    {
+        $termStart = $application->term->teaching_starts_on;
+
+        return Document::query()
+            ->where('status', Document::STATUS_ACCEPTED)
+            ->whereHas('application', fn ($q) => $q->where('instructor_id', $application->instructor_id)
+                ->whereKeyNot($application->id)
+                ->whereHas('term', fn ($t) => $t->where('teaching_starts_on', '<', $termStart)))
+            ->with(['checklistItem', 'application.term'])
+            ->orderByDesc('reviewed_at')->orderByDesc('id')
+            ->get()
+            ->unique('checklist_item_id')
+            ->keyBy(fn (Document $d) => $d->checklistItem->code);
     }
 
     public function plan(Application $application): ChecklistPlan
@@ -61,7 +103,7 @@ class ApplicationWorkflow
     public function allRequiredAccepted(Application $application): bool
     {
         foreach ($this->checklist($application) as $row) {
-            if ($row['state'] !== 'accepted') {
+            if (! in_array($row['state'], [Document::STATUS_ACCEPTED, self::STATE_ON_FILE], true)) {
                 return false;
             }
         }
@@ -141,7 +183,7 @@ class ApplicationWorkflow
         }
     }
 
-    /** @return array<int, array{item: ChecklistItem, document: ?Document, state: string}> */
+    /** @return array<int, array{item: ChecklistItem, document: ?Document, state: string, source: ?Document, renewal: ?ChecklistRenewal}> */
     public function pendingRejectionNotices(Application $application): array
     {
         return array_values(array_filter(

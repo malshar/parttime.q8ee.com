@@ -102,7 +102,7 @@ return [
     ],
     'documents' => [
         'item' => 'Item', 'status' => 'Status', 'file' => 'File',
-        'states' => ['missing' => 'Not uploaded', 'pending' => 'Awaiting review', 'accepted' => 'Accepted', 'rejected' => 'Rejected'],
+        'states' => ['missing' => 'Not uploaded', 'pending' => 'Awaiting review', 'accepted' => 'Accepted', 'rejected' => 'Rejected', 'on_file' => 'On file'],
         'upload' => 'Upload file', 'replace' => 'Upload a new copy', 'download' => 'Download', 'version' => 'Version',
         'file_rules' => 'PDF, JPG, PNG or DOCX, maximum 10 MB.',
         'zip_rejected' => 'ZIP files are not accepted, please upload each document separately.',
