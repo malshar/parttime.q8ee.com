@@ -24,9 +24,10 @@ class AttestationController extends Controller
         }
         $month = $this->service->resolveMonth($term, $request->filled('month') ? (int) $request->month : null);
         abort_if($month === null, 404);
-        $existing = Attestation::whereIn('application_id', $this->service->listed($term)->pluck('id'))
+        $listed = $this->service->listed($term);
+        $existing = Attestation::whereIn('application_id', $listed->pluck('id'))
             ->where(['year' => $month['year'], 'month' => $month['month']])->get()->keyBy('application_id');
-        $rows = $this->service->listed($term)->map(fn ($a) => ['application' => $a, 'attestation' => $existing[$a->id] ?? null]);
+        $rows = $listed->map(fn ($a) => ['application' => $a, 'attestation' => $existing[$a->id] ?? null]);
 
         return view('admin.attestations.index', ['term' => $term, 'terms' => $terms, 'months' => $term->months(), 'month' => $month, 'rows' => $rows, 'existingCount' => $existing->count()]);
     }
