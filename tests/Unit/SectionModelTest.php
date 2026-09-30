@@ -39,4 +39,13 @@ class SectionModelTest extends TestCase
         $this->assertFalse(Schema::hasColumn('applications', 'weekly_hours'));
         $this->assertFalse(Schema::hasColumn('applications', 'weekly_hours_decimal'));
     }
+
+    public function test_hours_for_form_trims_decimals(): void
+    {
+        $this->assertSame('2', Section::hoursForForm(120));
+        $this->assertSame('2.5', Section::hoursForForm(150));
+        $this->assertSame('1.25', Section::hoursForForm(75));
+        $this->assertSame('1.33', Section::hoursForForm(80));
+        $this->assertSame('0', Section::hoursForForm(0));
+    }
 }

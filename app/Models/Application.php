@@ -75,6 +75,11 @@ class Application extends Model
         return $this->hasManyThrough(Section::class, Assignment::class, 'application_id', 'id', 'id', 'section_id');
     }
 
+    public function attestations(): HasMany
+    {
+        return $this->hasMany(Attestation::class);
+    }
+
     public function weeklyHoursLabel(): string
     {
         return Section::hoursFromMinutes((int) $this->weekly_minutes);

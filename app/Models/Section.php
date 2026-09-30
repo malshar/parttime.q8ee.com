@@ -56,6 +56,12 @@ class Section extends Model
         return number_format($minutes / 60, 1, '.', '');
     }
 
+    /** Hours as printed on the (خ-3) form: "2", "2.5", "1.25" — never a trailing ".0". */
+    public static function hoursForForm(int $minutes): string
+    {
+        return rtrim(rtrim(number_format($minutes / 60, 2, '.', ''), '0'), '.');
+    }
+
     /** Groups meetings by activity + time: "محاضرة: الأحد/الثلاثاء 8:00-9:15؛ مختبر: الاثنين 9:30-11:10" */
     public function meetingSummary(): string
     {
