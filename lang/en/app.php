@@ -211,4 +211,11 @@ return [
         'totals' => 'Total per part-timer', 'no_approved' => 'No approved part-timers in this term.',
         'unassign_confirm' => 'Unassign this section?',
     ],
+    'attestations' => [
+        'not_approved' => 'An attestation can only be generated for an approved application.',
+        'term_closed' => 'The term is closed; attestations cannot be generated or edited.',
+        'month_outside_term' => 'The month is outside the term.',
+        'no_assignments' => 'This instructor has no assigned sections.',
+        'locked' => 'The attestation has been exported; unlock it first.',
+    ],
 ];
