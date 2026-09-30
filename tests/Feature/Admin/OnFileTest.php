@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\ApplicationWorkflow;
 use Database\Seeders\ChecklistItemSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class OnFileTest extends TestCase
@@ -199,5 +200,53 @@ class OnFileTest extends TestCase
         $this->accepted($this->previous, 'iban');
 
         $this->assertSame('on_file', $this->workflow()->checklist($this->application)['iban']['state']);
+    }
+
+    public function test_document_in_this_application_wins_over_renewal_and_earlier_copy(): void
+    {
+        $this->accepted($this->previous, 'iban');
+        $item = ChecklistItem::where('code', 'iban')->first();
+        $renewal = ChecklistRenewal::factory()->for($this->application)->create(['checklist_item_id' => $item->id, 'reason' => 'الآيبان تغير']);
+        $doc = Document::factory()->for($this->application)->forItem('iban')->create();
+
+        $row = $this->workflow()->checklist($this->application)['iban'];
+
+        $this->assertSame('pending', $row['state']);
+        $this->assertTrue($row['document']->is($doc));
+        $this->assertNull($row['source']);
+        $this->assertTrue($row['renewal']->is($renewal));
+    }
+
+    public function test_on_file_application_goes_from_submission_to_approval(): void
+    {
+        Mail::fake();
+        $admin = User::factory()->admin()->create();
+        $onFile = 0;
+        foreach ($this->workflow()->plan($this->application)->required as $item) {
+            if ($item->renews_each_term) {
+                Document::factory()->for($this->application)->forItem($item->code)->accepted()->create();
+            } else {
+                $this->accepted($this->previous, $item->code);
+                $onFile++;
+            }
+        }
+        $this->assertGreaterThan(0, $onFile);
+
+        $wf = $this->workflow();
+        $wf->submit($this->application);
+        $wf->markUnderReview($this->application->fresh());
+        $wf->markComplete($this->application->fresh(), $admin);
+        $wf->committeeDecision($this->application->fresh(), $admin, 'approved', now()->toDateString(), 'REF-1', null);
+
+        $this->assertSame(Application::STATUS_APPROVED, $this->application->fresh()->status);
+    }
+
+    public function test_final_application_keeps_civil_id_on_file_after_card_expires(): void
+    {
+        $this->accepted($this->previous, 'civil_id');
+        $this->application->update(['status' => Application::STATUS_APPROVED, 'decided_at' => now()]);
+        $this->instructor->update(['civil_id_expires_on' => now()->toDateString()]);
+
+        $this->assertSame('on_file', $this->workflow()->checklist($this->application->fresh())['civil_id']['state']);
     }
 }

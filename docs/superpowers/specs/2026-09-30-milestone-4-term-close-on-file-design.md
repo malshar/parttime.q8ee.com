@@ -96,7 +96,9 @@ For each required item of the plan, in this order:
    with `renewal` set so the screens can show the reason.
 3. `renews_each_term = true` (salary certificate, employer approval,
    undertaking) → `missing`.
-4. Item `civil_id` and `instructor.civil_id_expires_on <= today` → `missing`.
+4. Item `civil_id` and `instructor.civil_id_expires_on <= today` → `missing`
+   (skipped for final applications, so an approved record does not change
+   once the card expires).
 5. The latest accepted document of this item in any **other** application of
    the same instructor whose term `teaching_starts_on` is earlier than this
    application's term → `on_file`, `source` = that document.

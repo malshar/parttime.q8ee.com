@@ -60,7 +60,8 @@ class ApplicationWorkflow
             if ($doc) {
                 $row['state'] = $doc->status;
             } elseif ($row['renewal'] === null && ! $item->renews_each_term
-                && ! ($item->code === 'civil_id' && $application->instructor->civilIdExpired())) {
+                // Rule 4 is skipped for final applications so their record does not flip once the card expires.
+                && ! ($item->code === 'civil_id' && ! $application->isFinal() && $application->instructor->civilIdExpired())) {
                 $onFile ??= $this->onFileDocuments($application);
                 if ($source = $onFile->get($item->code)) {
                     $row['state'] = self::STATE_ON_FILE;
