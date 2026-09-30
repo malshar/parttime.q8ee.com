@@ -249,4 +249,13 @@ class OnFileTest extends TestCase
 
         $this->assertSame('on_file', $this->workflow()->checklist($this->application->fresh())['civil_id']['state']);
     }
+
+    public function test_final_application_keeps_iban_on_file_after_a_later_profile_edit(): void
+    {
+        $this->accepted($this->previous, 'iban');
+        $this->application->update(['status' => Application::STATUS_APPROVED, 'decided_at' => now()]);
+        AuditLog::record($this->instructor->user_id, 'edit_profile', $this->instructor, null, 'iban');
+
+        $this->assertSame('on_file', $this->workflow()->checklist($this->application->fresh())['iban']['state']);
+    }
 }

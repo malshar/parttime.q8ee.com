@@ -116,7 +116,9 @@ the audit log: `edit_profile` (instructor self-edit, now audited) and
 instructor's applications, with `created_at` after the source's
 `reviewed_at` and whose `details` (a comma list of field names, never
 values) names a mapped field. `onFileDocuments()` reads all such rows for
-the instructor in one query and filters in PHP.
+the instructor in one query and filters in PHP. Like rule 4, rule 4b is
+skipped for final applications, so an approved record does not change after
+a later profile edit.
 
 "Latest" = highest `reviewed_at`, then highest id. Only `accepted` documents
 qualify; `pending`/`rejected` never do. Drafts from other terms can hold

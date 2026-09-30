@@ -96,6 +96,11 @@ class ApplicationWorkflow
             ->unique('checklist_item_id')
             ->keyBy(fn (Document $d) => $d->checklistItem->code);
 
+        // Rule 4b is skipped for final applications so their record does not flip after a later edit.
+        if ($application->isFinal()) {
+            return $sources;
+        }
+
         $edits = $this->profileEditsSince($application->instructor_id, $sources->min('reviewed_at'));
 
         return $sources->reject(function (Document $source, string $code) use ($edits) {
