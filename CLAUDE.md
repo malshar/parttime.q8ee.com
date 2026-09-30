@@ -2,7 +2,7 @@
 
 > **Status (2026-09-30): live at https://parttime.q8ee.com — milestones 1
 > and 2 merged on `main` and deployed (first deploy 2026-09-30).** Laravel 12
-> app (`php artisan test` green, 149 tests). Milestone 1 (intake)
+> app (`php artisan test` green, 207 tests). Milestone 1 (intake)
 > shipped first; milestone 2 adds: the `complete` application status with a
 > three-group attention list, a committee decision step (replacing direct
 > approve/reject) with a consolidated rejection notice, reopening of
@@ -19,7 +19,8 @@
 > `scripts/build-kh3-template.py` from the official blank form. Design:
 > `docs/superpowers/specs/2026-09-28-parttime-system-design.md` (milestone 1)
 > and `docs/superpowers/specs/2026-09-29-milestone-2-assignment-design.md`
-> (milestone 2); final reviews with rulings and deferred minors are in
+> (milestone 2) and `docs/superpowers/specs/2026-09-30-milestone-3-attestation-design.md`
+> (milestone 3); final reviews with rulings and deferred minors are in
 > `docs/superpowers/reviews/`. Deploy scripts/docs are in `deploy/` (`deploy/DEPLOY.md` for
 > the server setup as done on 2026-09-30, `./deploy/deploy.sh` for routine
 > deploys; mail goes through the server's mailcow as `mail.q8ee.com`).
@@ -110,7 +111,9 @@ Pick per scope. Arabic-first, RTL, complete translation coverage from day one.
 
 ## Next step
 
-Milestones 1 and 2 are live — see the status header above. Next: finish the
-post-deploy items in `deploy/DEPLOY.md` ("After the first deploy"), import
-the term's jadawil export, then brainstorm/plan milestone 3 (monthly (خ-3)
-attestation).
+Milestones 1 and 2 are live — see the status header above. Next: deploy
+milestone 3 and do the one-time LibreOffice/font setup and PDF visual check
+in `deploy/DEPLOY.md` ("Milestone 3: PDF export"), then brainstorm/plan
+milestone 4 (term close + on-file logic). The remaining post-deploy items
+(browser checks, admin password, jadawil import) are listed in
+`deploy/DEPLOY.md` ("After the first deploy").

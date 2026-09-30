@@ -268,6 +268,7 @@ class AttestationsTest extends TestCase
         $r->assertSee(__('app.attestations.alert_unexported', ['n' => 1, 'month' => 'الشهر الأول/ يونيو']));
         $r->assertSee(__('app.attestations.alert_missing', ['n' => 1, 'month' => 'الشهر الثاني/ يوليو']));
         $r->assertDontSee(__('app.attestations.alert_missing', ['n' => 1, 'month' => 'الشهر الأول/ يونيو']));
+        $r->assertSee('1 مزاولة غير مولدة في الشهر الثاني/ يوليو.');   // wording: "month" said once
         $r->assertSee(route('admin.attestations.index', ['term' => $this->term->id, 'month' => 2]));
     }
 
@@ -291,7 +292,7 @@ class AttestationsTest extends TestCase
         // Not a bare assertDontSee('مزاولة'): the nav bar always links to
         // app.attestations.title ("المزاولة الشهرية"), which contains that
         // substring regardless of alerts. Assert on the alert phrasing itself.
-        $r->assertDontSee('غير مولدة لشهر');
-        $r->assertDontSee('مصدرة لشهر');
+        $r->assertDontSee('غير مولدة في');
+        $r->assertDontSee('غير مصدرة في');
     }
 }

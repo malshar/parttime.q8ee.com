@@ -3,8 +3,9 @@
 ## Status (2026-09-30)
 **Live at https://parttime.q8ee.com** since 2026-09-30 (first deploy of
 milestones 1 + 2, merged on `main`). Milestone 3 (monthly (خ-3) attestation)
-is now implemented, Tasks 1-7, on branch `milestone-3-attestation`
-(`php artisan test` green, 195 tests) — deploy not yet run. Milestone 2
+is implemented, Tasks 1-7 plus the final-review fix wave, on branch
+`milestone-3-attestation` (`php artisan test` green, 207 tests); it is
+not deployed yet. Milestone 2
 review record: `docs/superpowers/reviews/2026-09-29-milestone-2-final-review.md`
 (deferred minors + rulings, start there for milestone 3). Deploy runbook and
 scripts: `deploy/` (`DEPLOY.md`, "After the first deploy"). Milestone 1
@@ -13,23 +14,26 @@ scripts: `deploy/` (`DEPLOY.md`, "After the first deploy"). Milestone 1
 `docs/superpowers/reviews/2026-09-28-milestone-1-final-review.md`). See
 `docs/superpowers/specs/2026-09-28-parttime-system-design.md` for the
 milestone 1 spec and `docs/superpowers/specs/2026-09-29-milestone-2-assignment-design.md`
-for the milestone 2 spec. Deploy scripts and docs are in `deploy/`; the
-actual first deploy to the server has not been run yet — see
-`deploy/DEPLOY.md`.
+for the milestone 2 spec, `docs/superpowers/specs/2026-09-30-milestone-3-attestation-design.md`
+for milestone 3.
 Real applicant documents are accumulating in `../part-time/` (10 applicants
 as of 2026-09-27; sensitive — see root `../CLAUDE.md`).
 
 ## Next
-1. Deploy milestone 3 (`./deploy/deploy.sh`, then the LibreOffice/font check
-   under "After the first deploy" in `deploy/DEPLOY.md`) and browser-check a
-   generated (خ-3) PDF.
-2. Brainstorm/plan milestone 4 (term close + on-file logic).
+1. Remaining post-deploy items (`deploy/DEPLOY.md`, "After the first
+   deploy"): step 10's browser checks; the admin password change and
+   deleting `/root/parttime-admin-initial.txt`; the term's jadawil import.
+2. Deploy milestone 3 (`./deploy/deploy.sh`), then the one-time setup and
+   PDF visual check in `deploy/DEPLOY.md` ("Milestone 3: PDF export").
+3. Brainstorm/plan milestone 4 (term close + on-file logic).
 
 ## Decided (2026-09-28 brainstorm)
 Approach A: one Laravel 12 app, three milestones (intake → assignment →
 attestation). Applicants self-register (Cloudflare Turnstile). (خ-3) is
-generated from section meetings + term calendar, confirmed by the instructor.
-Sections imported per term from Excel. Full details in the spec.
+generated from section meetings + term calendar. Sections imported per term
+from Excel. Full details in the spec.
+Changed 2026-09-30 (milestone 3 design): (خ-3) is generated and printed by
+the admin and signed on paper; there is no instructor confirmation step.
 
 ## In progress / blocked
 (nothing yet)
@@ -83,4 +87,8 @@ Sections imported per term from Excel. Full details in the spec.
   PDF conversion with per-instructor and combined-monthly downloads, and
   dashboard alerts for months with missing or unexported attestations plus
   a link from the application page to the term's attestations. `php artisan
-  test` green (195 tests). Deploy pending.
+  test` green (195 tests). Final whole-branch review + fix wave: existing
+  attestations stay visible/exportable when an instructor loses all
+  assignments, CRLF-safe edits, temp-file cleanup + backup exclusion, page
+  break moved to the end of the template block, fontconfig/SOFFICE_PATH
+  deploy steps, and the review minors (207 tests). Deploy pending.

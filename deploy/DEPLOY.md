@@ -283,13 +283,76 @@ PDF; exported forms are locked, unlock to edit.
 Done by `first-deploy.sh` and by hand: DB, `.env`, key, migrations, seed,
 admin, vhost + certbot, Turnstile keys, mailbox password, code readable by
 www-data. Mail: `deploy/mail-hostname.sh` gave mailcow a valid certificate
-for `mail.q8ee.com` (and fixed its expired one). Still to run once:
+for `mail.q8ee.com` (and fixed its expired one). Also run on 2026-09-30:
 `./deploy/cloudflare-trusted-proxies.sh` (9a) and `./deploy/install-backup.sh`
-(12). Then step 10's manual checks in the browser, and the admin changes the
-initial password (`/root/parttime-admin-initial.txt`) via "forgot password"
-and deletes that file. Routine deploys: `./deploy/deploy.sh`.
+(12). Routine deploys: `./deploy/deploy.sh`.
 
-Milestone 3 needs LibreOffice (`soffice`, present: 7.3) and an Arabic font
-(Amiri present); after deploying, download one PDF and check the Arabic
-renders and the table fits one page — if a font substitution looks wrong,
-`apt install fonts-sil-scheherazade fonts-kacst` and retry.
+Still to do:
+
+1. Step 10's manual checks in the browser.
+2. The admin changes the initial password via "forgot password", then
+   `rm /root/parttime-admin-initial.txt`.
+3. Import the term's jadawil export at `/admin/sections/import`.
+
+## Milestone 3: PDF export (LibreOffice + fonts)
+
+The (خ-3) PDF is made by LibreOffice (`soffice`, present: 7.3) from the Word
+template. Once, on the server, before or right after deploying milestone 3:
+
+1. **Absolute binary path.** PHP-FPM runs with `clear_env`, so a bare
+   `soffice` looked up on PATH is unreliable. In `.env`:
+
+   ```
+   SOFFICE_PATH=/usr/bin/soffice
+   ```
+
+   then `php artisan config:cache` (or re-run `./deploy/deploy.sh`).
+
+2. **Font substitution.** The official form uses "Simplified Arabic" and
+   "PT Bold Heading", which are not on the server. Map both to Amiri
+   (installed) with fontconfig, so LibreOffice shapes the Arabic correctly
+   and keeps the form's line heights:
+
+   ```bash
+   cat > /etc/fonts/local.conf <<'XML'
+   <?xml version="1.0"?>
+   <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+   <fontconfig>
+     <match target="pattern">
+       <test name="family"><string>Simplified Arabic</string></test>
+       <edit name="family" mode="assign" binding="same"><string>Amiri</string></edit>
+     </match>
+     <match target="pattern">
+       <test name="family"><string>PT Bold Heading</string></test>
+       <edit name="family" mode="assign" binding="same"><string>Amiri</string></edit>
+       <edit name="weight" mode="assign" binding="same"><const>bold</const></edit>
+     </match>
+   </fontconfig>
+   XML
+   fc-cache -f
+   fc-match "Simplified Arabic"   # → Amiri
+   fc-match "PT Bold Heading"     # → Amiri Bold
+   ```
+
+3. **Warm-up as www-data** (checks the web user can start LibreOffice and
+   loads it into the page cache, so the first download does not time out):
+
+   ```bash
+   sudo -u www-data HOME=/tmp /usr/bin/soffice --headless --terminate_after_init
+   ```
+
+4. **Backups.** `deploy/parttime-q8ee-backup.sh` now excludes
+   `storage/app/private/generated/tmp` (short-lived decrypted .docx/.pdf
+   files); re-run `./deploy/install-backup.sh` once so the installed copy in
+   `/usr/local/bin` picks that up.
+
+5. **Visual check (required once).** At `/admin/attestations`, generate and
+   download:
+   - one PDF for a 5-week month (e.g. October 2026), and
+   - one combined PDF for a month with two instructors.
+
+   In both: exactly one page per instructor (no blank page, no page spilling
+   onto a second), the Arabic is joined and right-to-left (not isolated
+   letters), the week table and totals fit, and the footer signature lines
+   are present. If a page spills, check `fc-match` above before changing the
+   template.

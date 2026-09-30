@@ -269,7 +269,7 @@ return [
         'category' => '(من خارج الهيئة - كادر عام)',
         'term_labels' => ['first' => 'للفصل الأول', 'second' => 'للفصل الثاني', 'summer' => 'للفصل الصيفي'],
         'pdf_unavailable' => 'تعذر إنشاء ملف PDF على الخادم؛ يمكن تنزيل ملف Word بدلا منه.',
-        'alert_missing' => ':n مزاولة غير مولدة لشهر :month.',
-        'alert_unexported' => ':n مزاولة مولدة وغير مصدرة لشهر :month.',
+        'alert_missing' => ':n مزاولة غير مولدة في :month.',
+        'alert_unexported' => ':n مزاولة مولدة وغير مصدرة في :month.',
     ],
 ];
