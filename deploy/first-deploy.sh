@@ -68,7 +68,10 @@ if [ ! -f /root/.parttime-db-pass ]; then
   openssl rand -base64 30 | tr -d '/+=' | cut -c1-32 > /root/.parttime-db-pass
 fi
 DBP=\$(cat /root/.parttime-db-pass)
-mysql -e "CREATE DATABASE IF NOT EXISTS parttime CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+# MySQL root needs a password on this server; the Debian maintenance account
+# (root-only /etc/mysql/debian.cnf) has CREATE USER + GRANT rights.
+MYSQL="mysql --defaults-file=/etc/mysql/debian.cnf"
+\$MYSQL -e "CREATE DATABASE IF NOT EXISTS parttime CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
           CREATE USER IF NOT EXISTS 'parttime'@'localhost' IDENTIFIED BY '\$DBP';
           ALTER USER 'parttime'@'localhost' IDENTIFIED BY '\$DBP';
           GRANT ALL ON parttime.* TO 'parttime'@'localhost'; FLUSH PRIVILEGES;"
