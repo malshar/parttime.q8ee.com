@@ -336,22 +336,26 @@ class ApplicationWorkflow
     /**
      * Spec §3.1: refuse while any application is unfinished; otherwise withdraw never-submitted
      * drafts and close, in one transaction. Returns the number of drafts withdrawn.
+     * The term row is locked and both checks run under the lock, so a concurrent close or a
+     * submission racing the close cannot slip between the check and the UPDATE.
      */
     public function closeTerm(Term $term, User $admin): int
     {
-        if (! $term->isOpen()) {
-            throw new \DomainException(__('app.applications.term_closed'));
-        }
-        $blocking = $term->applications()->whereIn('status', Application::UNFINISHED_STATUSES)->with('instructor')->get();
-        if ($blocking->isNotEmpty()) {
-            throw new TermCloseBlockedException($blocking);
-        }
-
         return DB::transaction(function () use ($term, $admin) {
-            $n = $term->applications()->where('status', Application::STATUS_DRAFT)
+            $locked = Term::whereKey($term->id)->lockForUpdate()->firstOrFail();
+            if (! $locked->isOpen()) {
+                throw new \DomainException(__('app.applications.term_closed'));
+            }
+            $blocking = $locked->applications()->whereIn('status', Application::UNFINISHED_STATUSES)->with('instructor')->get();
+            if ($blocking->isNotEmpty()) {
+                throw new TermCloseBlockedException($blocking);
+            }
+
+            $n = $locked->applications()->where('status', Application::STATUS_DRAFT)
                 ->update(['status' => Application::STATUS_WITHDRAWN, 'decided_at' => now()]);
-            $term->update(['status' => Term::STATUS_CLOSED]);
-            AuditLog::record($admin->id, 'close_term', $term, null, 'drafts_withdrawn='.$n);
+            $locked->update(['status' => Term::STATUS_CLOSED]);
+            $term->setRawAttributes($locked->getAttributes(), true);
+            AuditLog::record($admin->id, 'close_term', $locked, null, 'drafts_withdrawn='.$n);
 
             return $n;
         });

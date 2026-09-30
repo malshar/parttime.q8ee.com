@@ -17,9 +17,6 @@
     <div class="alert alert-danger">{{ $application->rejection_reason }}</div>
 @endif
 
-@if ($errors->has('renewal'))
-    <div class="alert alert-danger">{{ $errors->first('renewal') }}</div>
-@endif
 
 {{-- 1. Profile card --}}
 <div class="card mb-4">

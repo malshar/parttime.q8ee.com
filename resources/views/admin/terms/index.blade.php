@@ -5,18 +5,14 @@
     <h1 class="h4 mb-0">{{ __('app.terms.title') }}</h1>
     <a href="{{ route('admin.terms.create') }}" class="btn btn-eet">{{ __('app.terms.add') }}</a>
 </div>
-@if ($errors->has('close'))
+@if (session('close_blockers'))
     <div class="alert alert-danger">
-        <div>{{ $errors->first('close') }}</div>
-        <ul class="mb-0 mt-2">
-            @foreach (session('close_blockers', []) as $b)
+        <ul class="mb-0">
+            @foreach (session('close_blockers') as $b)
                 <li><a href="{{ $b['url'] }}">{{ $b['name'] }}</a> — {{ $b['status'] }}</li>
             @endforeach
         </ul>
     </div>
-@endif
-@if (session('status'))
-    <div class="alert alert-success">{{ session('status') }}</div>
 @endif
 <div class="table-responsive">
     <table class="table table-striped align-middle">
@@ -45,7 +41,7 @@
                 <td class="d-flex gap-2">
                     @if ($term->isOpen())
                         <a href="{{ route('admin.terms.edit', $term) }}" class="btn btn-sm btn-outline-secondary">{{ __('app.terms.edit') }}</a>
-                        <form method="post" action="{{ route('admin.terms.close', $term) }}">
+                        <form method="post" action="{{ route('admin.terms.close', $term) }}" onsubmit="return confirm(@js(__('app.terms.close_confirm')))">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('app.terms.close') }}</button>
                         </form>

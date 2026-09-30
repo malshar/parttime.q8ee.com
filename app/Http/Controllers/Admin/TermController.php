@@ -73,6 +73,9 @@ class TermController extends Controller
                     'status' => __('app.applications.statuses.'.$a->status),
                     'url' => route('admin.applications.show', $a),
                 ])->all());
+        } catch (\DomainException $e) {
+            // Reachable when another admin closed the term between the page load and this request.
+            return redirect()->route('admin.terms.index')->withErrors(['close' => $e->getMessage()]);
         }
 
         return redirect()->route('admin.terms.index')->with('status', __('app.terms.closed_with_drafts', ['n' => $n]));

@@ -2,14 +2,18 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Exceptions\TermCloseBlockedException;
 use App\Models\Application;
 use App\Models\Assignment;
 use App\Models\Attestation;
+use App\Models\AuditLog;
 use App\Models\Instructor;
 use App\Models\Section;
 use App\Models\Term;
 use App\Models\User;
+use App\Services\ApplicationWorkflow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Js;
 use Tests\TestCase;
 
 class TermCloseTest extends TestCase
@@ -92,5 +96,69 @@ class TermCloseTest extends TestCase
         $open = Term::factory()->open()->create(['academic_year' => '2027-2028']);
         $this->actingAs(User::factory()->instructor()->create())->post(route('admin.terms.close', $open))->assertForbidden();
         $this->assertSame(Term::STATUS_OPEN, $open->fresh()->status);
+    }
+
+    public function test_second_close_is_refused_and_audited_once(): void
+    {
+        $this->actingAs($this->admin)->post(route('admin.terms.close', $this->term))->assertSessionHasNoErrors();
+        $this->actingAs($this->admin)->post(route('admin.terms.close', $this->term))->assertForbidden();
+
+        $this->assertSame(1, AuditLog::where('action', 'close_term')->count());
+    }
+
+    public function test_close_with_a_stale_term_is_refused_under_the_lock(): void
+    {
+        $stale = Term::find($this->term->id);
+        app(ApplicationWorkflow::class)->closeTerm($this->term, $this->admin);
+
+        try {
+            app(ApplicationWorkflow::class)->closeTerm($stale, $this->admin);
+            $this->fail('A second close of the same term must be refused.');
+        } catch (\DomainException $e) {
+            $this->assertSame(__('app.applications.term_closed'), $e->getMessage());
+        }
+        $this->assertSame(1, AuditLog::where('action', 'close_term')->count());
+    }
+
+    public function test_close_rechecks_blockers_under_the_lock(): void
+    {
+        $draft = $this->application(Application::STATUS_DRAFT, 'أ');
+        $stale = Term::find($this->term->id);
+        $draft->update(['status' => Application::STATUS_SUBMITTED]);
+
+        $this->expectException(TermCloseBlockedException::class);
+        try {
+            app(ApplicationWorkflow::class)->closeTerm($stale, $this->admin);
+        } finally {
+            $this->assertSame(Term::STATUS_OPEN, $this->term->fresh()->status);
+            $this->assertSame(Application::STATUS_SUBMITTED, $draft->fresh()->status);
+        }
+    }
+
+    public function test_bare_domain_exception_from_close_is_shown_as_a_message(): void
+    {
+        $this->mock(ApplicationWorkflow::class)->shouldReceive('closeTerm')->andThrow(new \DomainException(__('app.applications.term_closed')));
+
+        $this->actingAs($this->admin)->post(route('admin.terms.close', $this->term))
+            ->assertRedirect(route('admin.terms.index'))
+            ->assertSessionHasErrors(['close' => __('app.applications.term_closed')]);
+    }
+
+    public function test_terms_page_shows_each_message_once_and_confirms_close(): void
+    {
+        $this->application(Application::STATUS_UNDER_REVIEW, 'سعود فهد');
+        $this->actingAs($this->admin)->post(route('admin.terms.close', $this->term));
+        $html = $this->actingAs($this->admin)->get(route('admin.terms.index'))->getContent();
+        $this->assertSame(1, substr_count($html, e(__('app.terms.close_blocked'))));
+        $this->assertStringContainsString('سعود فهد', $html);
+
+        $page = $this->actingAs($this->admin)->get(route('admin.terms.index'));
+        $page->assertSee('onsubmit="return confirm(', false);
+        $this->assertStringContainsString('return confirm('.Js::from(__('app.terms.close_confirm'))->toHtml().')', $page->getContent());
+
+        Application::query()->update(['status' => Application::STATUS_APPROVED]);
+        $this->actingAs($this->admin)->post(route('admin.terms.close', $this->term));
+        $html = $this->actingAs($this->admin)->get(route('admin.terms.index'))->getContent();
+        $this->assertSame(1, substr_count($html, e(__('app.terms.closed_with_drafts', ['n' => 0]))));
     }
 }

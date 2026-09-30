@@ -115,4 +115,29 @@ class FreshCopyTest extends TestCase
         $this->assertNotNull($row['renewal']);
         $this->assertTrue($wf->allRequiredAccepted($this->application->fresh()));
     }
+
+    public function test_renewal_error_is_shown_once_on_the_review_page(): void
+    {
+        $this->actingAs($this->admin)->from(route('admin.applications.show', $this->application))
+            ->post($this->url('salary_cert'), ['reason' => 'x']);
+        $html = $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))->getContent();
+
+        $this->assertSame(1, substr_count($html, e(__('app.review.fresh_copy_wrong_state'))));
+    }
+
+    public function test_notice_wording_is_neutral_for_a_fresh_copy_request(): void
+    {
+        $this->actingAs($this->admin)->post($this->url('degree'), ['reason' => 'الشهادة غير واضحة']);
+        $this->actingAs($this->admin)->post(route('admin.applications.notify_rejections', $this->application))
+            ->assertSessionHas('status', __('app.review.notified', ['count' => 1]));
+        $this->assertStringNotContainsString('مرفوض', __('app.review.notified', ['count' => 1]));
+
+        Mail::assertSent(DocumentsRejected::class, function (DocumentsRejected $m) {
+            $html = $m->render();
+
+            return str_contains($html, 'تحتاج إلى تصحيح أو تحديث') && ! str_contains($html, 'مرفوض');
+        });
+        $this->actingAs($this->instructor->user)->get(route('instructor.applications.show', $this->application))
+            ->assertOk()->assertSee(__('app.applications.fix_rejected'))->assertDontSee('مرفوضة');
+    }
 }
