@@ -11,6 +11,7 @@ use App\Services\Attestations\AttestationService;
 use App\Services\Attestations\PdfConverter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -111,16 +112,16 @@ class AttestationController extends Controller
 
             return response()->download($docx, "$name.docx", ['Content-Type' => self::DOCX_MIME])->deleteFileAfterSend(true);
         }
-        try {
-            $file = $pdf->convert($docx);
-        } catch (\RuntimeException $e) {
-            report($e);
-            @unlink($docx);
-
+        if (($file = $this->toPdfOrNull($pdf, $docx)) === null) {
             return back()->withErrors(['export' => __('app.attestations.pdf_unavailable')]);
         }
-        @unlink($docx);
-        $this->service->markExported($attestation, $request->user(), 'pdf');
+        try {
+            $this->service->markExported($attestation, $request->user(), 'pdf');
+        } catch (\Throwable $e) {
+            @unlink($file);
+
+            throw $e;
+        }
 
         return response()->download($file, "$name.pdf", ['Content-Type' => 'application/pdf'])->deleteFileAfterSend(true);
     }
@@ -138,19 +139,37 @@ class AttestationController extends Controller
             return back()->withErrors(['export' => __('app.attestations.none_for_month')]);
         }
         $docx = $doc->combinedDocx($attestations);
+        if (($file = $this->toPdfOrNull($pdf, $docx)) === null) {
+            return back()->withErrors(['export' => __('app.attestations.pdf_unavailable')]);
+        }
+        try {
+            DB::transaction(function () use ($attestations, $request): void {
+                foreach ($attestations as $a) {
+                    $this->service->markExported($a, $request->user(), 'combined_pdf');
+                }
+            });
+        } catch (\Throwable $e) {
+            @unlink($file);
+
+            throw $e;
+        }
+
+        return response()->download($file, "kh3-{$term->id}-{$month['year']}-{$month['month']}.pdf", ['Content-Type' => 'application/pdf'])->deleteFileAfterSend(true);
+    }
+
+    /** Converts $docx to PDF, always removing the source .docx; returns null (and reports the failure) on any conversion error. */
+    private function toPdfOrNull(PdfConverter $pdf, string $docx): ?string
+    {
         try {
             $file = $pdf->convert($docx);
         } catch (\RuntimeException $e) {
             report($e);
             @unlink($docx);
 
-            return back()->withErrors(['export' => __('app.attestations.pdf_unavailable')]);
+            return null;
         }
         @unlink($docx);
-        foreach ($attestations as $a) {
-            $this->service->markExported($a, $request->user(), 'combined_pdf');
-        }
 
-        return response()->download($file, "kh3-{$term->id}-{$month['year']}-{$month['month']}.pdf", ['Content-Type' => 'application/pdf'])->deleteFileAfterSend(true);
+        return $file;
     }
 }

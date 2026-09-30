@@ -37,11 +37,8 @@ final class PdfConverter
         $profile = $dir.'/lo-profile-'.Str::random(12);
         File::ensureDirectoryExists($profile);
         try {
-            // Explicit env (not the constructor default) so vars set via putenv() at runtime — as
-            // tests do to force FAKE_SOFFICE_FAIL — reach the child; Symfony's default env only
-            // keeps getenv() keys that are also in $_SERVER, which putenv() never touches.
             $process = new Process([$this->binary, '--headless', '--norestore', '-env:UserInstallation=file://'.$profile,
-                '--convert-to', 'pdf', '--outdir', $dir, $docxPath], null, getenv() ?: null);
+                '--convert-to', 'pdf', '--outdir', $dir, $docxPath]);
             $process->setTimeout(90);
             $process->run();
             $pdf = substr($docxPath, 0, -5).'.pdf';
