@@ -68,7 +68,7 @@ class AttestationDocumentTest extends TestCase
         $this->assertStringContainsString(__('app.attestations.category', [], 'ar'), $xml);
         $this->assertStringContainsString(__('app.dept_name', [], 'ar'), $xml);
         $this->assertStringContainsString('( 1234 )', $xml);
-        $this->assertStringContainsString('20/5/2026', $xml);
+        $this->assertStringContainsString('20/05/2026', $xml);
         $this->assertStringContainsString('KW81CBKU0000000000001234560101', $xml);
         $this->assertStringContainsString('1200', $xml);
         $this->assertStringContainsString('الشهر الأول/ يونيو', $xml);
@@ -107,6 +107,19 @@ class AttestationDocumentTest extends TestCase
         $this->assertSame('4', $this->cellTexts($row)[4]);    // theory 240 min
         $this->assertSame('', $this->cellTexts($row)[6]);     // field 0 min prints blank
         $this->assertStringContainsString('<w:t xml:space="preserve"></w:t>', $this->cellsXml($row)[6]);
+    }
+
+    public function test_free_text_cannot_expand_placeholders(): void
+    {
+        $a = $this->attestation();
+        $a->weeks[0]->update(['note_ar' => 'ملاحظة ${cid1#1} ${sum_students#1}', 'courses_text' => 'مقرر ${full_name#1}']);
+
+        $xml = $this->documentXml(app(AttestationDocument::class)->docx($a->fresh()->load('weeks', 'application.instructor', 'application.term')));
+
+        $row = $this->rowXml($xml, '7-11');
+        $this->assertSame('ملاحظة cid1#1} sum_students#1}', $this->cellTexts($row)[8]);
+        $this->assertSame('مقرر full_name#1}', $this->cellTexts($row)[2]);
+        $this->assertStringNotContainsString('${', $xml);
     }
 
     public function test_attestation_without_weeks_prints_one_blank_week_row(): void

@@ -33,6 +33,23 @@ class AttestationUpdateRequest extends FormRequest
         return ['weeks.*.theory_hours.regex' => $msg, 'weeks.*.practical_hours.regex' => $msg, 'weeks.*.field_hours.regex' => $msg];
     }
 
+    /** Browsers post textarea line breaks as CRLF; the generator stores LF, so normalise before comparing (else every multi-line cell looks edited). */
+    protected function prepareForValidation(): void
+    {
+        $weeks = $this->input('weeks');
+        if (! is_array($weeks)) {
+            return;
+        }
+        foreach ($weeks as $id => $w) {
+            foreach (['courses_text', 'note_ar'] as $field) {
+                if (is_array($w) && is_string($w[$field] ?? null)) {
+                    $weeks[$id][$field] = str_replace(["\r\n", "\r"], "\n", $w[$field]);
+                }
+            }
+        }
+        $this->merge(['weeks' => $weeks]);
+    }
+
     /** @return array<int, array<string, mixed>> week id => editable columns, hours converted to minutes */
     public function weeks(): array
     {

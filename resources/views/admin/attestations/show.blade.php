@@ -25,6 +25,8 @@
         <div class="col-md-4"><strong>{{ __('app.terms.type') }}:</strong> {{ $term->label() }}</div>
         <div class="col-md-4"><strong>{{ __('app.attestations.decision_number') }}:</strong> {{ $app->assignment_decision_number ?: '—' }}</div>
         <div class="col-md-4"><strong>{{ __('app.attestations.decision_date') }}:</strong> {{ $app->assignment_decision_date?->format('Y/m/d') ?: '—' }}</div>
+        <div class="col-md-4" dir="ltr"><strong>{{ __('app.profile.civil_id') }}:</strong> {{ $i->maskedCivilId() }}</div>
+        <div class="col-md-4" dir="ltr"><strong>{{ __('app.profile.iban') }}:</strong> {{ $i->maskedIban() }}</div>
         <div class="col-md-4"><strong>{{ __('app.profile.job_title') }}:</strong> {{ $i->job_title }}</div>
         <div class="col-md-4"><strong>{{ __('app.profile.employer') }}:</strong> {{ $i->employer }}</div>
         <div class="col-md-4"><strong>{{ __('app.attestations.weekly_hours') }}:</strong> {{ $app->weeklyHoursLabel() }}</div>

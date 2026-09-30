@@ -11,6 +11,7 @@ use App\Models\TermHoliday;
 use App\Models\User;
 use App\Services\Attestations\AttestationGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
 use Tests\TestCase;
 
 class AttestationGeneratorTest extends TestCase
@@ -110,6 +111,51 @@ class AttestationGeneratorTest extends TestCase
         $this->assertSame('20-24', $a->weeks[1]->datesLabel());
         $this->assertSame(150, $a->weeks[1]->theory_minutes);
         $this->assertSame(100, $a->weeks[1]->practical_minutes);
+    }
+
+    public function test_term_starting_on_a_friday_has_no_empty_first_row(): void
+    {
+        $term = Term::factory()->open()->create(['teaching_starts_on' => '2026-09-18', 'teaching_ends_on' => '2026-12-24']); // a Friday
+        $app = Application::factory()->approved()->for($term)->create();
+        Assignment::factory()->for($app)->for(Section::factory()->for($term)->withMeetings()->create())->create();
+
+        $a = $this->generator()->generate($app, 2026, 9);
+
+        $this->assertSame([[1, '20-24'], [2, '27-30']], $a->weeks->map(fn ($w) => [$w->week_number, $w->datesLabel()])->all());
+    }
+
+    public function test_unknown_meeting_type_counts_as_theory_and_is_reported_once(): void
+    {
+        Exceptions::fake();
+        $this->section->meetings()->create(['day_of_week' => 0, 'type' => 'lab', 'starts_at' => '13:00', 'ends_at' => '14:00', 'minutes' => 60, 'activity_ar' => 'مختبر']);
+
+        $a = $this->generator()->generate($this->application, 2026, 6);
+
+        $this->assertSame(300, $a->weeks[0]->theory_minutes);      // 240 theory + 60 "lab"
+        $this->assertSame(360, $a->weeks[0]->practical_minutes);
+        Exceptions::assertReportedCount(1);
+    }
+
+    public function test_last_teaching_day_on_a_friday_is_noted_in_the_last_block(): void
+    {
+        $this->term->update(['teaching_ends_on' => '2026-07-24']); // a Friday
+
+        $a = $this->generator()->generate($this->application->fresh(), 2026, 7);
+
+        $this->assertSame('19-23', $a->weeks->last()->datesLabel());
+        $this->assertSame("أسبوع كامل\nآخر يوم دراسي 24 يوليو 2026", $a->weeks->last()->note_ar);
+        $this->assertSame(1, $a->weeks->filter(fn ($w) => str_contains($w->note_ar, 'آخر يوم دراسي'))->count());
+    }
+
+    public function test_last_teaching_day_early_in_a_month_is_not_noted_in_the_previous_month(): void
+    {
+        $this->term->update(['teaching_ends_on' => '2026-07-01']); // a Wednesday; its block starts Sunday 28 June
+
+        $june = $this->generator()->generate($this->application->fresh(), 2026, 6);
+        $july = $this->generator()->generate($this->application->fresh(), 2026, 7);
+
+        $this->assertStringNotContainsString('آخر يوم دراسي', $june->weeks->last()->note_ar);
+        $this->assertStringContainsString('آخر يوم دراسي 1 يوليو 2026', $july->weeks->last()->note_ar);
     }
 
     public function test_whole_holiday_week_is_a_zero_row_with_holiday_note(): void

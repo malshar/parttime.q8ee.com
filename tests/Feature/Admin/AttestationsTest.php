@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Application;
 use App\Models\Assignment;
 use App\Models\Attestation;
+use App\Models\AuditLog;
 use App\Models\Instructor;
 use App\Models\Section;
 use App\Models\Term;
@@ -144,6 +145,55 @@ class AttestationsTest extends TestCase
         $this->assertSame(150, $w->generated_theory_minutes);
         $this->assertTrue($w->isEdited());
         $this->assertDatabaseHas('audit_log', ['action' => 'update_attestation', 'subject_id' => $a->id, 'details' => 'practical_minutes,student_count,theory_minutes']);
+    }
+
+    /** @return array<int, array<string, string|int>> the form payload for every week, as the show page would post it */
+    private function unchangedPayload(Attestation $a, string $eol = "\n"): array
+    {
+        return $a->weeks->mapWithKeys(fn ($w) => [$w->id => [
+            'courses_text' => str_replace("\n", $eol, $w->courses_text), 'student_count' => $w->student_count,
+            'theory_hours' => Section::hoursForForm($w->theory_minutes), 'practical_hours' => Section::hoursForForm($w->practical_minutes),
+            'field_hours' => Section::hoursForForm($w->field_minutes), 'note_ar' => str_replace("\n", $eol, $w->note_ar),
+        ]])->all();
+    }
+
+    public function test_crlf_from_textareas_is_not_an_edit(): void
+    {
+        Assignment::factory()->for($this->assigned)->for(Section::factory()->for($this->term)->withMeetings()->create(['course_name_ar' => 'الرسم الهندسي']))->create();
+        $a = $this->generated();
+        $this->assertStringContainsString("\n", $a->weeks[0]->courses_text);
+
+        $this->actingAs($this->admin)->put(route('admin.attestations.update', $a), ['weeks' => $this->unchangedPayload($a, "\r\n")])
+            ->assertRedirect(route('admin.attestations.show', $a));
+
+        $this->assertSame(0, AuditLog::where('action', 'update_attestation')->where('details', '!=', '')->count());
+        foreach ($a->fresh()->weeks as $w) {
+            $this->assertFalse($w->isEdited(), "week {$w->week_number}");
+        }
+        $this->actingAs($this->admin)->get(route('admin.attestations.show', $a))->assertOk()->assertDontSee('المولد:');
+    }
+
+    public function test_save_without_changes_writes_no_audit_row(): void
+    {
+        $a = $this->generated();
+
+        $this->actingAs($this->admin)->put(route('admin.attestations.update', $a), ['weeks' => $this->unchangedPayload($a)])
+            ->assertRedirect(route('admin.attestations.show', $a))->assertSessionHas('status', __('app.attestations.saved'));
+
+        $this->assertDatabaseMissing('audit_log', ['action' => 'update_attestation']);
+    }
+
+    public function test_show_header_has_masked_civil_id_and_iban_only(): void
+    {
+        $a = $this->generated();
+        $i = $this->assigned->instructor;
+
+        $r = $this->actingAs($this->admin)->get(route('admin.attestations.show', $a))->assertOk();
+
+        $r->assertSee($i->maskedCivilId());
+        $r->assertSee($i->maskedIban());
+        $r->assertDontSee($i->civil_id);
+        $r->assertDontSee($i->iban);
     }
 
     public function test_save_rejects_comma_decimals_and_negative_counts(): void

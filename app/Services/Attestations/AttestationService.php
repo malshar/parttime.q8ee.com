@@ -111,7 +111,9 @@ final class AttestationService
         }
         $changed = array_values(array_unique($changed));
         sort($changed);
-        AuditLog::record($by->id, 'update_attestation', $attestation, null, implode(',', $changed));
+        if ($changed !== []) {
+            AuditLog::record($by->id, 'update_attestation', $attestation, null, implode(',', $changed));
+        }
 
         return $changed;
     }

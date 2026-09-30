@@ -69,6 +69,7 @@ final class AttestationGenerator
 
         $rows = [];
         $n = 0;
+        $unknownReported = false;
         for ($sunday = $from->copy()->subDays($from->dayOfWeek); $sunday->lte($to); $sunday->addWeek()) {
             $days = [];
             $working = [];
@@ -95,7 +96,15 @@ final class AttestationGenerator
             foreach ($weekSections as $s) {
                 foreach ($s->meetings as $m) {
                     if (in_array((int) $m->day_of_week, $weekdays, true)) {
-                        $minutes[$m->type] += (int) $m->minutes;
+                        $type = $m->type;
+                        if (! isset($minutes[$type])) {   // unexpected import value: count it as theory, never 500
+                            if (! $unknownReported) {
+                                report(new \UnexpectedValueException("Unknown meeting type [{$type}] on section {$s->id}; counted as theory."));
+                                $unknownReported = true;
+                            }
+                            $type = 'theory';
+                        }
+                        $minutes[$type] += (int) $m->minutes;
                     }
                 }
             }
@@ -109,15 +118,23 @@ final class AttestationGenerator
                 'theory_minutes' => $minutes['theory'],
                 'practical_minutes' => $minutes['practical'],
                 'field_minutes' => $minutes['field'],
-                'note_ar' => $this->note($working, $weekHolidays, $days, $term),
+                'note_ar' => $this->note($working, $weekHolidays, $this->holdsLastTeachingDay($term, $sunday, $monthStart, $monthEnd), $term),
             ];
         }
 
         return $rows;
     }
 
-    /** @param  list<Carbon>  $working  @param  list<\App\Models\TermHoliday>  $holidays  @param  list<Carbon>  $days */
-    private function note(array $working, array $holidays, array $days, Term $term): string
+    /** The block's whole Sunday..Saturday range, so a Friday or Saturday last day is still noted; only in its own month. */
+    private function holdsLastTeachingDay(Term $term, Carbon $sunday, Carbon $monthStart, Carbon $monthEnd): bool
+    {
+        $end = $term->teaching_ends_on->copy()->startOfDay();
+
+        return $end->between($sunday, $sunday->copy()->addDays(6)) && $end->between($monthStart, $monthEnd);
+    }
+
+    /** @param  list<Carbon>  $working  @param  list<\App\Models\TermHoliday>  $holidays */
+    private function note(array $working, array $holidays, bool $lastTeachingDay, Term $term): string
     {
         $lines = [];
         if (count($working) === 5) {
@@ -128,10 +145,8 @@ final class AttestationGenerator
         foreach ($holidays as $h) {
             $lines[] = 'يوم '.ArabicDate::dayName($h->date).' '.ArabicDate::long($h->date).' '.$h->name;
         }
-        foreach ($days as $d) {
-            if ($d->isSameDay($term->teaching_ends_on)) {
-                $lines[] = 'آخر يوم دراسي '.ArabicDate::long($term->teaching_ends_on);
-            }
+        if ($lastTeachingDay) {
+            $lines[] = 'آخر يوم دراسي '.ArabicDate::long($term->teaching_ends_on);
         }
 
         return implode("\n", $lines);

@@ -78,7 +78,7 @@ final class AttestationDocument
             'category' => __('app.attestations.category', [], 'ar'),
             'dept_name' => __('app.dept_name', [], 'ar'),
             'decision_number' => (string) ($app->assignment_decision_number ?? ''),
-            'decision_date' => $app->assignment_decision_date?->format('j/n/Y') ?? '',
+            'decision_date' => $app->assignment_decision_date?->format('d/m/Y') ?? '',
             'full_name' => (string) $i->full_name,
             'job_title' => (string) $i->job_title,
             'employer' => (string) $i->employer,
@@ -112,13 +112,13 @@ final class AttestationDocument
         return $this->suffixed([
             'week_no' => (string) $w->week_number,
             'week_dates' => $w->datesLabel(),
-            'week_courses' => (string) $w->courses_text,
+            'week_courses' => $this->plain((string) $w->courses_text),
             'week_students' => $w->student_count > 0 ? (string) $w->student_count : '',
             'week_theory' => $hours((int) $w->theory_minutes),
             'week_practical' => $hours((int) $w->practical_minutes),
             'week_field' => $hours((int) $w->field_minutes),
             'week_total' => $hours($w->totalMinutes()),
-            'week_note' => (string) $w->note_ar,
+            'week_note' => $this->plain((string) $w->note_ar),
         ], $suffix);
     }
 
@@ -134,6 +134,12 @@ final class AttestationDocument
             'sum_field' => Section::hoursForForm($t['field_minutes']),
             'sum_total' => Section::hoursForForm($t['total_minutes']),
         ], $suffix);
+    }
+
+    /** Admin-edited free text must never expand a later ${placeholder}: drop every "${". */
+    private function plain(string $text): string
+    {
+        return str_replace('${', '', $text);
     }
 
     /** @param  array<string, string>  $values  @return array<string, string> */
