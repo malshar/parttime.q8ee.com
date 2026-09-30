@@ -4,10 +4,11 @@ Target: the same Ubuntu + Apache server that hosts help.q8ee.com
 (SSH: `root@alsharidah.shop`). Routine updates afterwards use
 `./deploy/deploy.sh`.
 
-**Status:** milestone 1 (intake) and milestone 2 (committee workflow,
-sections import, assignments) are merged on `main` and pushed
-(`php artisan test` green, 147 tests). Nothing below has been run against
-the real server yet — this is the checklist for the first deploy.
+**Status:** first deploy done on 2026-09-30 (milestones 1 and 2):
+https://parttime.q8ee.com is live, certbot certificate, mail through the
+server's mailcow as `mail.q8ee.com`, admin `mishal@q8ee.com`. What remains
+optional is listed under "After the first deploy" at the end. This file
+stays as the reference for a rebuild.
 
 ## Fast path (2026-09-29)
 
@@ -180,34 +181,26 @@ help.q8ee.com.
 Once the vhost is live and `.env` is in place, `./deploy/deploy.sh` (no
 `--dry`) works end-to-end, including its own health check.
 
-## 9a. Restrict the origin to Cloudflare
+## 9a. Only trust Cloudflare as a proxy
 
-`bootstrap/app.php` trusts every proxy (`trustProxies(at: '*')`), which is
-needed behind Cloudflare. But if the origin answers on 80/443 for anyone who
-knows its IP, a client can connect directly, send its own `X-Forwarded-For`,
-and so defeat the per-IP rate limits (registration, login) and forge the IP
-recorded in `audit_log`. Only Cloudflare may reach the web ports: allow
-Cloudflare's published ranges and deny everything else (SSH stays open).
-If help.q8ee.com's origin already has these rules (same server), just confirm
-with `ufw status` that they are present and skip the commands.
-If ufw is currently inactive, enabling it denies all other incoming ports
-by default: check `ss -tlnp` first and `ufw allow` anything else this shared
-server must keep serving before running `ufw enable`.
+`bootstrap/app.php` reads `TRUSTED_PROXIES` from `.env`. With `*` any client
+that reaches the origin IP directly could send its own `X-Forwarded-For`
+and defeat the per-IP rate limits (registration, login) or forge the IP in
+`audit_log`. Production therefore lists Cloudflare's published ranges:
 
 ```bash
-ssh root@alsharidah.shop
-ufw allow OpenSSH
-for ip in $(curl -s https://www.cloudflare.com/ips-v4) $(curl -s https://www.cloudflare.com/ips-v6); do
-  ufw allow proto tcp from "$ip" to any port 80,443 comment 'cloudflare'
-done
-ufw deny 80/tcp
-ufw deny 443/tcp
-ufw enable
-ufw status numbered        # the Cloudflare allow rules must be listed before the deny rules
+./deploy/cloudflare-trusted-proxies.sh     # fetches the ranges, writes .env, config:cache
 ```
 
-Cloudflare changes these ranges rarely; re-run the loop when
-https://www.cloudflare.com/ips/ announces a change.
+Re-run it when https://www.cloudflare.com/ips/ announces a change. A direct
+hit on the origin is still served, but seen with its real source IP.
+
+The earlier idea of a ufw rule set allowing 80/443 from Cloudflare only was
+dropped on 2026-09-30: this server is shared (help.q8ee.com, the 1xx sites,
+mailcow's web UI at mail.alsharidah.me which must stay reachable directly for
+ACME), so a server-wide firewall change is out of scope for this app.
+Observation from the same review, for the server owner: ufw currently allows
+3306/3307 (MySQL), 8000, 8080, 9090, 9443, 2368 and Samba from anywhere.
 
 ## 10. Verify
 
@@ -249,10 +242,12 @@ job that dumps the database and rsyncs applicant files to the same backup
 host/location help.q8ee.com uses, with the same retention.
 
 ```bash
-# /etc/cron.d/parttime-q8ee-backup (adapt from /etc/cron.d/help-q8ee-backup)
-# nightly: mysqldump parttime + .env (APP_KEY) + storage/app/private
-#          -> /srv/backups/parttime.q8ee.com, 14-day retention
+./deploy/install-backup.sh   # installs deploy/parttime-q8ee-backup.sh + /etc/cron.d/parttime-q8ee-backup, runs one backup
 ```
+
+Nightly at 02:45: mysqldump `parttime` + `.env` (APP_KEY) +
+`storage/app/private` → `/srv/backups/parttime.q8ee.com`, 14-day retention,
+same shape as help.q8ee.com's job.
 
 `storage/app/private` holds uploaded applicant documents (civil IDs, degree
 certificates, etc.) and generated Check List files — back it up like
@@ -279,3 +274,14 @@ Export the term's timetable from jadawil (CSV or XLSX) and import it at
 assigned sections are never deleted automatically. Read the preview's
 warnings and errors before confirming, and always re-import a term using the
 same format (CSV or XLSX) you used first.
+
+## After the first deploy (2026-09-30)
+
+Done by `first-deploy.sh` and by hand: DB, `.env`, key, migrations, seed,
+admin, vhost + certbot, Turnstile keys, mailbox password, code readable by
+www-data. Mail: `deploy/mail-hostname.sh` gave mailcow a valid certificate
+for `mail.q8ee.com` (and fixed its expired one). Still to run once:
+`./deploy/cloudflare-trusted-proxies.sh` (9a) and `./deploy/install-backup.sh`
+(12). Then step 10's manual checks in the browser, and the admin changes the
+initial password (`/root/parttime-admin-initial.txt`) via "forgot password"
+and deletes that file. Routine deploys: `./deploy/deploy.sh`.

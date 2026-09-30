@@ -1,11 +1,11 @@
 # PROGRESS — parttime.q8ee.com
 
-## Status (2026-09-29)
-Milestone 2 (committee workflow, sections import, assignments) implemented
-on branch `milestone-2-assignment`; `php artisan test` green (147 tests);
-final whole-branch review + fix wave done — see
-`docs/superpowers/reviews/2026-09-29-milestone-2-final-review.md`
-(deferred minors + rulings, start there for milestone 3). Deploy pending. Milestone 1
+## Status (2026-09-30)
+**Live at https://parttime.q8ee.com** since 2026-09-30 (first deploy of
+milestones 1 + 2, merged on `main`). `php artisan test` green (149 tests).
+Milestone 2 review record: `docs/superpowers/reviews/2026-09-29-milestone-2-final-review.md`
+(deferred minors + rulings, start there for milestone 3). Deploy runbook and
+scripts: `deploy/` (`DEPLOY.md`, "After the first deploy"). Milestone 1
 (intake) shipped first on branch `milestone-1-intake`
 (`php artisan test` green, 89 tests; final whole-branch review + fix wave done — see
 `docs/superpowers/reviews/2026-09-28-milestone-1-final-review.md`). See
@@ -18,10 +18,9 @@ Real applicant documents are accumulating in `../part-time/` (10 applicants
 as of 2026-09-27; sensitive — see root `../CLAUDE.md`).
 
 ## Next
-1. Review + merge `milestone-2-assignment` to main.
-2. First deploy per `deploy/DEPLOY.md` (server prerequisites, DB, .env,
-   Turnstile keys, vhost).
-3. Brainstorm milestone 3 (monthly (خ-3) attestation).
+1. Post-deploy: trusted proxies + backups scripts, browser checks (DEPLOY.md
+   step 10), admin password change, import the term's jadawil export.
+2. Brainstorm milestone 3 (monthly (خ-3) attestation).
 
 ## Decided (2026-09-28 brainstorm)
 Approach A: one Laravel 12 app, three milestones (intake → assignment →
@@ -64,3 +63,8 @@ Sections imported per term from Excel. Full details in the spec.
   `docs/superpowers/specs/2026-09-29-milestone-2-assignment-design.md`;
   review: `docs/superpowers/reviews/2026-09-29-milestone-2-final-review.md`.
   Deploy pending.
+- 2026-09-30 — first production deploy: DB, `.env`, migrations, admin,
+  Apache vhost + certbot, Turnstile, mail via the server's mailcow as
+  `mail.q8ee.com` (mailcow's certificate had been expired since 2024-10;
+  fixed with `SKIP_IP_CHECK` + `ADDITIONAL_SAN`, DNS-only records), q8ee.com
+  SPF/DKIM/DMARC published. Test mail delivered. Scripts under `deploy/`.

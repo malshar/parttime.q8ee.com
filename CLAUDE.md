@@ -1,9 +1,8 @@
 # CLAUDE.md — parttime.q8ee.com (المنتدبون / Part-timers & Interns Management)
 
-> **Status (2026-09-29): Milestone 2 (committee workflow, sections import,
-> assignments) implemented on branch `milestone-2-assignment`, deploy
-> pending; final review + fix wave done.** Laravel 12 app (`php artisan test`
-> green, 147 tests). Milestone 1 (intake)
+> **Status (2026-09-30): live at https://parttime.q8ee.com — milestones 1
+> and 2 merged on `main` and deployed (first deploy 2026-09-30).** Laravel 12
+> app (`php artisan test` green, 149 tests). Milestone 1 (intake)
 > shipped first; milestone 2 adds: the `complete` application status with a
 > three-group attention list, a committee decision step (replacing direct
 > approve/reject) with a consolidated rejection notice, reopening of
@@ -17,8 +16,8 @@
 > and `docs/superpowers/specs/2026-09-29-milestone-2-assignment-design.md`
 > (milestone 2); final reviews with rulings and deferred minors are in
 > `docs/superpowers/reviews/`. Deploy scripts/docs are in `deploy/` (`deploy/DEPLOY.md` for
-> first-time server setup, `./deploy/deploy.sh` for routine deploys) — the
-> first real deploy to parttime.q8ee.com has not been run yet.
+> the server setup as done on 2026-09-30, `./deploy/deploy.sh` for routine
+> deploys; mail goes through the server's mailcow as `mail.q8ee.com`).
 >
 > Application status pipeline: `draft` → `submitted` → `under_review` →
 > (`incomplete` ⇄ `under_review`) → `complete` → committee decision →
@@ -106,7 +105,7 @@ Pick per scope. Arabic-first, RTL, complete translation coverage from day one.
 
 ## Next step
 
-Milestones 1 and 2 are built — see the status header above. Next: review and
-merge `milestone-2-assignment` to main, then Dr. Mishal runs the first
-deploy per `deploy/DEPLOY.md`; after that, brainstorm/plan milestone 3
-(monthly (خ-3) attestation).
+Milestones 1 and 2 are live — see the status header above. Next: finish the
+post-deploy items in `deploy/DEPLOY.md` ("After the first deploy"), import
+the term's jadawil export, then brainstorm/plan milestone 3 (monthly (خ-3)
+attestation).

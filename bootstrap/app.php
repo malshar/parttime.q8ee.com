@@ -15,7 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias(['role' => \App\Http\Middleware\EnsureRole::class]);
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn ($request) => $request->user()->isAdmin() ? route('admin.dashboard') : route('instructor.home'));
-        $middleware->trustProxies(at: '*');
+        // Behind Cloudflare. '*' trusts any proxy (a direct hit on the origin could then
+        // forge X-Forwarded-For); production sets TRUSTED_PROXIES to Cloudflare's ranges
+        // (deploy/cloudflare-trusted-proxies.sh) so only the edge can set the client IP.
+        $proxies = (string) env('TRUSTED_PROXIES', '*');
+        $middleware->trustProxies(at: $proxies === '*' ? '*' : array_values(array_filter(array_map('trim', explode(',', $proxies)))));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontFlash(['civil_id', 'iban', 'basic_salary', 'total_salary']);
