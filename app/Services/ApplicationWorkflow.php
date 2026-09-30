@@ -183,13 +183,22 @@ class ApplicationWorkflow
         }
     }
 
-    /** @return array<int, array{item: ChecklistItem, document: ?Document, state: string, source: ?Document, renewal: ?ChecklistRenewal}> */
+    /** Rows the applicant has not been told about yet: rejected documents and fresh-copy requests. */
     public function pendingRejectionNotices(Application $application): array
     {
-        return array_values(array_filter(
-            $this->checklist($application),
-            fn ($row) => $row['state'] === 'rejected' && $row['document']?->notified_at === null,
-        ));
+        return array_values(array_filter($this->checklist($application), fn ($row) => $this->needsNotice($row) && $this->noticeSent($row) === false));
+    }
+
+    private function needsNotice(array $row): bool
+    {
+        return $row['state'] === Document::STATUS_REJECTED || ($row['renewal'] !== null && $row['document'] === null);
+    }
+
+    private function noticeSent(array $row): bool
+    {
+        return $row['state'] === Document::STATUS_REJECTED
+            ? $row['document']->notified_at !== null
+            : $row['renewal']->notified_at !== null;
     }
 
     public function notifyRejections(Application $application, User $admin): int
@@ -200,14 +209,38 @@ class ApplicationWorkflow
         if ($this->pendingRejectionNotices($application) === []) {
             throw new \DomainException(__('app.review.nothing_to_notify'));
         }
-        $rejected = array_values(array_filter($this->checklist($application), fn ($row) => $row['state'] === 'rejected'));
-        foreach ($rejected as $row) {
-            $row['document']->update(['notified_at' => now()]);
+        $rows = array_values(array_filter($this->checklist($application), fn ($row) => $this->needsNotice($row)));
+        foreach ($rows as $row) {
+            ($row['state'] === Document::STATUS_REJECTED ? $row['document'] : $row['renewal'])->update(['notified_at' => now()]);
         }
         AuditLog::record($admin->id, 'notify_rejections', $application);
-        $this->safeSend($application->instructor->user->email, new DocumentsRejected($application, $rejected));
+        $this->safeSend($application->instructor->user->email, new DocumentsRejected($application, $rows));
 
-        return count($rejected);
+        return count($rows);
+    }
+
+    /** Spec §4.4: an admin demands a fresh copy of an on-file item. */
+    public function requestFreshCopy(Application $application, ChecklistItem $item, User $admin, string $reason): void
+    {
+        if (! $application->term->isOpen()) {
+            throw new \DomainException(__('app.applications.term_closed'));
+        }
+        if (! in_array($application->status, Application::UNFINISHED_STATUSES, true)) {
+            throw new \DomainException(__('app.review.fresh_copy_wrong_status'));
+        }
+        $row = $this->checklist($application)[$item->code] ?? null;
+        if (($row['state'] ?? null) !== self::STATE_ON_FILE) {
+            throw new \DomainException(__('app.review.fresh_copy_wrong_state'));
+        }
+
+        DB::transaction(function () use ($application, $item, $admin, $reason) {
+            ChecklistRenewal::updateOrCreate(
+                ['application_id' => $application->id, 'checklist_item_id' => $item->id],
+                ['reason' => $reason, 'requested_by' => $admin->id, 'requested_at' => now(), 'notified_at' => null],
+            );
+            $application->update(['status' => Application::STATUS_INCOMPLETE, 'complete_at' => null, 'reviewed_at' => $application->reviewed_at ?? now()]);
+            AuditLog::record($admin->id, 'request_fresh_copy', $application, null, $item->code);
+        });
     }
 
     public function markComplete(Application $application, User $admin): void

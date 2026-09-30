@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CommitteeDecisionRequest;
 use App\Models\Application;
 use App\Models\AuditLog;
+use App\Models\ChecklistItem;
 use App\Models\Term;
 use App\Services\ApplicationWorkflow;
 use App\Services\ChecklistDocument;
@@ -83,6 +84,19 @@ class ApplicationController extends Controller
         }
 
         return back()->with('status', __('app.review.notified', ['count' => $n]));
+    }
+
+    public function requestFreshCopy(Request $request, Application $application, ChecklistItem $item): RedirectResponse
+    {
+        $this->authorize('review', $application);
+        $data = $request->validate(['reason' => ['required', 'string', 'max:500']]);
+        try {
+            $this->workflow->requestFreshCopy($application, $item, $request->user(), $data['reason']);
+        } catch (\DomainException $e) {
+            return back()->withErrors(['renewal' => $e->getMessage()]);
+        }
+
+        return back()->with('status', __('app.review.fresh_copy_requested'));
     }
 
     public function complete(Request $request, Application $application): RedirectResponse

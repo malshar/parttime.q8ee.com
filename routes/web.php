@@ -67,6 +67,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('applications/{application}/checklist', [AdminApplicationController::class, 'checklist'])->name('applications.checklist');
     Route::post('applications/{application}/reveal', [AdminApplicationController::class, 'reveal'])->name('applications.reveal');
     Route::post('applications/{application}/complete', [AdminApplicationController::class, 'complete'])->name('applications.complete');
+    Route::post('applications/{application}/renewals/{item:code}', [AdminApplicationController::class, 'requestFreshCopy'])->name('applications.renewals.store')->withoutScopedBindings();
     Route::post('applications/{application}/notify-rejections', [AdminApplicationController::class, 'notifyRejections'])->name('applications.notify_rejections');
     Route::post('applications/{application}/committee', [AdminApplicationController::class, 'committee'])->name('applications.committee');
     Route::post('applications/{application}/reopen', [AdminApplicationController::class, 'reopen'])->name('applications.reopen');

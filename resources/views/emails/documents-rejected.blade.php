@@ -5,8 +5,10 @@
         @foreach ($rows as $row)
             <li>
                 {{ $row['item']->label_ar }}
-                @if ($row['document']?->rejection_reason)
+                @if ($row['state'] === 'rejected' && $row['document']?->rejection_reason)
                     — {{ $row['document']->rejection_reason }}
+                @elseif ($row['renewal'])
+                    — {{ __('app.documents.renewal_requested', ['reason' => $row['renewal']->reason], 'ar') }}
                 @endif
             </li>
         @endforeach
