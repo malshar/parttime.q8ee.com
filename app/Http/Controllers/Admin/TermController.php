@@ -2,16 +2,21 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exceptions\TermCloseBlockedException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTermRequest;
 use App\Models\AuditLog;
 use App\Models\Term;
+use App\Services\ApplicationWorkflow;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class TermController extends Controller
 {
+    public function __construct(private ApplicationWorkflow $workflow) {}
+
     public function index(): View
     {
         return view('admin.terms.index', ['terms' => Term::withCount('applications')->orderByDesc('teaching_starts_on')->get()]);
@@ -55,14 +60,22 @@ class TermController extends Controller
         return redirect()->route('admin.terms.index')->with('status', __('app.common.saved'));
     }
 
-    public function close(Term $term): RedirectResponse
+    public function close(Request $request, Term $term): RedirectResponse
     {
         abort_unless($term->isOpen(), 403);
+        try {
+            $n = $this->workflow->closeTerm($term, $request->user());
+        } catch (TermCloseBlockedException $e) {
+            return redirect()->route('admin.terms.index')
+                ->withErrors(['close' => $e->getMessage()])
+                ->with('close_blockers', $e->applications->map(fn ($a) => [
+                    'name' => $a->instructor->full_name,
+                    'status' => __('app.applications.statuses.'.$a->status),
+                    'url' => route('admin.applications.show', $a),
+                ])->all());
+        }
 
-        $term->update(['status' => Term::STATUS_CLOSED]);
-        AuditLog::record(auth()->id(), 'close_term', $term);
-
-        return back()->with('status', __('app.terms.closed'));
+        return redirect()->route('admin.terms.index')->with('status', __('app.terms.closed_with_drafts', ['n' => $n]));
     }
 
     private function syncHolidays(Term $term, StoreTermRequest $request): void

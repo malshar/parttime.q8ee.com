@@ -60,9 +60,11 @@ return [
         'holidays' => 'Official holidays', 'holidays_help' => 'One line per holiday, formatted as: 2026-09-24|Holiday name',
         'holiday_line_invalid' => 'Line :line in the holidays is invalid.',
         'holiday_duplicate' => 'The date :date is duplicated in the holidays.',
-        'status' => 'Status', 'statuses' => ['open' => 'Open', 'closed' => 'Closed', 'archived' => 'Archived'],
+        'status' => 'Status', 'statuses' => ['open' => 'Open', 'closed' => 'Closed'],
         'one_open_only' => 'A term is already open, close it first.',
         'close' => 'Close term', 'closed' => 'The term has been closed.', 'applications' => 'Applications',
+        'close_blocked' => 'The term cannot be closed until these unfinished applications are resolved:',
+        'closed_with_drafts' => 'Term closed; :n unsubmitted draft(s) withdrawn.',
         'none_open' => 'No term is currently open for applications.',
     ],
     'profile' => [

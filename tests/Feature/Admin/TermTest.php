@@ -84,11 +84,11 @@ class TermTest extends TestCase
 
     public function test_close_only_allowed_on_open_term(): void
     {
-        $term = Term::factory()->create(['status' => Term::STATUS_ARCHIVED]);
+        $term = Term::factory()->create(['status' => Term::STATUS_CLOSED]);
 
         $this->actingAs($this->admin())->post(route('admin.terms.close', $term))->assertForbidden();
 
-        $this->assertSame('archived', $term->fresh()->status);
+        $this->assertSame('closed', $term->fresh()->status);
     }
 
     public function test_duplicate_holiday_dates_rejected(): void

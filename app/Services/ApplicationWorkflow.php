@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\TermCloseBlockedException;
 use App\Exceptions\TermClosedException;
 use App\Mail\ApplicationApproved;
 use App\Mail\ApplicationRejected;
@@ -16,6 +17,7 @@ use App\Models\Instructor;
 use App\Models\Term;
 use App\Models\User;
 use Illuminate\Mail\Mailable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -221,6 +223,30 @@ class ApplicationWorkflow
         $application->update(['status' => Application::STATUS_DRAFT, 'decided_at' => null]);
         AuditLog::record($admin->id, 'reopen_application', $application);
         $this->safeSend($application->instructor->user->email, new ApplicationReopened($application));
+    }
+
+    /**
+     * Spec §3.1: refuse while any application is unfinished; otherwise withdraw never-submitted
+     * drafts and close, in one transaction. Returns the number of drafts withdrawn.
+     */
+    public function closeTerm(Term $term, User $admin): int
+    {
+        if (! $term->isOpen()) {
+            throw new \DomainException(__('app.applications.term_closed'));
+        }
+        $blocking = $term->applications()->whereIn('status', Application::UNFINISHED_STATUSES)->with('instructor')->get();
+        if ($blocking->isNotEmpty()) {
+            throw new TermCloseBlockedException($blocking);
+        }
+
+        return DB::transaction(function () use ($term, $admin) {
+            $n = $term->applications()->where('status', Application::STATUS_DRAFT)
+                ->update(['status' => Application::STATUS_WITHDRAWN, 'decided_at' => now()]);
+            $term->update(['status' => Term::STATUS_CLOSED]);
+            AuditLog::record($admin->id, 'close_term', $term, null, 'drafts_withdrawn='.$n);
+
+            return $n;
+        });
     }
 
     private function notifyAdmin(Application $application): void

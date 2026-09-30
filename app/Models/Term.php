@@ -19,8 +19,6 @@ class Term extends Model
 
     public const STATUS_CLOSED = 'closed';
 
-    public const STATUS_ARCHIVED = 'archived';
-
     protected $fillable = ['academic_year', 'type', 'teaching_starts_on', 'teaching_ends_on', 'status'];
 
     protected function casts(): array
