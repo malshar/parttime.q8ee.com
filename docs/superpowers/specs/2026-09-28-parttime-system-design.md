@@ -117,7 +117,7 @@ Status transitions:
 - `label_ar`, `sort_order`
 - `provided_by` enum `applicant|department`
 - `condition` enum `always|foreign_degree|private_sector|bachelor_only`
-- `renews_each_term` boolean (salary_cert, employer_approval, undertaking = true;
+- `renews_each_term` boolean (salary_cert, employer_approval, undertaking, social_insurance = true (social_insurance since 2026-10-01: it attests current employment);
   civil_id re-required only if expired)
 
 Derivation rule — item is required for an application when:

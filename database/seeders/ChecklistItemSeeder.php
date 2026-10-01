@@ -16,7 +16,7 @@ class ChecklistItemSeeder extends Seeder
             ['civil_id', 'صورة البطاقة المدنية سارية المفعول', null, 'applicant', 'always', false],
             ['degree', 'صورة من المؤهل العلمي', null, 'applicant', 'always', false],
             ['equivalency', 'صورة من معادلة المؤهل العلمي', 'للمؤهلات الصادرة من خارج دولة الكويت', 'applicant', 'foreign_degree', false],
-            ['social_insurance', 'شهادة من المؤسسة العامة للتأمينات الاجتماعية', 'للعاملين في القطاع الخاص فقط', 'applicant', 'private_sector', false],
+            ['social_insurance', 'شهادة من المؤسسة العامة للتأمينات الاجتماعية', 'للعاملين في القطاع الخاص فقط', 'applicant', 'private_sector', true],
             ['experience', 'صورة من شهادة الخبرة', 'لحملة شهادة البكالوريوس، لا تقل عن 10 سنوات', 'applicant', 'bachelor_only', false],
             ['salary_cert', 'شهادة راتب حديثة', null, 'applicant', 'always', true],
             ['iban', 'كشف الآيبان IBAN معتمد من البنك', null, 'applicant', 'always', false],
