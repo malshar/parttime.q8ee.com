@@ -7,7 +7,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 
 class KuwaitCivilId implements ValidationRule
 {
-    /** PACI check-digit weights (powers of two mod 11): check = 11 - (sum mod 11). */
+    /** PACI check-digit weights (powers of two mod 11): check = (11 - (sum mod 11)) mod 11. */
     private const WEIGHTS = [2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
@@ -31,7 +31,7 @@ class KuwaitCivilId implements ValidationRule
         foreach (self::WEIGHTS as $i => $w) {
             $sum += (int) $id[$i] * $w;
         }
-        $check = 11 - ($sum % 11);
+        $check = (11 - ($sum % 11)) % 11;   // remainder 0 gives check digit 0; remainder 1 (digit 10) is never issued
 
         return $check < 10 && $check === (int) $id[11];
     }

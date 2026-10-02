@@ -16,7 +16,7 @@ class CivilIdRuleTest extends TestCase
         foreach (str_split($first11) as $i => $d) {
             $sum += (int) $d * $w[$i];
         }
-        $check = 11 - ($sum % 11);
+        $check = (11 - ($sum % 11)) % 11;
 
         return $first11.$check;
     }
@@ -40,6 +40,18 @@ class CivilIdRuleTest extends TestCase
     {
         $this->assertTrue($this->passes('290010112346'));
         $this->assertFalse($this->passes('290010112342'), 'the check digit of the old, wrong weights must be rejected');
+    }
+
+    /**
+     * A weighted sum divisible by 11 gives check digit 0 (11 mod 11), a valid, issued ID. A remainder
+     * of 1 would need check digit 10, which no digit satisfies, so no 12th digit may pass.
+     */
+    public function test_check_digit_zero_is_valid_and_remainder_one_never_is(): void
+    {
+        $this->assertTrue($this->passes('290010100070'));   // 2*2+9+0+0+1*7+0+1*10+0+0+0+7*2 = 44, 44 mod 11 = 0
+        foreach (range(0, 9) as $d) {
+            $this->assertFalse($this->passes('29001010002'.$d), "29001010002{$d} has remainder 1 and must fail");
+        }
     }
 
     public function test_rejects_wrong_length_or_letters(): void

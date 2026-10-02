@@ -19,7 +19,7 @@ class InstructorFactory extends Factory
             foreach (str_split($first11) as $i => $d) {
                 $sum += (int) $d * $w[$i];
             }
-            $check = 11 - ($sum % 11);
+            $check = (11 - ($sum % 11)) % 11;
             $serial = ($serial + 1) % 10000;
         } while ($check >= 10);
 
