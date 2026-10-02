@@ -20,7 +20,7 @@ class DocumentController extends Controller
     {
         $this->authorize('create', [Document::class, $application, $item]);
 
-        $this->store->store($application, $item, $request->file('file'));
+        $this->store->store($application, $item, $request->file('files'));
         $this->workflow->afterUpload($application); // Task 10 defines it; until then add a no-op method.
 
         return redirect()->route('instructor.applications.show', $application)->with('status', __('app.documents.uploaded'));

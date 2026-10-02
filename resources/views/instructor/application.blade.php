@@ -59,8 +59,7 @@
                     </td>
                     <td>
                         @if ($document)
-                            <a href="{{ route('instructor.documents.download', $document) }}">{{ $document->original_name }}</a>
-                            ({{ __('app.documents.version') }} {{ $document->version }})
+                            @include('_document_links', ['document' => $document, 'route' => 'instructor'])
                         @endif
                     </td>
                     <td>

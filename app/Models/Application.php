@@ -98,11 +98,16 @@ class Application extends Model
         return Section::hoursFromMinutes((int) $this->weekly_minutes);
     }
 
-    /** Latest version per checklist item, keyed by item code. */
+    /** Head (part 1) of the latest version per item, keyed by item code, with `parts` loaded. */
     public function latestDocuments(): Collection
     {
-        return $this->documents()->with('checklistItem')->orderByDesc('version')->get()
-            ->unique('checklist_item_id')->keyBy(fn (Document $d) => $d->checklistItem->code);
+        $all = $this->documents()->with('checklistItem')->orderByDesc('version')->orderBy('part')->get();
+        $heads = $all->where('part', 1)->unique('checklist_item_id');
+        foreach ($heads as $head) {
+            $head->setRelation('parts', $all->where('checklist_item_id', $head->checklist_item_id)->where('version', $head->version)->sortBy('part')->values());
+        }
+
+        return $heads->keyBy(fn (Document $d) => $d->checklistItem->code);
     }
 
     public function isEditable(): bool

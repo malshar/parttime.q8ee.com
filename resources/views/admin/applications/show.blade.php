@@ -125,12 +125,7 @@
                 <td>
                     @php($file = $document ?? $row['source'])
                     @if ($file)
-                        @if ($file->mime === 'application/pdf' || $file->isImage())
-                            <a href="{{ route('admin.documents.view', $file) }}" data-doc-url="{{ route('admin.documents.view', $file) }}" data-bs-toggle="modal" data-bs-target="#docModal">{{ __('app.review.view') }}</a>
-                            —
-                        @endif
-                        <a href="{{ route('admin.documents.download', $file) }}">{{ __('app.documents.download') }}</a>
-                        ({{ __('app.documents.version') }} {{ $file->version }})
+                        @include('_document_links', ['document' => $file, 'route' => 'admin'])
                     @endif
                 </td>
                 <td>
@@ -253,9 +248,10 @@
         </thead>
         <tbody>
         @foreach ($history as $document)
+            @php($partsCount = $document->parts()->count())
             <tr>
                 <td>{{ $document->checklistItem->label_ar }}</td>
-                <td>{{ $document->version }}</td>
+                <td>{{ $document->version }}@if ($partsCount > 1), {{ __('app.documents.parts_count', ['n' => $partsCount]) }}@endif</td>
                 <td>{{ format_date($document->created_at) }}</td>
                 <td><span class="badge bg-secondary">{{ __('app.documents.states.'.$document->status) }}</span></td>
                 <td>{{ $document->rejection_reason }}</td>

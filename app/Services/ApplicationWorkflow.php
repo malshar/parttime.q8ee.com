@@ -116,6 +116,7 @@ class ApplicationWorkflow
 
         $sources = Document::query()
             ->where('status', Document::STATUS_ACCEPTED)
+            ->where('part', 1)
             ->whereHas('application', fn ($q) => $q->where('instructor_id', $application->instructor_id)
                 ->whereKeyNot($application->id)
                 ->whereHas('term', fn ($t) => $t->where('teaching_starts_on', '<', $termStart)))
@@ -124,6 +125,10 @@ class ApplicationWorkflow
             ->get()
             ->unique('checklist_item_id')
             ->keyBy(fn (Document $d) => $d->checklistItem->code);
+
+        foreach ($sources as $source) {
+            $source->setRelation('parts', $source->parts()->get());
+        }
 
         // Rule 4b is skipped for final applications so their record does not flip after a later edit.
         if ($application->isFinal()) {
@@ -274,16 +279,24 @@ class ApplicationWorkflow
         if (! $document->application->term->isOpen()) {
             throw new \DomainException(__('app.applications.term_closed'));
         }
+        if ($document->part !== 1) {
+            $document = $document->parts()->first();
+        }
         if (! $document->application->latestDocuments()->get($document->checklistItem->code)?->is($document)) {
             throw new \DomainException(__('app.review.superseded_version'));
         }
 
-        $document->update([
+        Document::where([
+            'application_id' => $document->application_id,
+            'checklist_item_id' => $document->checklist_item_id,
+            'version' => $document->version,
+        ])->update([
             'status' => $status,
             'rejection_reason' => $status === Document::STATUS_REJECTED ? $reason : null,
             'reviewed_by' => $admin->id,
             'reviewed_at' => now(),
         ]);
+        $document->refresh();
         AuditLog::record($admin->id, 'review_document_'.$status, $document);
 
         $application = $document->application->fresh();
