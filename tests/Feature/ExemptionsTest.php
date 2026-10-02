@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\ApplicationSubmitted;
 use App\Mail\DocumentsRejected;
 use App\Models\Application;
 use App\Models\ChecklistExemption;
@@ -73,6 +74,18 @@ class ExemptionsTest extends TestCase
         $this->request('transcript_bachelor')->assertSessionHasErrors('exemption');
     }
 
+    public function test_refused_when_the_item_is_on_file(): void
+    {
+        $earlier = Application::factory()->for(Term::factory()->create([
+            'teaching_starts_on' => now()->subYear(), 'teaching_ends_on' => now()->subMonths(8),
+            'status' => 'closed', 'academic_year' => '2025-2026',
+        ]))->for($this->application->instructor)->create(['status' => Application::STATUS_APPROVED]);
+        Document::factory()->for($earlier)->forItem('transcript_bachelor')->accepted()->create();
+        $this->assertSame(ApplicationWorkflow::STATE_ON_FILE, app(ApplicationWorkflow::class)->checklist($this->application)['transcript_bachelor']['state']);
+
+        $this->request('transcript_bachelor')->assertSessionHasErrors('exemption');
+    }
+
     public function test_re_request_after_rejection_resets_the_row(): void
     {
         $e = ChecklistExemption::factory()->for($this->application)->forItem('transcript_bachelor')->rejected()->create(['decided_by' => $this->admin->id, 'notified_at' => now()]);
@@ -84,6 +97,23 @@ class ExemptionsTest extends TestCase
         $this->assertNull($e->decided_by);
         $this->assertNull($e->decision_note);
         $this->assertNull($e->notified_at);
+    }
+
+    public function test_re_request_while_incomplete_and_otherwise_ready_resubmits(): void
+    {
+        config(['mail.admin_notify' => 'admin@example.com']);
+        $e = ChecklistExemption::factory()->for($this->application)->forItem('transcript_bachelor')->rejected()->create(['decided_by' => $this->admin->id, 'notified_at' => now()]);
+        foreach (['civil_id', 'degree', 'transcript_master', 'salary_cert', 'iban', 'employer_approval', 'undertaking'] as $code) {
+            Document::factory()->for($this->application)->forItem($code)->accepted()->create();
+        }
+        $this->application->update(['status' => Application::STATUS_INCOMPLETE]);
+
+        $this->request('transcript_bachelor', ['reason' => 'سبب جديد'])->assertRedirect();
+
+        $fresh = $this->application->fresh();
+        $this->assertSame(Application::STATUS_SUBMITTED, $fresh->status);
+        $this->assertNotNull($fresh->submitted_at);
+        Mail::assertSent(ApplicationSubmitted::class, fn ($m) => $m->hasTo('admin@example.com'));
     }
 
     public function test_admin_accepts_and_rejects_with_audit_and_status_change(): void
@@ -104,6 +134,17 @@ class ExemptionsTest extends TestCase
         $this->assertDatabaseHas('audit_log', ['action' => 'exemption_rejected', 'details' => 'transcript_master']);
         $this->assertSame(Application::STATUS_INCOMPLETE, $this->application->fresh()->status);
         $this->assertDatabaseMissing('audit_log', ['details' => 'اطلبه من الجامعة']);
+    }
+
+    public function test_decide_refused_when_a_document_now_supersedes_the_request(): void
+    {
+        $this->application->update(['status' => Application::STATUS_UNDER_REVIEW]);
+        $e = ChecklistExemption::factory()->for($this->application)->forItem('transcript_bachelor')->create();
+        Document::factory()->for($this->application)->forItem('transcript_bachelor')->create();
+
+        $this->actingAs($this->admin)->post(route('admin.exemptions.decide', $e), ['status' => 'accepted'])
+            ->assertSessionHasErrors('exemption');
+        $this->assertSame('pending', $e->fresh()->status);
     }
 
     public function test_decide_refused_for_instructor_non_pending_and_closed_term(): void

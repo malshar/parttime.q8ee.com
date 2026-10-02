@@ -124,7 +124,11 @@ Multi-file uploads (5b): PHP-FPM must allow 10 files × 10 MB per request.
 Check `/etc/php/8.4/fpm/php.ini`: `upload_max_filesize = 10M`,
 `post_max_size = 110M`, `max_file_uploads = 20`; then
 `systemctl reload php8.4-fpm`. Deploy = `./deploy/deploy.sh` (four
-migrations, seeder re-run).
+migrations, seeder re-run). The site sits behind Cloudflare, whose free and
+Pro plans cap request bodies at 100 MB regardless of the PHP-FPM settings
+above, so a full 10-file upload of 10 MB each may still be refused by the
+proxy before it reaches PHP-FPM — keep uploads well under that limit in
+practice, or raise the Cloudflare plan if larger uploads become routine.
 
 ## 5. Migrate + seed
 

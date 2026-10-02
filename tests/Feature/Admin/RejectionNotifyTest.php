@@ -84,4 +84,25 @@ class RejectionNotifyTest extends TestCase
         $this->actingAs($this->admin)->post(route('admin.applications.notify_rejections', $this->application))->assertRedirect();
         Mail::assertSent(DocumentsRejected::class, 2);
     }
+
+    public function test_notify_refused_on_withdrawn_application(): void
+    {
+        $this->reject('iban');
+        $this->application->update(['status' => Application::STATUS_WITHDRAWN]);
+
+        $this->actingAs($this->admin)->post(route('admin.applications.notify_rejections', $this->application))
+            ->assertSessionHasErrors('notify');
+
+        Mail::assertNothingSent();
+        $this->assertDatabaseMissing('audit_log', ['action' => 'notify_rejections', 'subject_id' => $this->application->id]);
+    }
+
+    public function test_notify_button_absent_on_withdrawn_application(): void
+    {
+        $this->reject('iban');
+        $this->application->update(['status' => Application::STATUS_WITHDRAWN]);
+
+        $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))
+            ->assertDontSee(__('app.review.notify_rejections'));
+    }
 }

@@ -354,6 +354,9 @@ class ApplicationWorkflow
         if (! $application->term->isOpen()) {
             throw new \DomainException(__('app.applications.term_closed'));
         }
+        if ($application->isFinal() && $application->status !== Application::STATUS_APPROVED) {
+            throw new \DomainException(__('app.review.already_final'));
+        }
         if ($this->pendingRejectionNotices($application) === []) {
             throw new \DomainException(__('app.review.nothing_to_notify'));
         }
@@ -372,7 +375,8 @@ class ApplicationWorkflow
     public function requestExemption(Application $application, ChecklistItem $item, string $reason): void
     {
         $row = $this->checklist($application)[$item->code] ?? null;
-        if ($row === null || $row['document'] !== null || in_array($row['state'], [self::STATE_EXEMPTION_REQUESTED, self::STATE_EXEMPTED], true)) {
+        if ($row === null || $row['document'] !== null
+            || in_array($row['state'], [self::STATE_EXEMPTION_REQUESTED, self::STATE_EXEMPTED, self::STATE_ON_FILE], true)) {
             throw new \DomainException(__('app.exemptions.cannot_request'));
         }
 
@@ -384,6 +388,10 @@ class ApplicationWorkflow
             );
             AuditLog::record($application->instructor->user_id, 'request_exemption', $application, null, $item->code);
         });
+
+        // Spec parity with afterUpload(): a re-request can be the last stage-1 row the
+        // application needed, so an incomplete application resubmits exactly as a reupload would.
+        $this->afterUpload($application->fresh());
     }
 
     /** Spec 5b §6: the admin accepts or rejects a pending exemption; a rejection sends the file back to the applicant. */
@@ -394,6 +402,9 @@ class ApplicationWorkflow
             throw new \DomainException(__('app.applications.term_closed'));
         }
         if (! $exemption->isPending() || ! in_array($application->status, Application::REVIEWABLE_STATUSES, true)) {
+            throw new \DomainException(__('app.exemptions.cannot_decide'));
+        }
+        if ($application->latestDocuments()->has($exemption->item->code)) {
             throw new \DomainException(__('app.exemptions.cannot_decide'));
         }
 

@@ -34,9 +34,7 @@
                     @if ($row['renewal'] && ! $document)
                         <div class="small text-danger">{{ __('app.documents.renewal_requested', ['reason' => $row['renewal']->reason]) }}</div>
                     @endif
-                    @if ($row['state'] === 'exemption_requested')
-                        <div class="small text-muted">{{ __('app.exemptions.pending') }}</div>
-                    @elseif ($row['state'] === 'exempted')
+                    @if ($row['state'] === 'exempted')
                         <div class="small text-success">{{ __('app.exemptions.accepted') }}</div>
                     @elseif ($row['exemption']?->status === 'rejected' && ! $row['document'])
                         <div class="small text-danger">{{ __('app.exemptions.rejected_line', ['note' => $row['exemption']->decision_note]) }}</div>
