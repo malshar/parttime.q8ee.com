@@ -2,7 +2,7 @@
 
 > **Status (2026-10-02): live at https://parttime.q8ee.com — milestones 1–4
 > merged on `main` and deployed.** Laravel 12 app (`php artisan test` green,
-> 271 tests passed, 1 skipped, on main). Milestone 1 (intake) shipped first;
+> 286 tests passed, 1 skipped, on branch `milestone-5a-feedback`). Milestone 1 (intake) shipped first;
 > milestone 2 adds: the `complete` application status with a three-group
 > attention list, a committee decision step (replacing direct approve/reject)
 > with a consolidated rejection notice, reopening of withdrawn applications,
@@ -20,17 +20,19 @@
 > the footer caption "المنتدب" merged into one run, course lines as "name
 > code"; (2) nationality, employer and bank are lists via `App\Support\KuwaitLists`
 > (38 government agencies plus private sector / other, 15 banks keyed by IBAN
-> with IBAN pre-selecting the bank), profile forms keep non-sensitive values
-> after errors; (3) expired sessions redirect to login with a message, header
+> with IBAN pre-selecting the bank), nationality from `app.countries` (a
+> legacy free-text value is kept as a `__keep` option until changed), profile
+> forms keep non-sensitive values after errors; (3) expired sessions redirect to login with a message, header
 > shows user name and role, admin application page shows applicant email,
 > documents open in in-page pop-ups for PDFs and images; (4) sections and
 > assignments tables show and sort by reference number with filters by
 > reference, course, name and instructor; (5) jadawil (v2.4.13+) timetable
 > export includes seat columns `الحد الأقصى`, `مسجلة`, `متبقية`, this app's
 > importer reads them — re-export and re-import after both deploys so the
-> student count prints on (خ-3). Deploy pending; all feedback items are
-> covered in 5a, remaining items (two-stage documents, transcript with
-> exemptions, salary timing, multi-file upload) are milestone 5b.** The (خ-3)
+> student count prints on (خ-3). Deploy pending. 5a covers feedback items
+> 1–3, 5, 8–11 and 14–18; items 4, 6, 7, 12 and 13 (two-stage documents,
+> transcript with exemptions, salary timing, multi-file upload) are
+> milestone 5b.** The (خ-3)
 > Word template is `resources/forms/kh3-template.docx`, rebuilt by
 > `scripts/build-kh3-template.py` from the official blank form. Design:
 > `docs/superpowers/specs/2026-09-28-parttime-system-design.md` (milestone 1),

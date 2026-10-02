@@ -3,8 +3,8 @@
 ## Status (2026-10-02)
 **Live at https://parttime.q8ee.com** since 2026-09-30 (milestones 1–4
 deployed). Milestone 5a (feedback round) is implemented on branch
-`milestone-5a-feedback`, Tasks 1–5 (`php artisan test` green, 271 tests passed,
-1 skipped). Final reviews and design specs: milestones 1–4 specs in
+`milestone-5a-feedback`, Tasks 1–5 plus the final-review fixes (`php artisan
+test` green on the branch, 286 tests passed, 1 skipped). Final reviews and design specs: milestones 1–4 specs in
 `docs/superpowers/specs/`; reviews and deferred minors in
 `docs/superpowers/reviews/`. Deploy runbook and scripts: `deploy/` (`DEPLOY.md`,
 "Routine per-term setup" updated for jadawil v2.4.13+ seat columns).
@@ -12,8 +12,8 @@ Real applicant documents are accumulating in `../part-time/` (10 applicants
 as of 2026-09-27; sensitive — see root `../CLAUDE.md`).
 
 ## Next
-1. Deploy milestone 5a with `./deploy/deploy.sh` (feedback round, all items
-   covered; remaining items in 5b).
+1. Deploy milestone 5a with `./deploy/deploy.sh` (feedback items 1–3, 5,
+   8–11, 14–18; items 4, 6, 7, 12, 13 are in 5b).
 2. Re-export the term's jadawil timetable (v2.4.13 or later, with seat
    columns `الحد الأقصى`, `مسجلة`, `متبقية`) and re-import at
    `/admin/sections/import` so the student count prints on (خ-3).
@@ -109,8 +109,13 @@ the admin and signed on paper; there is no instructor confirmation step.
   neutral "need correction or updating" notice wording; docs corrected
   (milestone 3 deployed on 2026-09-30). `php artisan test` green (250
   tests, one skip).
-- 2026-10-02 — milestone 5a (feedback round, all items) on branch
-  `milestone-5a-feedback`, Tasks 1–5: (1) (خ-3) template fits one page per
+- 2026-10-02 — milestone 5a (feedback round) on branch
+  `milestone-5a-feedback`, Tasks 1–5. Eighteen feedback items: 5a covers
+  1, 2, 3, 5 (lists, retained values), 8, 9, 10, 11 (session expiry, header
+  user, applicant email, document pop-up), 14, 15 (reference number,
+  filters), 16, 17, 18 ((خ-3) one page, footer, student count); 5b covers
+  4, 6, 7, 12, 13 (two-stage documents, transcript with exemptions, salary
+  timing, multi-file upload). Tasks: (1) (خ-3) template fits one page per
   instructor, 9 pt table rows, fixed column widths, footer "المنتدب" merged,
   course lines as "name code"; (2) nationality, employer, bank via
   `App\Support\KuwaitLists` (38 agencies, 15 banks by IBAN), profile forms
@@ -121,4 +126,11 @@ the admin and signed on paper; there is no instructor confirmation step.
   name, instructor; (5) jadawil v2.4.13+ seat columns `الحد الأقصى`,
   `مسجلة`, `متبقية` imported — re-export/re-import after both deploys for
   student count. `php artisan test` green (271 passed, 1 skipped).
-  Deploy pending.
+  Final-review fixes: legacy free-text nationality kept on an untouched save
+  (`__keep` option), empty nationality choice for new profiles, 16 more
+  countries (incl. بدون), IBAN bank auto-select now attaches, translated
+  field names in errors, choice fields validated with `Rule::in`, bank keys
+  BBKU/BBME/CITI/QNBA, guest forms keep input on an expired token, SRI on
+  Bootstrap JS, wrapping navbar, LIKE wildcards stripped from filters, sample
+  (خ-3) written only with `KH3_WRITE_SAMPLE=1`. `php artisan test` green
+  (286 passed, 1 skipped). Deploy pending.
