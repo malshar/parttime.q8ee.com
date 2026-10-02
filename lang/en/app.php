@@ -98,6 +98,7 @@ return [
         'bank_choice_invalid' => 'Choose the bank from the list.',
         'sensitive_reenter' => 'For security these fields are not kept after an error; enter them again.',
         'nationality_legacy' => 'Stored value: :value',
+        'salary_missing' => 'Salary details (basic and total)',
     ],
     'applications' => [
         'title' => 'Secondment application', 'start' => 'Apply for the current term', 'current' => 'Current application', 'past' => 'Past applications',
@@ -115,7 +116,8 @@ return [
     ],
     'documents' => [
         'item' => 'Item', 'status' => 'Status', 'file' => 'File',
-        'states' => ['missing' => 'Not uploaded', 'pending' => 'Awaiting review', 'accepted' => 'Accepted', 'rejected' => 'Rejected', 'on_file' => 'On file'],
+        'states' => ['missing' => 'Not uploaded', 'pending' => 'Awaiting review', 'accepted' => 'Accepted', 'rejected' => 'Rejected', 'on_file' => 'On file',
+            'exemption_requested' => 'Exemption requested', 'exempted' => 'Exempted'],
         'upload' => 'Upload file', 'replace' => 'Upload a new copy', 'download' => 'Download', 'version' => 'Version',
         'file_rules' => 'PDF, JPG, PNG or DOCX, maximum 10 MB.',
         'zip_rejected' => 'ZIP files are not accepted, please upload each document separately.',
@@ -151,6 +153,7 @@ return [
         'mark_complete' => 'File complete',
         'completed' => 'The file has been marked complete and is awaiting the committee.',
         'complete_blocked' => 'The file cannot be marked complete before all required documents are accepted.',
+        'complete_blocked_exemptions' => 'There are undecided exemption requests; accept or reject them first.',
         'complete_wrong_status' => 'The file cannot be marked complete in its current status.',
         'awaiting_committee' => 'The file is complete and awaiting the recruitment and secondment committee decision.',
         'committee_outcome' => 'Committee decision',

@@ -11,6 +11,7 @@ use App\Mail\ApplicationSubmitted;
 use App\Mail\DocumentsRejected;
 use App\Models\Application;
 use App\Models\AuditLog;
+use App\Models\ChecklistExemption;
 use App\Models\ChecklistItem;
 use App\Models\ChecklistRenewal;
 use App\Models\Document;
@@ -27,6 +28,13 @@ class ApplicationWorkflow
 {
     public const STATE_ON_FILE = 'on_file';
 
+    public const STATE_EXEMPTION_REQUESTED = 'exemption_requested';
+
+    public const STATE_EXEMPTED = 'exempted';
+
+    /** Row states that satisfy a required item. */
+    public const SATISFIED_STATES = [Document::STATUS_ACCEPTED, self::STATE_ON_FILE, self::STATE_EXEMPTED];
+
     public function __construct(private ChecklistResolver $resolver) {}
 
     public function start(Instructor $instructor, Term $term): Application
@@ -42,25 +50,32 @@ class ApplicationWorkflow
     }
 
     /**
-     * Spec §4.2. One row per required item, then one per optional item (`optional` = true; such rows
-     * never block submission or completion and are not printed on the Check List):
-     * ['item' => ChecklistItem, 'document' => ?Document, 'state' => string, 'source' => ?Document, 'renewal' => ?ChecklistRenewal, 'optional' => bool]
+     * Spec 5b §4. Stage-1 rows first, then stage-2, then optional rows:
+     * ['item', 'document' (head, parts loaded), 'state', 'source', 'renewal', 'exemption', 'stage', 'optional']
+     * state ∈ missing|pending|accepted|rejected|on_file|exemption_requested|exempted.
      *
-     * @return array<string, array{item: ChecklistItem, document: ?Document, state: string, source: ?Document, renewal: ?ChecklistRenewal, optional: bool}>
+     * @return array<string, array{item: ChecklistItem, document: ?Document, state: string, source: ?Document, renewal: ?ChecklistRenewal, exemption: ?ChecklistExemption, stage: int, optional: bool}>
      */
     public function checklist(Application $application): array
     {
         $plan = $this->resolver->for($application->instructor);
         $docs = $application->latestDocuments();
         $renewals = $application->renewals()->get()->keyBy('checklist_item_id');
+        $exemptions = $application->exemptions()->get()->keyBy('checklist_item_id');
         $onFile = null;
         $out = [];
         foreach ($plan->required->concat($plan->optional) as $item) {
             $doc = $docs->get($item->code);
+            $exemption = $exemptions->get($item->id);
             $row = ['item' => $item, 'document' => $doc, 'state' => 'missing', 'source' => null,
-                'renewal' => $renewals->get($item->id), 'optional' => (bool) $item->optional];
+                'renewal' => $renewals->get($item->id), 'exemption' => $exemption,
+                'stage' => (int) $item->stage, 'optional' => (bool) $item->optional];
             if ($doc) {
                 $row['state'] = $doc->status;
+            } elseif ($exemption?->status === ChecklistExemption::STATUS_ACCEPTED) {
+                $row['state'] = self::STATE_EXEMPTED;
+            } elseif ($exemption?->status === ChecklistExemption::STATUS_PENDING) {
+                $row['state'] = self::STATE_EXEMPTION_REQUESTED;
             } elseif ($row['renewal'] === null && ! $item->renews_each_term
                 // Rule 4 is skipped for final applications so their record does not flip once the card expires.
                 && ! ($item->code === 'civil_id' && ! $application->isFinal() && $application->instructor->civilIdExpired())) {
@@ -74,6 +89,18 @@ class ApplicationWorkflow
         }
 
         return $out;
+    }
+
+    /** @return array<string, array<string, mixed>> stage-1 required rows only */
+    private function stageOneRows(Application $application): array
+    {
+        return array_filter($this->checklist($application), fn ($row) => $row['stage'] === ChecklistItem::STAGE_COMMITTEE && ! $row['optional']);
+    }
+
+    /** @return array<string, array<string, mixed>> stage-2 required rows only */
+    private function stageTwoRows(Application $application): array
+    {
+        return array_filter($this->checklist($application), fn ($row) => $row['stage'] === ChecklistItem::STAGE_AFTER_APPROVAL && ! $row['optional']);
     }
 
     /**
@@ -140,10 +167,11 @@ class ApplicationWorkflow
         return $this->resolver->for($application->instructor);
     }
 
+    /** Committee gate (spec 5b §5): every stage-1 item accepted, on file or exempted. */
     public function allRequiredAccepted(Application $application): bool
     {
-        foreach ($this->checklist($application) as $row) {
-            if (! $row['optional'] && ! in_array($row['state'], [Document::STATUS_ACCEPTED, self::STATE_ON_FILE], true)) {
+        foreach ($this->stageOneRows($application) as $row) {
+            if (! in_array($row['state'], self::SATISFIED_STATES, true)) {
                 return false;
             }
         }
@@ -151,15 +179,53 @@ class ApplicationWorkflow
         return true;
     }
 
+    /** Submission gate (spec 5b §5): every stage-1 item uploaded, on file, exempted or exemption-requested. */
     public function allRequiredUploaded(Application $application): bool
     {
-        foreach ($this->checklist($application) as $row) {
-            if (! $row['optional'] && ($row['state'] === 'missing' || $row['state'] === 'rejected')) {
+        foreach ($this->stageOneRows($application) as $row) {
+            if ($row['state'] === 'missing' || $row['state'] === Document::STATUS_REJECTED) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    public function hasUndecidedExemptions(Application $application): bool
+    {
+        foreach ($this->stageOneRows($application) as $row) {
+            if ($row['state'] === self::STATE_EXEMPTION_REQUESTED) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** Spec 5b §5: approved, every stage-2 item satisfied, both salary fields present. */
+    public function stageTwoComplete(Application $application): bool
+    {
+        return $application->status === Application::STATUS_APPROVED && $this->stageTwoMissing($application) === [];
+    }
+
+    /** Labels of what still blocks stage 2 (documents by label, then the salary line). Empty when nothing is missing or the application is not approved. */
+    public function stageTwoMissing(Application $application): array
+    {
+        if ($application->status !== Application::STATUS_APPROVED) {
+            return [];
+        }
+        $missing = [];
+        foreach ($this->stageTwoRows($application) as $row) {
+            if (! in_array($row['state'], self::SATISFIED_STATES, true)) {
+                $missing[] = $row['item']->label_ar;
+            }
+        }
+        $i = $application->instructor;
+        if ($i->basic_salary === null || $i->total_salary === null) {
+            $missing[] = __('app.profile.salary_missing');
+        }
+
+        return $missing;
     }
 
     public function submit(Application $application): void
@@ -292,10 +358,22 @@ class ApplicationWorkflow
             throw new \DomainException(__('app.applications.term_closed'));
         }
         if (! $this->allRequiredAccepted($application)) {
-            throw new \DomainException(__('app.review.complete_blocked'));
+            throw new \DomainException($this->hasUndecidedExemptions($application) && $this->onlyExemptionsBlock($application)
+                ? __('app.review.complete_blocked_exemptions') : __('app.review.complete_blocked'));
         }
         $application->update(['status' => Application::STATUS_COMPLETE, 'complete_at' => now()]);
         AuditLog::record($admin->id, 'mark_complete', $application);
+    }
+
+    private function onlyExemptionsBlock(Application $application): bool
+    {
+        foreach ($this->stageOneRows($application) as $row) {
+            if (! in_array($row['state'], [...self::SATISFIED_STATES, self::STATE_EXEMPTION_REQUESTED], true)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function committeeDecision(Application $application, User $admin, string $outcome, string $metOn, string $reference, ?string $note): void

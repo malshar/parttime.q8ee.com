@@ -97,14 +97,16 @@ class ReviewTest extends TestCase
 
     public function test_complete_blocked_until_latest_versions_all_accepted(): void
     {
+        // iban is a stage-2 item (5b): the complete gate now reads stage-1 rows only, so the
+        // rejected/re-uploaded item must be a stage-1 one (civil_id) to still block completion.
         $this->acceptAll();
-        $iban = $this->application->latestDocuments()->get('iban');
-        $this->actingAs($this->admin)->post(route('admin.documents.review', $iban), ['status' => 'rejected', 'reason' => 'x']);
+        $civilId = $this->application->latestDocuments()->get('civil_id');
+        $this->actingAs($this->admin)->post(route('admin.documents.review', $civilId), ['status' => 'rejected', 'reason' => 'x']);
 
         $this->actingAs($this->admin)->post(route('admin.applications.complete', $this->application))->assertSessionHasErrors('complete');
 
         // Applicant re-uploads (v2, pending) → still blocked; admin accepts v2 → complete works even though v1 stays rejected.
-        $v2 = Document::factory()->for($this->application)->forItem('iban')->create(['version' => 2]);
+        $v2 = Document::factory()->for($this->application)->forItem('civil_id')->create(['version' => 2]);
         $this->actingAs($this->admin)->post(route('admin.applications.complete', $this->application))->assertSessionHasErrors('complete');
         $this->actingAs($this->admin)->post(route('admin.documents.review', $v2), ['status' => 'accepted']);
 

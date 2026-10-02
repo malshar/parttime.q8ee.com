@@ -57,11 +57,11 @@ class ChecklistDocument
         $section->addTextBreak();
         $section->addText('❖ قائمة المستندات المطلوبة :', $bold + ['underline' => 'single'], $rtl);
 
-        foreach (ChecklistItem::where('optional', false)->orderBy('sort_order')->get() as $item) {
+        foreach (ChecklistItem::where('official', true)->orderBy('sort_order')->get() as $item) {
             if ($item->isDepartment()) {
                 $mark = '☐';
             } elseif (isset($checklist[$item->code])) {
-                $mark = in_array($checklist[$item->code]['state'], ['accepted', ApplicationWorkflow::STATE_ON_FILE], true) ? '☑' : '☐';
+                $mark = in_array($checklist[$item->code]['state'], ApplicationWorkflow::SATISFIED_STATES, true) ? '☑' : '☐';
             } else {
                 $mark = '—';
             }

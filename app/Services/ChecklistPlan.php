@@ -11,6 +11,8 @@ final class ChecklistPlan
         public readonly Collection $department,
         public readonly Collection $notApplicable,
         public readonly Collection $optional,
+        public readonly Collection $stage1,
+        public readonly Collection $stage2,
     ) {}
 
     public function isRequired(string $code): bool

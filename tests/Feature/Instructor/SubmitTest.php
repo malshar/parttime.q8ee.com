@@ -46,7 +46,9 @@ class SubmitTest extends TestCase
 
     public function test_submit_blocked_until_all_required_uploaded(): void
     {
-        $this->uploadAll(except: ['iban']);
+        // iban is a stage-2 item (5b): submission now reads stage-1 rows only, so the missing
+        // item must be a stage-1 one (civil_id) to still block submission.
+        $this->uploadAll(except: ['civil_id']);
 
         $this->actingAs($this->user)->post(route('instructor.applications.submit', $this->application))
             ->assertSessionHasErrors('submit');

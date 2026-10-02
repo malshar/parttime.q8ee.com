@@ -104,6 +104,7 @@ return [
         'bank_choice_invalid' => 'اختر البنك من القائمة.',
         'sensitive_reenter' => 'لأسباب أمنية لا تحفظ هذه الحقول عند حدوث خطأ؛ أعد إدخالها.',
         'nationality_legacy' => 'القيمة المحفوظة: :value',
+        'salary_missing' => 'بيانات الراتب (الأساسي والإجمالي)',
     ],
     'applications' => [
         'title' => 'طلب الانتداب', 'start' => 'تقديم طلب للفصل الحالي', 'current' => 'الطلب الحالي', 'past' => 'الطلبات السابقة',
@@ -121,7 +122,8 @@ return [
     ],
     'documents' => [
         'item' => 'البند', 'status' => 'الحالة', 'file' => 'الملف',
-        'states' => ['missing' => 'غير مرفوع', 'pending' => 'بانتظار المراجعة', 'accepted' => 'مقبول', 'rejected' => 'مرفوض', 'on_file' => 'على الملف'],
+        'states' => ['missing' => 'غير مرفوع', 'pending' => 'بانتظار المراجعة', 'accepted' => 'مقبول', 'rejected' => 'مرفوض', 'on_file' => 'على الملف',
+            'exemption_requested' => 'طلب إعفاء قيد النظر', 'exempted' => 'معفى'],
         'upload' => 'رفع الملف', 'replace' => 'رفع نسخة جديدة', 'download' => 'تحميل', 'version' => 'النسخة',
         'file_rules' => 'PDF أو JPG أو PNG أو DOCX، بحد أقصى 10 ميغابايت.',
         'zip_rejected' => 'ملفات ZIP غير مقبولة، يرجى رفع كل مستند على حدة.',
@@ -157,6 +159,7 @@ return [
         'mark_complete' => 'الملف مكتمل',
         'completed' => 'تم تحديد الملف كمكتمل وبانتظار اللجنة.',
         'complete_blocked' => 'لا يمكن اعتبار الملف مكتملا قبل قبول جميع المستندات المطلوبة.',
+        'complete_blocked_exemptions' => 'هناك طلبات إعفاء لم يبت فيها، اقبلها أو ارفضها أولا.',
         'complete_wrong_status' => 'لا يمكن تحديد الملف كمكتمل في حالته الحالية.',
         'awaiting_committee' => 'الملف مكتمل وبانتظار قرار لجنة التوظيف والانتداب.',
         'committee_outcome' => 'قرار اللجنة',

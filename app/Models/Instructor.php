@@ -100,6 +100,12 @@ class Instructor extends Model
             ->exists();
     }
 
+    public function hasApprovedApplicationInOpenTerm(): bool
+    {
+        return $this->applications()->where('status', Application::STATUS_APPROVED)
+            ->whereHas('term', fn ($q) => $q->open())->exists();
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

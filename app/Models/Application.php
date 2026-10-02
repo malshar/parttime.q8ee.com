@@ -114,4 +114,10 @@ class Application extends Model
     {
         return in_array($this->status, self::FINAL_STATUSES, true);
     }
+
+    /** Spec 5b §5: stage-2 documents may be uploaded and reviewed while approved on an open term. */
+    public function acceptsStageTwoUploads(): bool
+    {
+        return $this->status === self::STATUS_APPROVED && $this->term->isOpen();
+    }
 }

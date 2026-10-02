@@ -46,7 +46,9 @@ class CompleteStatusTest extends TestCase
 
     public function test_mark_complete_refused_when_a_document_is_pending(): void
     {
-        Document::factory()->for($this->application)->forItem('iban')->create(['version' => 2]); // pending v2
+        // iban is a stage-2 item (5b): the complete gate now reads stage-1 rows only, so the
+        // pending re-upload must be a stage-1 item (civil_id) to still block completion.
+        Document::factory()->for($this->application)->forItem('civil_id')->create(['version' => 2]); // pending v2
 
         $this->actingAs($this->admin)->post(route('admin.applications.complete', $this->application))
             ->assertSessionHasErrors('complete');
