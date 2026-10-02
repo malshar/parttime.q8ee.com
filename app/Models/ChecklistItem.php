@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ChecklistItem extends Model
 {
-    public const CODES = ['schedule', 'assignment_letter', 'attestation', 'civil_id', 'degree', 'equivalency',
-        'social_insurance', 'experience', 'salary_cert', 'iban', 'employer_approval', 'undertaking'];
+    public const CODES = ['schedule', 'assignment_letter', 'attestation', 'civil_id', 'degree', 'transcript_bachelor',
+        'transcript_master', 'equivalency', 'social_insurance', 'experience', 'salary_cert', 'iban', 'employer_approval', 'undertaking'];
 
     /**
      * Profile fields each item certifies (spec §4.2 rule 4b): an earlier copy stops being on file once
@@ -22,11 +22,11 @@ class ChecklistItem extends Model
         'iban' => ['iban', 'bank_name', 'bank_branch'],
     ];
 
-    protected $fillable = ['code', 'label_ar', 'note_ar', 'sort_order', 'provided_by', 'condition', 'renews_each_term'];
+    protected $fillable = ['code', 'label_ar', 'note_ar', 'sort_order', 'provided_by', 'condition', 'optional', 'renews_each_term'];
 
     protected function casts(): array
     {
-        return ['renews_each_term' => 'boolean'];
+        return ['renews_each_term' => 'boolean', 'optional' => 'boolean'];
     }
 
     public function isDepartment(): bool
@@ -41,6 +41,7 @@ class ChecklistItem extends Model
             'foreign_degree' => $i->isForeignDegree(),
             'private_sector' => $i->isPrivateSector(),
             'bachelor_only' => $i->isBachelorOnly(),
+            'master_or_above' => ! $i->isBachelorOnly(),
             default => false,
         };
     }

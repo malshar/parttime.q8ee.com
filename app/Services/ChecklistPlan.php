@@ -10,10 +10,17 @@ final class ChecklistPlan
         public readonly Collection $required,
         public readonly Collection $department,
         public readonly Collection $notApplicable,
+        public readonly Collection $optional,
     ) {}
 
     public function isRequired(string $code): bool
     {
         return $this->required->contains('code', $code);
+    }
+
+    /** Required or optional: the applicant may upload it. */
+    public function isUploadable(string $code): bool
+    {
+        return $this->isRequired($code) || $this->optional->contains('code', $code);
     }
 }

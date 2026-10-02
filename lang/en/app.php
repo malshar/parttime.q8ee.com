@@ -123,6 +123,7 @@ return [
         'accept' => 'Accept', 'reject' => 'Reject', 'reason' => 'Rejection reason', 'reviewed' => 'The document status has been updated.',
         'renewal_requested' => 'A new copy is required: :reason',
         'on_file_from' => 'On file from :term', 'newer_copy' => 'Upload a newer copy (optional)',
+        'optional' => 'Optional',
     ],
     'review' => [
         'attention' => 'Needs attention', 'applications' => 'Applications', 'no_attention' => 'No applications are awaiting review.',

@@ -57,7 +57,7 @@ class ChecklistDocument
         $section->addTextBreak();
         $section->addText('❖ قائمة المستندات المطلوبة :', $bold + ['underline' => 'single'], $rtl);
 
-        foreach (ChecklistItem::orderBy('sort_order')->get() as $item) {
+        foreach (ChecklistItem::where('optional', false)->orderBy('sort_order')->get() as $item) {
             if ($item->isDepartment()) {
                 $mark = '☐';
             } elseif (isset($checklist[$item->code])) {

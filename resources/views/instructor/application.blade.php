@@ -38,6 +38,9 @@
                 <tr>
                     <td>
                         {{ $item->label_ar }}
+                        @if ($row['optional'])
+                            <span class="badge bg-light text-dark border">{{ __('app.documents.optional') }}</span>
+                        @endif
                         @if ($item->note_ar)
                             <div class="small text-muted">{{ $item->note_ar }}</div>
                         @endif

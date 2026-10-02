@@ -24,10 +24,10 @@ class ChecklistResolverTest extends TestCase
         return $items->pluck('code')->values()->all();
     }
 
-    public function test_seeds_twelve_items_idempotently(): void
+    public function test_seeds_fourteen_items_idempotently(): void
     {
         $this->seed(ChecklistItemSeeder::class);
-        $this->assertDatabaseCount('checklist_items', 12);
+        $this->assertDatabaseCount('checklist_items', 14);
     }
 
     public function test_local_master_government_requires_only_unconditional_applicant_items(): void
@@ -38,6 +38,7 @@ class ChecklistResolverTest extends TestCase
         $this->assertSame(['civil_id', 'degree', 'salary_cert', 'iban', 'employer_approval', 'undertaking'], $this->codes($plan->required));
         $this->assertSame(['schedule', 'assignment_letter', 'attestation'], $this->codes($plan->department));
         $this->assertSame(['equivalency', 'social_insurance', 'experience'], $this->codes($plan->notApplicable));
+        $this->assertSame(['transcript_bachelor', 'transcript_master'], $this->codes($plan->optional));
     }
 
     public function test_foreign_degree_adds_equivalency(): void

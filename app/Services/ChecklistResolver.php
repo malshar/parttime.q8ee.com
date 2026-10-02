@@ -11,10 +11,13 @@ class ChecklistResolver
     {
         $items = ChecklistItem::orderBy('sort_order')->get();
 
+        $applicable = $items->filter(fn ($i) => ! $i->isDepartment() && $i->appliesTo($instructor));
+
         return new ChecklistPlan(
-            required: $items->filter(fn ($i) => ! $i->isDepartment() && $i->appliesTo($instructor))->values(),
+            required: $applicable->reject(fn ($i) => $i->optional)->values(),
             department: $items->filter(fn ($i) => $i->isDepartment())->values(),
             notApplicable: $items->filter(fn ($i) => ! $i->isDepartment() && ! $i->appliesTo($instructor))->values(),
+            optional: $applicable->filter(fn ($i) => $i->optional)->values(),
         );
     }
 }

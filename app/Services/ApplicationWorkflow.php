@@ -42,10 +42,11 @@ class ApplicationWorkflow
     }
 
     /**
-     * Spec §4.2. One row per required item:
-     * ['item' => ChecklistItem, 'document' => ?Document, 'state' => string, 'source' => ?Document, 'renewal' => ?ChecklistRenewal]
+     * Spec §4.2. One row per required item, then one per optional item (`optional` = true; such rows
+     * never block submission or completion and are not printed on the Check List):
+     * ['item' => ChecklistItem, 'document' => ?Document, 'state' => string, 'source' => ?Document, 'renewal' => ?ChecklistRenewal, 'optional' => bool]
      *
-     * @return array<string, array{item: ChecklistItem, document: ?Document, state: string, source: ?Document, renewal: ?ChecklistRenewal}>
+     * @return array<string, array{item: ChecklistItem, document: ?Document, state: string, source: ?Document, renewal: ?ChecklistRenewal, optional: bool}>
      */
     public function checklist(Application $application): array
     {
@@ -54,9 +55,10 @@ class ApplicationWorkflow
         $renewals = $application->renewals()->get()->keyBy('checklist_item_id');
         $onFile = null;
         $out = [];
-        foreach ($plan->required as $item) {
+        foreach ($plan->required->concat($plan->optional) as $item) {
             $doc = $docs->get($item->code);
-            $row = ['item' => $item, 'document' => $doc, 'state' => 'missing', 'source' => null, 'renewal' => $renewals->get($item->id)];
+            $row = ['item' => $item, 'document' => $doc, 'state' => 'missing', 'source' => null,
+                'renewal' => $renewals->get($item->id), 'optional' => (bool) $item->optional];
             if ($doc) {
                 $row['state'] = $doc->status;
             } elseif ($row['renewal'] === null && ! $item->renews_each_term
@@ -141,7 +143,7 @@ class ApplicationWorkflow
     public function allRequiredAccepted(Application $application): bool
     {
         foreach ($this->checklist($application) as $row) {
-            if (! in_array($row['state'], [Document::STATUS_ACCEPTED, self::STATE_ON_FILE], true)) {
+            if (! $row['optional'] && ! in_array($row['state'], [Document::STATUS_ACCEPTED, self::STATE_ON_FILE], true)) {
                 return false;
             }
         }
@@ -152,7 +154,7 @@ class ApplicationWorkflow
     public function allRequiredUploaded(Application $application): bool
     {
         foreach ($this->checklist($application) as $row) {
-            if ($row['state'] === 'missing' || $row['state'] === 'rejected') {
+            if (! $row['optional'] && ($row['state'] === 'missing' || $row['state'] === 'rejected')) {
                 return false;
             }
         }

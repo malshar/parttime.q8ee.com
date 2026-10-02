@@ -20,7 +20,7 @@ class DocumentPolicy
     {
         return $this->owns($user, $application)
             && $application->isEditable()
-            && app(ChecklistResolver::class)->for($application->instructor)->isRequired($item->code);
+            && app(ChecklistResolver::class)->for($application->instructor)->isUploadable($item->code);
     }
 
     public function review(User $user, Document $document): bool
