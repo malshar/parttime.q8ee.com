@@ -4,6 +4,8 @@
 Usage: python3 scripts/build-kh3-template.py "<official blank .docx>" resources/forms/kh3-template.docx
 Keeps page 1 only, wraps it in ${page}…${/page} (cloned per instructor), keeps one week row (${week_no},
 cloned per week) and replaces every fillable field with a ${placeholder}. Fixed Arabic text is untouched.
+Also fits the schedule table to one page (fixed column widths, 9 pt week/totals rows, tight cell margins) and merges
+the footer captions into one run each (the official file splits "المنتدب" with a tab, printing "المنتد ب").
 """
 import re
 import sys
@@ -50,6 +52,82 @@ def replace_para_containing(body, needle, new, occurrence=1):
             if seen == occurrence:
                 return body[:m.start()] + set_para(m.group(0), new) + body[m.end():]
     raise SystemExit(f'paragraph containing {needle!r} not found')
+
+
+# Schedule table column widths in XML (logical) order: week no, dates, course, students, theory, practical, field,
+# total, notes. Hour/total columns must hold "1.83" on one line at 9 pt, the course column "name code" on one line.
+# The official table is 9360 wide with a 368 overhang into the right margin; widened by the same overhang on the left
+# (10096) because the minimum widths do not fit in 9360 without squeezing the notes column below two words a line.
+GRID = [600, 750, 2600, 720, 850, 850, 850, 850, 2026]
+TABLE_WIDTH = sum(GRID)
+
+
+def set_tcw(row, spans):
+    """Set each cell's tcW to the summed grid widths of the columns it spans (spans: list of span counts)."""
+    cells = list(re.finditer(TC, row, re.S))
+    assert len(cells) == len(spans), (len(cells), spans)
+    widths, col = [], 0
+    for span in spans:
+        widths.append(sum(GRID[col:col + span]))
+        col += span
+    assert col == len(GRID), col
+    for c, w in reversed(list(zip(cells, widths))):
+        tc = re.sub(r'<w:tcW w:w="\d+" w:type="dxa"/>', '<w:tcW w:w="%d" w:type="dxa"/>' % w, c.group(0), count=1)
+        row = row[:c.start()] + tc + row[c.end():]
+    return row
+
+
+def nine_point(row):
+    """Every run (and paragraph mark) in the row at 9 pt; every rPr in these rows already carries sz/szCs."""
+    assert row.count('<w:rPr>') == len(re.findall(r'<w:sz w:val="\d+"/>', row)), 'rPr without sz'
+    row = re.sub(r'<w:sz w:val="\d+"/>', '<w:sz w:val="18"/>', row)
+    return re.sub(r'<w:szCs w:val="\d+"/>', '<w:szCs w:val="18"/>', row)
+
+
+def fit_table(tbl):
+    tbl = re.sub(r'<w:tblW w:w="\d+" w:type="dxa"/>', '<w:tblW w:w="%d" w:type="dxa"/>' % TABLE_WIDTH, tbl, count=1)
+    if '<w:tblLayout ' not in tbl:
+        tbl = tbl.replace('<w:tblLook ', '<w:tblLayout w:type="fixed"/><w:tblLook ', 1)
+    if '<w:tblCellMar>' not in tbl:
+        tbl = tbl.replace('<w:tblLayout w:type="fixed"/>', '<w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="20" w:type="dxa"/>'
+                          '<w:left w:w="108" w:type="dxa"/><w:bottom w:w="20" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar>', 1)
+    assert '<w:tblCellMar>' in tbl and '<w:tblLayout w:type="fixed"/>' in tbl
+    tbl = re.sub(r'<w:tblGrid>.*?</w:tblGrid>', '<w:tblGrid>' + ''.join('<w:gridCol w:w="%d"/>' % w for w in GRID) + '</w:tblGrid>', tbl, count=1, flags=re.S)
+    rows = list(re.finditer(TR, tbl, re.S))
+    assert len(rows) == 4, len(rows)
+    spans = [[1, 1, 1, 1, 3, 1, 1], [1] * 9, [1] * 9, [3, 1, 1, 1, 1, 1, 1]]
+    new_rows = []
+    for i, (r, sp) in enumerate(zip(rows, spans)):
+        row = set_tcw(r.group(0), sp)
+        if i == 2:   # week row: shrink to content
+            row = re.sub(r'<w:trHeight\b[^>]*/>', '', row).replace('<w:trPr></w:trPr>', '')
+        if i in (2, 3):
+            row = nine_point(row)
+        new_rows.append(row)
+    return tbl[:rows[0].start()] + ''.join(new_rows) + tbl[rows[-1].end():]
+
+
+def merge_footer(footer):
+    """Each text paragraph becomes one run: the first run's rPr, then its texts and tabs in order (adjacent texts
+    joined). The official file puts a tab inside "المنتدب" (المنتد<tab>ب); that tab moves after the word."""
+    out = footer
+    for m in reversed(list(re.finditer(P, footer, re.S))):
+        p = m.group(0)
+        if not text(p).strip() or '<w:drawing' in p or '<w:pict' in p:
+            continue
+        tokens = []
+        for r in re.finditer(r'<w:r\b[^>]*>(.*?)</w:r>', p, re.S):
+            for t in re.finditer(r'<w:tab/>|<w:t(?:\s[^>]*)?>([^<]*)</w:t>', r.group(1)):
+                tokens.append('\t' if t.group(0) == '<w:tab/>' else t.group(1))
+        merged = ''.join(tokens).replace('المنتد\tب', 'المنتدب\t')
+        ptag = re.match(r'<w:p\b[^>]*>', p).group(0)
+        ppr = re.search(r'<w:pPr>.*?</w:pPr>', p, re.S)
+        rpr = re.search(r'<w:r\b[^>]*>(<w:rPr>.*?</w:rPr>)', p, re.S)
+        content = ''.join('<w:tab/>' if part == '\t' else '<w:t xml:space="preserve">%s</w:t>' % part
+                          for part in re.split(r'(\t)', merged) if part != '')
+        new_p = ptag + (ppr.group(0) if ppr else '') + '<w:r>' + (rpr.group(1) if rpr else '') + content + '</w:r></w:p>'
+        out = out[:m.start()] + new_p + out[m.end():]
+    return out
 
 
 head, rest = xml.split('<w:body>', 1)
@@ -107,7 +185,7 @@ for c, name in reversed(list(zip(tcells, sums))):
     if name is None:
         continue
     new_tot = new_tot[:c.start()] + set_cell(c.group(0), '${%s}' % name if name else '') + new_tot[c.end():]
-new_t2 = t2[:rows[0].start()] + r0 + rows[1].group(0) + new_week + new_tot + t2[rows[6].end():]
+new_t2 = fit_table(t2[:rows[0].start()] + r0 + rows[1].group(0) + new_week + new_tot + t2[rows[6].end():])
 body = body[:tables[1].start()] + new_t1 + body[tables[1].end():tables[2].start()] + new_t2 + body[tables[2].end():]
 
 # 4. page block: ${page} before the first table; a page-break paragraph at the END of the block, then ${/page}.
@@ -121,9 +199,13 @@ body = (body[:first_tbl]
         + '<w:p><w:r><w:t>${/page}</w:t></w:r></w:p>')
 
 new_xml = head + '<w:body>' + body + tail
+footer = merge_footer(zin.read('word/footer1.xml').decode('utf-8'))
+assert 'توقيع عضو هيئة التدريس المنتدب' in footer
+replaced = {'word/document.xml': new_xml, 'word/footer1.xml': footer}
 with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as zout:
     for item in zin.infolist():
-        data = new_xml.encode('utf-8') if item.filename == 'word/document.xml' else zin.read(item.filename)
+        data = replaced[item.filename].encode('utf-8') if item.filename in replaced else zin.read(item.filename)
         zout.writestr(item, data)
 vars_found = sorted(set(re.findall(r'\$\{([^}]+)\}', new_xml)))
 print(len(vars_found), 'placeholders:', ' '.join(vars_found))
+print('schedule grid (XML order):', GRID, 'sum', TABLE_WIDTH)

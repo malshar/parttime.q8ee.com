@@ -57,7 +57,7 @@ class AttestationGeneratorTest extends TestCase
             [3, '21-25', ['2026-06-21', '2026-06-22', '2026-06-23', '2026-06-24', '2026-06-25'], 240, 360, 0, 'أسبوع كامل'],
             [4, '28-30', ['2026-06-28', '2026-06-29', '2026-06-30'], 240, 120, 0, 'الأحد- الاثنين- الثلاثاء (فقط)'],
         ], $rows);
-        $this->assertSame('الدوائر الكهربائية (7230101)', $a->weeks[0]->courses_text);
+        $this->assertSame('الدوائر الكهربائية 7230101', $a->weeks[0]->courses_text);
         $this->assertSame(18, $a->weeks[0]->student_count);
         $this->assertSame(['student_count' => 72, 'theory_minutes' => 840, 'practical_minutes' => 1200, 'field_minutes' => 0, 'total_minutes' => 2040], $a->totals());
         $this->assertSame(Attestation::STATUS_GENERATED, $a->status);
@@ -184,7 +184,7 @@ class AttestationGeneratorTest extends TestCase
 
         $a = $this->generator()->generate($this->application, 2026, 6);
 
-        $this->assertSame('الدوائر الكهربائية (7230101)', $a->weeks[0]->courses_text);
+        $this->assertSame('الدوائر الكهربائية 7230101', $a->weeks[0]->courses_text);
         $this->assertSame(25, $a->weeks[0]->student_count);
         $this->assertSame(420, $a->weeks[0]->practical_minutes);
         // week 2: Tuesday is a holiday, so section 2 does not meet and its seats are not counted
@@ -199,7 +199,7 @@ class AttestationGeneratorTest extends TestCase
 
         $a = $this->generator()->generate($this->application, 2026, 6);
 
-        $this->assertSame("الرسم الهندسي (7210050)\nالدوائر الكهربائية (7230101)", $a->weeks[0]->courses_text);
+        $this->assertSame("الرسم الهندسي 7210050\nالدوائر الكهربائية 7230101", $a->weeks[0]->courses_text);
         $this->assertSame(120, $a->weeks[0]->field_minutes);
     }
 

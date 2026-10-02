@@ -12,6 +12,7 @@ use App\Models\Term;
 use App\Models\User;
 use App\Services\Attestations\AttestationDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
 use PhpOffice\PhpWord\TemplateProcessor;
 use Tests\TestCase;
 
@@ -220,5 +221,94 @@ class AttestationDocumentTest extends TestCase
         $this->assertNotEmpty($m, 'week_note cell not found');
         $this->assertStringNotContainsString('<w:u ', $m[0]);
         $this->assertStringNotContainsString('<w:u/>', $m[0]);
+    }
+
+    public function test_footer_captions_are_single_runs(): void
+    {
+        $zip = new \ZipArchive;
+        $zip->open(resource_path('forms/kh3-template.docx'));
+        $footer = $zip->getFromName('word/footer1.xml');
+        $zip->close();
+        preg_match_all('~<w:t[^>]*>([^<]*)</w:t>~', $footer, $m);
+        $this->assertContains('توقيع عضو هيئة التدريس المنتدب', $m[1]);
+        $this->assertNotContains('المنتد', $m[1]);
+        $this->assertContains('رئيس القسم', array_map('trim', $m[1]));          // leading spaces kept: original spacing
+        $this->assertContains('يعتمد/ عميد الكلية', array_map('trim', $m[1]));
+        // the captions paragraph is one run; its tab stops are kept
+        preg_match('~<w:p\b(?:(?!<w:p\b).)*?رئيس القسم.*?</w:p>~s', $footer, $p);
+        $this->assertSame(1, substr_count($p[0], '<w:r>') + substr_count($p[0], '<w:r '));
+        $this->assertGreaterThanOrEqual(3, substr_count($p[0], '<w:tab/>'));
+    }
+
+    public function test_schedule_table_rows_use_nine_point_font_and_fixed_widths(): void
+    {
+        $zip = new \ZipArchive;
+        $zip->open(resource_path('forms/kh3-template.docx'));
+        $xml = $zip->getFromName('word/document.xml');
+        $zip->close();
+        $table = substr($xml, strrpos($xml, '<w:tbl>'));
+        foreach (['week_no', 'sum_students'] as $marker) {
+            preg_match('~<w:tr\b(?:(?!<w:tr\b).)*?\$\{'.$marker.'\}.*?</w:tr>~s', $table, $row);
+            $this->assertNotEmpty($row, $marker);
+            $this->assertStringContainsString('<w:sz w:val="18"/>', $row[0]);
+            $this->assertStringContainsString('<w:szCs w:val="18"/>', $row[0]);
+            $this->assertDoesNotMatchRegularExpression('~<w:sz(Cs)? w:val="(?!18")~', $row[0], "$marker row keeps another font size");
+        }
+        preg_match('~<w:tr\b(?:(?!<w:tr\b).)*?\$\{week_no\}.*?</w:tr>~s', $table, $week);
+        $this->assertStringNotContainsString('<w:trHeight', $week[0]);
+        $this->assertStringContainsString('<w:tblLayout w:type="fixed"/>', $table);
+        $this->assertMatchesRegularExpression('~<w:tblCellMar>.*<w:top w:w="20" w:type="dxa"/>.*<w:bottom w:w="20" w:type="dxa"/>.*</w:tblCellMar>~s', $table);
+
+        preg_match('~<w:tblGrid>.*?</w:tblGrid>~s', $table, $grid);
+        preg_match_all('~<w:gridCol w:w="(\d+)"/>~', $grid[0], $cols);
+        $cols = array_map('intval', $cols[1]);
+        $this->assertCount(9, $cols);
+        // XML order = logical order: week no, dates, course, students, theory, practical, field, total, notes
+        foreach ([4 => 'theory', 5 => 'practical', 6 => 'field', 7 => 'total'] as $i => $label) {
+            $this->assertGreaterThanOrEqual(850, $cols[$i], "$label column too narrow");
+        }
+        $this->assertGreaterThanOrEqual(2600, $cols[2], 'course column too narrow');
+        $this->assertLessThanOrEqual(2600, $cols[8], 'notes column too wide');
+        preg_match('~<w:tblW w:w="(\d+)" w:type="dxa"/>~', $table, $w);
+        $this->assertSame((int) $w[1], array_sum($cols));
+        // the week row's cells carry the grid widths
+        preg_match_all('~<w:tcW w:w="(\d+)"~', $week[0], $tcw);
+        $this->assertSame($cols, array_map('intval', $tcw[1]));
+    }
+
+    public function test_writes_sample_filled_document_for_visual_check(): void
+    {
+        $sample = function (string $name, string $civilId): Attestation {
+            $a = $this->attestation($name, $civilId);
+            $a->weeks()->delete();
+            $courses = "الدوائر الكهربائية 7230101\nالرسم الهندسي 7210050";
+            foreach ([[1, '2026-06-07', '2026-06-11', 'أسبوع كامل'],
+                [2, '2026-06-14', '2026-06-18', "الأحد- الاثنين- الأربعاء- الخميس (فقط)\nيوم الثلاثاء 16 يونيو 2026 إجازة رأس السنة الهجرية"],
+                [3, '2026-06-21', '2026-06-25', 'أسبوع كامل'],
+                [4, '2026-06-28', '2026-07-02', 'أسبوع كامل'],
+                [5, '2026-07-05', '2026-07-09', 'أسبوع كامل']] as [$n, $from, $to, $note]) {
+                AttestationWeek::factory()->for($a)->create(['week_number' => $n, 'date_from' => $from, 'date_to' => $to, 'theory_minutes' => 110, 'practical_minutes' => 220, 'field_minutes' => 0,
+                    'student_count' => 31, 'courses_text' => $courses, 'note_ar' => $note]);
+            }
+
+            return $a->fresh()->load('weeks', 'application.instructor', 'application.term');
+        };
+        $b = $sample('يوسف عبدالله كامل العنزي', '290010154321');
+        $a = $sample('أحمد سالم محمد الشمري', '290010112345');
+
+        $path = app(AttestationDocument::class)->combinedDocx(collect([$b, $a]));
+        $target = storage_path('app/private/generated/sample-kh3.docx');
+        File::ensureDirectoryExists(dirname($target));
+        File::move($path, $target);
+
+        $this->assertFileExists($target);
+        $zip = new \ZipArchive;
+        $this->assertTrue($zip->open($target));
+        $xml = $zip->getFromName('word/document.xml');
+        $zip->close();
+        $this->assertSame(2, substr_count($xml, 'استمارة مزاولة فعلية'));
+        $this->assertSame(1, substr_count($xml, '<w:br w:type="page"/>'));
+        $this->assertStringContainsString('>1.83<', $xml);
+        $this->assertStringNotContainsString('${', $xml);
     }
 }

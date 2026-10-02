@@ -113,7 +113,7 @@ final class AttestationGenerator
                 'date_from' => $days[0]->toDateString(),
                 'date_to' => end($days)->toDateString(),
                 'working_days' => array_map(fn (Carbon $d) => $d->toDateString(), $working),
-                'courses_text' => $weekSections->unique('course_code')->sortBy('course_code')->map(fn ($s) => $s->course_name_ar.' ('.$s->course_code.')')->implode("\n"),
+                'courses_text' => $weekSections->unique('course_code')->sortBy('course_code')->map(fn ($s) => $s->course_name_ar.' '.$s->course_code)->implode("\n"),
                 'student_count' => (int) $weekSections->unique('id')->sum(fn ($s) => (int) $s->seats_registered),
                 'theory_minutes' => $minutes['theory'],
                 'practical_minutes' => $minutes['practical'],
