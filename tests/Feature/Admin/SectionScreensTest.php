@@ -56,4 +56,17 @@ class SectionScreensTest extends TestCase
             $this->actingAs($this->admin)->get(route($route, ['term' => $term->id, 'reference' => '99999']))->assertOk()->assertSee(__('app.sections.no_matches'))->assertSee('value="99999"', false);
         }
     }
+
+    public function test_filter_wildcards_are_treated_as_plain_text(): void
+    {
+        $term = Term::factory()->open()->create();
+        Section::factory()->for($term)->create(['course_code' => '7230101', 'course_name_ar' => 'الدوائر الكهربائية', 'reference_number' => '30001', 'scheduled_instructor' => 'سعد فهد']);
+
+        foreach (['admin.sections.index', 'admin.assignments.index'] as $route) {
+            foreach (['reference' => '3%1', 'course' => '72_0101', 'name' => 'الدوائر%الكهربائية', 'instructor' => 'س%د'] as $field => $value) {
+                $this->actingAs($this->admin)->get(route($route, ['term' => $term->id, $field => $value]))
+                    ->assertOk()->assertDontSee('7230101');
+            }
+        }
+    }
 }

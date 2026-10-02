@@ -276,7 +276,12 @@ class AttestationDocumentTest extends TestCase
         $this->assertSame($cols, array_map('intval', $tcw[1]));
     }
 
-    public function test_writes_sample_filled_document_for_visual_check(): void
+    /**
+     * Builds a two-form sample and checks its XML. The output is deleted afterwards unless
+     * KH3_WRITE_SAMPLE=1 is set, in which case it is kept at storage/app/private/generated/sample-kh3.docx
+     * for a visual check (e.g. `KH3_WRITE_SAMPLE=1 php artisan test --filter=sample_filled_document`).
+     */
+    public function test_builds_sample_filled_document_for_visual_check(): void
     {
         $sample = function (string $name, string $civilId): Attestation {
             $a = $this->attestation($name, $civilId);
@@ -297,18 +302,24 @@ class AttestationDocumentTest extends TestCase
         $a = $sample('أحمد سالم محمد الشمري', '290010112345');
 
         $path = app(AttestationDocument::class)->combinedDocx(collect([$b, $a]));
-        $target = storage_path('app/private/generated/sample-kh3.docx');
-        File::ensureDirectoryExists(dirname($target));
-        File::move($path, $target);
 
-        $this->assertFileExists($target);
+        $this->assertFileExists($path);
         $zip = new \ZipArchive;
-        $this->assertTrue($zip->open($target));
+        $this->assertTrue($zip->open($path));
         $xml = $zip->getFromName('word/document.xml');
         $zip->close();
         $this->assertSame(2, substr_count($xml, 'استمارة مزاولة فعلية'));
         $this->assertSame(1, substr_count($xml, '<w:br w:type="page"/>'));
         $this->assertStringContainsString('>1.83<', $xml);
         $this->assertStringNotContainsString('${', $xml);
+
+        if (getenv('KH3_WRITE_SAMPLE') === '1') {
+            $target = storage_path('app/private/generated/sample-kh3.docx');
+            File::ensureDirectoryExists(dirname($target));
+            File::move($path, $target);
+        } else {
+            File::delete($path);
+            $this->assertFileDoesNotExist($path);
+        }
     }
 }

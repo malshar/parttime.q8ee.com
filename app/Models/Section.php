@@ -36,13 +36,20 @@ class Section extends Model
         return $this->hasOne(Assignment::class);
     }
 
-    /** @param  array{reference?: ?string, course?: ?string, name?: ?string, instructor?: ?string}  $f */
+    /**
+     * Admin search. LIKE wildcards (% and _) are stripped from the inputs rather than escaped:
+     * the escape character differs between SQLite and MySQL, and none of the searched values use them.
+     *
+     * @param  array{reference?: ?string, course?: ?string, name?: ?string, instructor?: ?string}  $f
+     */
     public function scopeFilter(Builder $q, array $f): Builder
     {
+        $f = array_map(fn ($v) => is_string($v) ? str_replace(['%', '_'], '', $v) : $v, $f);
+
         return $q
             ->when($f['reference'] ?? null, fn ($q, $v) => $q->where('reference_number', 'like', $v.'%'))
             ->when($f['course'] ?? null, fn ($q, $v) => $q->where('course_code', 'like', $v.'%'))
-            ->when($f['name'] ?? null, fn ($q, $v) => $q->where('course_name_ar', 'like', '%'.str_replace(['%', '_'], ['\%', '\_'], $v).'%'))
+            ->when($f['name'] ?? null, fn ($q, $v) => $q->where('course_name_ar', 'like', '%'.$v.'%'))
             ->when($f['instructor'] ?? null, fn ($q, $v) => $q->where(fn ($w) => $w
                 ->where('scheduled_instructor', 'like', '%'.$v.'%')
                 ->orWhereHas('assignment.application.instructor', fn ($i) => $i->where('full_name', 'like', '%'.$v.'%'))));
