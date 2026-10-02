@@ -40,6 +40,14 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
+            // A guest on a guest form (register, forgot/reset password) goes back to it with the
+            // typed input, minus secrets; every other guest POST goes to the login page.
+            if (! $request->user() && $request->routeIs('register.store', 'password.email', 'password.update')) {
+                return redirect()->back()
+                    ->withInput($request->except(['_token', 'token', 'password', 'password_confirmation']))
+                    ->withErrors(['page_expired' => __('app.common.page_expired')]);
+            }
+
             if (! $request->user()) {
                 return redirect()->route('login')->withErrors(['email' => __('app.auth.session_expired')]);
             }

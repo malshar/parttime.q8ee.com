@@ -46,4 +46,39 @@ class SessionExpiryTest extends TestCase
 
         $r->assertRedirect(route('instructor.home'))->assertSessionHasErrors('page_expired');
     }
+
+    public function test_expired_token_on_the_register_form_returns_to_it_with_the_typed_input(): void
+    {
+        $this->withMiddleware(ValidateCsrfToken::class);
+        $r = $this->from(route('register'))->post(route('register.store'), [
+            '_token' => 'stale', 'name' => 'سارة أحمد', 'email' => 'sara@example.com',
+            'password' => 'secret-pass-1', 'password_confirmation' => 'secret-pass-1',
+        ]);
+
+        $r->assertRedirect(route('register'))->assertSessionHasErrors(['page_expired' => __('app.common.page_expired')]);
+        $old = session('_old_input', []);
+        $this->assertSame('سارة أحمد', $old['name'] ?? null);
+        $this->assertSame('sara@example.com', $old['email'] ?? null);
+        $this->assertArrayNotHasKey('password', $old);
+        $this->assertArrayNotHasKey('password_confirmation', $old);
+        $this->assertArrayNotHasKey('_token', $old);
+        $this->assertGuest();
+    }
+
+    public function test_expired_token_on_the_forgot_password_form_returns_to_it(): void
+    {
+        $this->withMiddleware(ValidateCsrfToken::class);
+        $r = $this->from(route('password.request'))->post(route('password.email'), ['_token' => 'stale', 'email' => 'sara@example.com']);
+
+        $r->assertRedirect(route('password.request'))->assertSessionHasErrors('page_expired');
+        $this->assertSame('sara@example.com', session('_old_input.email'));
+    }
+
+    public function test_expired_token_on_the_login_form_still_goes_to_login(): void
+    {
+        $this->withMiddleware(ValidateCsrfToken::class);
+        $r = $this->from(route('home'))->post(route('login.attempt'), ['_token' => 'stale', 'email' => 'sara@example.com', 'password' => 'x']);
+
+        $r->assertRedirect(route('login'))->assertSessionHasErrors(['email' => __('app.auth.session_expired')]);
+    }
 }
