@@ -348,7 +348,7 @@ class ProfileTest extends TestCase
     {
         $r = $this->actingAs($this->user)->get(route('instructor.profile.edit'))->assertOk();
         $r->assertSee('bootstrap.bundle.min.js"'."\n".'        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"', false);
-        $r->assertSee('<div class="d-flex flex-wrap align-items-center gap-2">', false);
+        $r->assertSee('<div class="d-flex flex-wrap align-items-center gap-2 nav-actions">', false);
     }
 
     public function test_non_sensitive_values_are_retained_after_a_validation_error(): void
