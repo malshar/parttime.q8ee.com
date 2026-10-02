@@ -60,7 +60,7 @@ class ApplicationController extends Controller
         return view('instructor.application', [
             'application' => $application,
             'checklist' => $checklist,
-            'stage1' => array_filter($checklist, fn ($r) => $r['stage'] === 1),
+            'stage1' => array_filter($checklist, fn ($r) => $r['stage'] === 1 && ! $r['optional']),
             'stage2' => array_filter($checklist, fn ($r) => $r['stage'] === 2 || $r['optional']),
             'plan' => $this->workflow->plan($application),
             'canSubmit' => $application->isEditable() && $this->workflow->allRequiredUploaded($application),

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Mail\ApplicationApproved;
 use App\Models\Application;
 use App\Models\ChecklistExemption;
+use App\Models\ChecklistItem;
 use App\Models\Document;
 use App\Models\Instructor;
 use App\Models\Term;
@@ -66,6 +67,15 @@ class StagePagesTest extends TestCase
         }
         $this->actingAs($this->user)->get(route('instructor.applications.show', $this->application))->assertOk()
             ->assertSee(__('app.applications.stage2_complete'))->assertDontSee(route('instructor.salary.update'));
+    }
+
+    public function test_optional_stage_one_item_renders_only_once_on_the_instructor_page(): void
+    {
+        ChecklistItem::where('code', 'transcript_master')->update(['optional' => true]);
+
+        $r = $this->actingAs($this->user)->get(route('instructor.applications.show', $this->application))->assertOk();
+
+        $this->assertSame(1, substr_count($r->getContent(), 'كشف درجات الماجستير'));
     }
 
     public function test_admin_page_shows_exemption_forms_badges_and_decision_messages(): void

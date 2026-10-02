@@ -134,3 +134,28 @@ the admin and signed on paper; there is no instructor confirmation step.
   Bootstrap JS, wrapping navbar, LIKE wildcards stripped from filters, sample
   (خ-3) written only with `KH3_WRITE_SAMPLE=1`. `php artisan test` green
   (286 passed, 1 skipped). Deploy pending.
+- 2026-10-03 — milestone 5b (two-stage documents) on branch
+  `milestone-5b-two-stage`, Tasks 1-9, covering feedback items 4, 6, 7, 12,
+  13: checklist items carry stage/exemptable/official flags, a
+  `checklist_exemptions` table and multi-part documents (schema);
+  `ApplicationWorkflow::checklist()` orders stage-1 rows before stage-2 and
+  optional rows; submission and committee completion gate on stage-1 rows
+  only, with stage-2 readiness (documents plus salary) tracked separately;
+  an applicant may request an exemption from an exemptable stage-1 item
+  instead of uploading it, decided by the admin; stage-2 documents (salary
+  certificate, IBAN letter, employer approval, undertaking) are uploaded and
+  reviewed only after committee approval; `basic_salary`/`total_salary` are
+  optional at profile save and collected after approval via `PUT my/salary`;
+  an upload may carry several files stored as parts of one document
+  version; (خ-3) attestation generation is gated on stage 2, with a
+  dashboard group and an attestation-page waiting list for instructors not
+  yet there; the instructor and admin application pages show two sections
+  (stage 1 / stage 2) and the approval mail lists outstanding stage-2 items;
+  Task 9 (parked items, deploy notes, docs): `submit()` now locks the term
+  row for its guards and status update, `degree_country` validates against
+  the same country list as `nationality` (`Rule::in`, dropping `size:2`/
+  `alpha`), an optional stage-1 item can no longer render on both stage
+  tables on either application page, and deploy/test hardenings
+  (`DEPLOY.md` PHP-FPM upload-limit note, docx table-cell-count assertion,
+  admin-name assertion). `php artisan test` green (342 passed, 1 skipped).
+  Deploy pending.

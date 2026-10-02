@@ -120,6 +120,12 @@ encrypted instructor fields (see `SESSION_ENCRYPT=true` and the encrypted
 Instructor columns) are unreadable if it's lost or rotated. Back it up (e.g.
 in a password manager) immediately after `key:generate`.
 
+Multi-file uploads (5b): PHP-FPM must allow 10 files × 10 MB per request.
+Check `/etc/php/8.4/fpm/php.ini`: `upload_max_filesize = 10M`,
+`post_max_size = 110M`, `max_file_uploads = 20`; then
+`systemctl reload php8.4-fpm`. Deploy = `./deploy/deploy.sh` (four
+migrations, seeder re-run).
+
 ## 5. Migrate + seed
 
 ```bash

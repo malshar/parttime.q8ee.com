@@ -273,6 +273,7 @@ class AttestationDocumentTest extends TestCase
         $this->assertSame((int) $w[1], array_sum($cols));
         // the week row's cells carry the grid widths
         preg_match_all('~<w:tcW w:w="(\d+)"~', $week[0], $tcw);
+        $this->assertCount(9, $tcw[1]);
         $this->assertSame($cols, array_map('intval', $tcw[1]));
     }
 

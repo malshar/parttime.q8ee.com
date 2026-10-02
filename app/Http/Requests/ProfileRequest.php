@@ -32,7 +32,7 @@ class ProfileRequest extends FormRequest
             'job_title' => ['required', 'string', 'max:120'],
             'highest_degree' => ['required', Rule::in(Instructor::DEGREES)],
             'degree_title' => ['required', 'string', 'max:150'],
-            'degree_country' => ['required', 'string', 'size:2', 'alpha'],
+            'degree_country' => ['required', 'string', Rule::in(array_keys(__('app.countries')))],
             'degree_obtained_on' => ['required', 'date', 'before_or_equal:today'],
             'experience_years' => ['nullable', 'integer', 'min:0', 'max:60', Rule::requiredIf(fn () => $this->highest_degree === 'bachelor')],
             'bank_choice' => ['required', 'string', 'max:120', Rule::in([...array_keys(KuwaitLists::BANKS), 'other'])],

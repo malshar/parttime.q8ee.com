@@ -45,7 +45,7 @@ class ApplicationController extends Controller
             'application' => $application,
             'instructor' => $application->instructor,
             'checklist' => $checklist,
-            'stage1' => array_filter($checklist, fn ($r) => $r['stage'] === 1),
+            'stage1' => array_filter($checklist, fn ($r) => $r['stage'] === 1 && ! $r['optional']),
             'stage2' => array_filter($checklist, fn ($r) => $r['stage'] === 2 || $r['optional']),
             'plan' => $this->workflow->plan($application),
             'sections' => $application->sections()->with('meetings')->get(),

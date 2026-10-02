@@ -244,6 +244,7 @@ class ReviewTest extends TestCase
         $r = $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))->assertOk();
 
         $r->assertSee(__('app.auth.roles.admin'));
+        $r->assertSee($this->admin->name);
         $r->assertSee('mailto:'.$this->instructorUser->email, false);
         $r->assertSee($this->instructorUser->email);
     }

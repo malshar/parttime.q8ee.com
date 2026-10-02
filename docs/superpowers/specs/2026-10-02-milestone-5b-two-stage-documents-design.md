@@ -124,6 +124,10 @@ cleared), so the history lives in the audit log, not in rows.
 No schema change. `basic_salary` and `total_salary` are already nullable
 encrypted columns; only validation changes (section 6).
 
+Correction (Task 9 review): the columns were not already nullable — the
+migration `2026_10_03_100003_make_salary_nullable_on_instructors_table`
+made them so.
+
 ## 4. Checklist derivation
 
 `ApplicationWorkflow::checklist()` returns one row per applicable applicant

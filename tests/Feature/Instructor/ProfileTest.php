@@ -315,6 +315,15 @@ class ProfileTest extends TestCase
         $this->assertSame(__('app.countries.XB'), $this->user->instructor->fresh()->nationalityLabel());
     }
 
+    public function test_degree_country_must_be_in_the_list(): void
+    {
+        $this->actingAs($this->user)->put(route('instructor.profile.update'), self::payload(['degree_country' => 'ZQ']))
+            ->assertSessionHasErrors('degree_country');
+
+        $this->actingAs($this->user)->put(route('instructor.profile.update'), self::payload(['degree_country' => 'KW']))
+            ->assertSessionHasNoErrors();
+    }
+
     public function test_validation_errors_use_the_translated_field_names(): void
     {
         $this->actingAs($this->user)->put(route('instructor.profile.update'), self::payload([

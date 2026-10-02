@@ -56,6 +56,24 @@ class SubmitTest extends TestCase
         Mail::assertNothingSent();
     }
 
+    public function test_submit_on_a_term_closed_meanwhile_is_refused(): void
+    {
+        // The HTTP route also denies this scenario earlier, via ApplicationPolicy::update()
+        // (pre-existing, checks isEditable() too) — that yields a 403, not this flash message.
+        // This test exercises the workflow's own lock-protected guard directly (brief Step 1).
+        $this->uploadAll();
+        $this->application->term->update(['status' => Term::STATUS_CLOSED]);
+
+        try {
+            app(ApplicationWorkflow::class)->submit($this->application->fresh());
+            $this->fail('Expected a DomainException.');
+        } catch (\DomainException $e) {
+            $this->assertSame(__('app.applications.term_closed'), $e->getMessage());
+        }
+        $this->assertSame(Application::STATUS_DRAFT, $this->application->fresh()->status);
+        Mail::assertNothingSent();
+    }
+
     public function test_submit_sets_status_and_mails_admin(): void
     {
         $this->uploadAll();

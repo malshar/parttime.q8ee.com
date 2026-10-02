@@ -245,15 +245,22 @@ class ApplicationWorkflow
         return $missing;
     }
 
+    /**
+     * Parked item: the term row is locked for the guards and the status update, so a
+     * closeTerm() committing in the same instant cannot interleave with a submission.
+     */
     public function submit(Application $application): void
     {
-        if (! $application->isEditable()) {
-            throw new \DomainException(__('app.applications.term_closed'));
-        }
-        if (! $this->allRequiredUploaded($application)) {
-            throw new \DomainException(__('app.applications.submit_blocked'));
-        }
-        $application->update(['status' => Application::STATUS_SUBMITTED, 'submitted_at' => now()]);
+        DB::transaction(function () use ($application) {
+            $term = Term::whereKey($application->term_id)->lockForUpdate()->firstOrFail();
+            if (! $term->isOpen() || ! $application->isEditable()) {
+                throw new \DomainException(__('app.applications.term_closed'));
+            }
+            if (! $this->allRequiredUploaded($application)) {
+                throw new \DomainException(__('app.applications.submit_blocked'));
+            }
+            $application->update(['status' => Application::STATUS_SUBMITTED, 'submitted_at' => now()]);
+        });
         $this->notifyAdmin($application);
     }
 

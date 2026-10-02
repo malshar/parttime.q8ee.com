@@ -32,7 +32,29 @@
 > student count prints on (خ-3). 5a covers feedback items
 > 1–3, 5, 8–11 and 14–18; items 4, 6, 7, 12 and 13 (two-stage documents,
 > transcript with exemptions, salary timing, multi-file upload) are
-> milestone 5b.** The (خ-3)
+> milestone 5b.** **Milestone 5b (two-stage documents, branch
+> `milestone-5b-two-stage`) is implemented, Tasks 1–9: checklist items carry
+> stage/exemptable/official flags plus a `checklist_exemptions` table and
+> multi-part documents; `ApplicationWorkflow::checklist()` orders stage-1
+> rows before stage-2 and optional rows; submission and committee completion
+> gate on stage-1 rows only, with stage-2 readiness (documents plus salary)
+> tracked separately; an applicant may request an exemption from an
+> exemptable stage-1 item instead of uploading it, decided by the admin;
+> stage-2 documents (salary certificate, IBAN letter, employer approval,
+> undertaking) are uploaded and reviewed only after committee approval;
+> `basic_salary`/`total_salary` are optional at profile save and collected
+> after approval via `PUT my/salary`; an upload may carry several files
+> stored as parts of one document version; (خ-3) attestation generation is
+> gated on stage 2, with a dashboard group and an attestation-page waiting
+> list for instructors not yet there; the instructor and admin application
+> pages show two sections (stage 1 / stage 2) and the approval mail lists
+> outstanding stage-2 items; parked items (Task 9): `submit()` now locks the
+> term row for its guards and status update, `degree_country` validates
+> against the same country list as `nationality`, and deploy/test
+> hardenings. Deploy note: `./deploy/deploy.sh` runs four migrations
+> (checklist stage flags, `checklist_exemptions`, `documents.part`, nullable
+> salary columns) and the `ChecklistItemSeeder` re-run; afterwards check
+> PHP-FPM's upload limits (`deploy/DEPLOY.md` §4).** The (خ-3)
 > Word template is `resources/forms/kh3-template.docx`, rebuilt by
 > `scripts/build-kh3-template.py` from the official blank form. Design:
 > `docs/superpowers/specs/2026-09-28-parttime-system-design.md` (milestone 1),
@@ -139,7 +161,14 @@ Also deployed 2026-10-02: the civil-ID check-digit fix (PACI weights
 never block submission/completion, not printed on the Check List) and the
 compact responsive profile form (`resources/views/instructor/_profile_fields.blade.php`,
 shared by the instructor and admin pages).
-Next: re-export and re-import the term's jadawil timetable (v2.4.13 or later,
-with seat columns `الحد الأقصى`, `مسجلة`, `متبقية`) so the student count
-prints on (خ-3). Then milestone 5b (two-stage documents, transcript with
-exemptions, salary timing, multi-file upload, parked minors).
+Milestone 5b (two-stage documents, transcript with exemptions, salary
+timing, multi-file upload, parked minors) is implemented on branch
+`milestone-5b-two-stage`, Tasks 1–9.
+
+Next: deploy milestone 5b (`./deploy/deploy.sh`, four migrations and the
+seeder re-run), then check PHP-FPM's upload limits (`deploy/DEPLOY.md` §4:
+`upload_max_filesize = 10M`, `post_max_size = 110M`,
+`max_file_uploads = 20`, reload `php8.4-fpm`). Then the first real
+applicants, and re-export/re-import the term's jadawil timetable
+(v2.4.13 or later, with seat columns `الحد الأقصى`, `مسجلة`, `متبقية`)
+so the student count prints on (خ-3).
