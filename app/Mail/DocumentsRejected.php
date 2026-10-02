@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Application;
+use App\Models\ChecklistExemption;
 use App\Models\ChecklistItem;
 use App\Models\ChecklistRenewal;
 use App\Models\Document;
@@ -13,7 +14,7 @@ use Illuminate\Mail\Mailables\Envelope;
 class DocumentsRejected extends Mailable
 {
     /**
-     * @param  array<int, array{item: ChecklistItem, document: ?Document, state: string, source: ?Document, renewal: ?ChecklistRenewal}>  $rows
+     * @param  array<int, array{item: ChecklistItem, document: ?Document, state: string, source: ?Document, renewal: ?ChecklistRenewal, exemption: ?ChecklistExemption}>  $rows
      */
     public function __construct(public Application $application, public array $rows) {}
 

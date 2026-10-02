@@ -127,6 +127,16 @@ return [
         'on_file_from' => 'On file from :term', 'newer_copy' => 'Upload a newer copy (optional)',
         'optional' => 'Optional',
     ],
+    'exemptions' => [
+        'request' => 'Request exemption', 'reason' => 'Exemption reason', 'requested' => 'Your exemption request has been sent; the department will decide.',
+        'pending' => 'Exemption requested', 'accepted' => 'Exemption accepted', 'rejected' => 'Exemption rejected',
+        'rejected_line' => 'Exemption rejected: :note',
+        'decision_note' => 'Rejection reason', 'accept' => 'Accept exemption', 'reject' => 'Reject exemption',
+        'decided' => 'The exemption decision has been recorded.',
+        'cannot_request' => 'An exemption cannot be requested for this item in its current state.',
+        'cannot_decide' => 'The exemption request cannot be decided in its current state.',
+        'applicant_reason' => "Applicant's reason",
+    ],
     'review' => [
         'attention' => 'Needs attention', 'applications' => 'Applications', 'no_attention' => 'No applications are awaiting review.',
         'applicant' => 'Applicant', 'term' => 'Term', 'submitted_at' => 'Submitted on', 'open' => 'Open',

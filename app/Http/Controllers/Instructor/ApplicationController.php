@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Instructor;
 
 use App\Exceptions\TermClosedException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ExemptionRequest;
 use App\Models\Application;
+use App\Models\ChecklistItem;
 use App\Models\Term;
 use App\Services\ApplicationWorkflow;
 use Illuminate\Http\RedirectResponse;
@@ -80,5 +82,17 @@ class ApplicationController extends Controller
         $this->workflow->withdraw($application);
 
         return redirect()->route('instructor.home')->with('status', __('app.applications.withdrawn'));
+    }
+
+    public function requestExemption(ExemptionRequest $request, Application $application, ChecklistItem $item): RedirectResponse
+    {
+        $this->authorize('requestExemption', [$application, $item]);
+        try {
+            $this->workflow->requestExemption($application, $item, $request->reason);
+        } catch (\DomainException $e) {
+            return back()->withErrors(['exemption' => $e->getMessage()]);
+        }
+
+        return redirect()->route('instructor.applications.show', $application)->with('status', __('app.exemptions.requested'));
     }
 }

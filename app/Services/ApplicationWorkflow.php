@@ -297,14 +297,21 @@ class ApplicationWorkflow
 
     private function needsNotice(array $row): bool
     {
-        return $row['state'] === Document::STATUS_REJECTED || ($row['renewal'] !== null && $row['document'] === null);
+        return $row['state'] === Document::STATUS_REJECTED
+            || ($row['renewal'] !== null && $row['document'] === null)
+            || ($row['document'] === null && $row['exemption']?->status === ChecklistExemption::STATUS_REJECTED);
     }
 
     private function noticeSent(array $row): bool
     {
-        return $row['state'] === Document::STATUS_REJECTED
-            ? $row['document']->notified_at !== null
-            : $row['renewal']->notified_at !== null;
+        if ($row['state'] === Document::STATUS_REJECTED) {
+            return $row['document']->notified_at !== null;
+        }
+        if ($row['renewal'] !== null) {
+            return $row['renewal']->notified_at !== null;
+        }
+
+        return $row['exemption']->notified_at !== null;
     }
 
     public function notifyRejections(Application $application, User $admin): int
@@ -317,12 +324,52 @@ class ApplicationWorkflow
         }
         $rows = array_values(array_filter($this->checklist($application), fn ($row) => $this->needsNotice($row)));
         foreach ($rows as $row) {
-            ($row['state'] === Document::STATUS_REJECTED ? $row['document'] : $row['renewal'])->update(['notified_at' => now()]);
+            $target = $row['state'] === Document::STATUS_REJECTED ? $row['document'] : ($row['renewal'] ?? $row['exemption']);
+            $target->update(['notified_at' => now()]);
         }
         AuditLog::record($admin->id, 'notify_rejections', $application);
         $this->safeSend($application->instructor->user->email, new DocumentsRejected($application, $rows));
 
         return count($rows);
+    }
+
+    /** Spec 5b §6: the applicant asks to be exempted from an exemptable stage-1 item instead of uploading it. */
+    public function requestExemption(Application $application, ChecklistItem $item, string $reason): void
+    {
+        $row = $this->checklist($application)[$item->code] ?? null;
+        if ($row === null || $row['document'] !== null || in_array($row['state'], [self::STATE_EXEMPTION_REQUESTED, self::STATE_EXEMPTED], true)) {
+            throw new \DomainException(__('app.exemptions.cannot_request'));
+        }
+
+        DB::transaction(function () use ($application, $item, $reason) {
+            ChecklistExemption::updateOrCreate(
+                ['application_id' => $application->id, 'checklist_item_id' => $item->id],
+                ['reason' => $reason, 'requested_at' => now(), 'status' => ChecklistExemption::STATUS_PENDING,
+                    'decided_by' => null, 'decided_at' => null, 'decision_note' => null, 'notified_at' => null],
+            );
+            AuditLog::record($application->instructor->user_id, 'request_exemption', $application, null, $item->code);
+        });
+    }
+
+    /** Spec 5b §6: the admin accepts or rejects a pending exemption; a rejection sends the file back to the applicant. */
+    public function decideExemption(ChecklistExemption $exemption, User $admin, string $status, ?string $note): void
+    {
+        $application = $exemption->application;
+        if (! $application->term->isOpen()) {
+            throw new \DomainException(__('app.applications.term_closed'));
+        }
+        if (! $exemption->isPending() || ! in_array($application->status, Application::REVIEWABLE_STATUSES, true)) {
+            throw new \DomainException(__('app.exemptions.cannot_decide'));
+        }
+
+        DB::transaction(function () use ($exemption, $application, $admin, $status, $note) {
+            $exemption->update(['status' => $status, 'decided_by' => $admin->id, 'decided_at' => now(),
+                'decision_note' => $status === ChecklistExemption::STATUS_REJECTED ? $note : null, 'notified_at' => null]);
+            AuditLog::record($admin->id, 'exemption_'.$status, $application, null, $exemption->item->code);
+            if ($status === ChecklistExemption::STATUS_REJECTED) {
+                $application->update(['status' => Application::STATUS_INCOMPLETE, 'complete_at' => null, 'reviewed_at' => $application->reviewed_at ?? now()]);
+            }
+        });
     }
 
     /** Spec §4.4: an admin demands a fresh copy of an on-file item. */

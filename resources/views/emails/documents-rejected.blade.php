@@ -9,6 +9,8 @@
                     — {{ $row['document']->rejection_reason }}
                 @elseif ($row['renewal'])
                     — {{ __('app.documents.renewal_requested', ['reason' => $row['renewal']->reason], 'ar') }}
+                @elseif ($row['exemption']?->status === 'rejected')
+                    — {{ __('app.exemptions.rejected_line', ['note' => $row['exemption']->decision_note], 'ar') }}
                 @endif
             </li>
         @endforeach

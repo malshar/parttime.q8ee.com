@@ -49,6 +49,7 @@ Route::middleware(['auth', 'verified', 'role:instructor'])->prefix('my')->name('
     Route::post('applications/{application}/withdraw', [InstructorApplicationController::class, 'withdraw'])->name('applications.withdraw');
     Route::post('applications/{application}/documents/{item:code}', [InstructorDocumentController::class, 'store'])->name('documents.store')->withoutScopedBindings();
     Route::get('documents/{document}', [InstructorDocumentController::class, 'download'])->name('documents.download');
+    Route::post('applications/{application}/exemptions/{item:code}', [InstructorApplicationController::class, 'requestExemption'])->name('exemptions.store')->withoutScopedBindings();
 });
 
 // Admin area.
@@ -69,6 +70,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('applications/{application}/complete', [AdminApplicationController::class, 'complete'])->name('applications.complete');
     Route::post('applications/{application}/renewals/{item:code}', [AdminApplicationController::class, 'requestFreshCopy'])->name('applications.renewals.store')->withoutScopedBindings();
     Route::post('applications/{application}/notify-rejections', [AdminApplicationController::class, 'notifyRejections'])->name('applications.notify_rejections');
+    Route::post('exemptions/{exemption}/decide', [AdminApplicationController::class, 'decideExemption'])->name('exemptions.decide');
     Route::post('applications/{application}/committee', [AdminApplicationController::class, 'committee'])->name('applications.committee');
     Route::post('applications/{application}/reopen', [AdminApplicationController::class, 'reopen'])->name('applications.reopen');
     Route::post('applications/{application}/decision', [AdminApplicationController::class, 'decision'])->name('applications.decision');

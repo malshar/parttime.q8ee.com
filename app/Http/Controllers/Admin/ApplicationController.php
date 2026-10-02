@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CommitteeDecisionRequest;
+use App\Http\Requests\DecideExemptionRequest;
 use App\Models\Application;
 use App\Models\AuditLog;
+use App\Models\ChecklistExemption;
 use App\Models\ChecklistItem;
 use App\Models\Term;
 use App\Services\ApplicationWorkflow;
@@ -137,6 +139,18 @@ class ApplicationController extends Controller
         AuditLog::record($request->user()->id, 'set_decision', $application);
 
         return back()->with('status', __('app.review.decision_saved'));
+    }
+
+    public function decideExemption(DecideExemptionRequest $request, ChecklistExemption $exemption): RedirectResponse
+    {
+        $this->authorize('review', $exemption->application);
+        try {
+            $this->workflow->decideExemption($exemption, $request->user(), $request->status, $request->decision_note);
+        } catch (\DomainException $e) {
+            return back()->withErrors(['exemption' => $e->getMessage()]);
+        }
+
+        return back()->with('status', __('app.exemptions.decided'));
     }
 
     public function checklist(Request $request, Application $application, ChecklistDocument $doc): BinaryFileResponse
