@@ -1,4 +1,4 @@
-@if ($application->isEditable())
+@if ($application->isEditable() || ($application->acceptsStageTwoUploads() && ($item->isStageTwo() || $item->optional)))
 <form method="post" action="{{ route('instructor.documents.store', [$application, $item->code]) }}" enctype="multipart/form-data" class="d-flex gap-2 align-items-center">
     @csrf
     <input type="file" name="file" class="form-control form-control-sm" accept=".pdf,.jpg,.jpeg,.png,.docx" required>

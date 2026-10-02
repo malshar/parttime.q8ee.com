@@ -127,9 +127,12 @@ class ReviewTest extends TestCase
 
     public function test_document_review_refused_on_final_application(): void
     {
+        // degree is a stage-1 item (5b): a stage-2 item (e.g. iban) is now reviewable while
+        // approved (see ApprovedPhaseTest), so this generic final-application refusal must use
+        // a stage-1 item to stay meaningful.
         $this->acceptAll();
         $this->application->update(['status' => Application::STATUS_APPROVED, 'decided_at' => now()]);
-        $doc = $this->application->latestDocuments()->get('iban');
+        $doc = $this->application->latestDocuments()->get('degree');
 
         $this->actingAs($this->admin)->post(route('admin.documents.review', $doc), ['status' => 'rejected', 'reason' => 'x'])
             ->assertSessionHasErrors('review');

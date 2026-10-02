@@ -18,9 +18,19 @@ class DocumentPolicy
     /** Called as: $user->can('create', [Document::class, $application, $item]) */
     public function create(User $user, Application $application, ChecklistItem $item): bool
     {
-        return $this->owns($user, $application)
-            && $application->isEditable()
-            && app(ChecklistResolver::class)->for($application->instructor)->isUploadable($item->code);
+        if (! $this->owns($user, $application)) {
+            return false;
+        }
+        $plan = app(ChecklistResolver::class)->for($application->instructor);
+        if (! $plan->isUploadable($item->code)) {
+            return false;
+        }
+        if ($application->isEditable()) {
+            return true;
+        }
+
+        // Spec 5b §5: after approval only stage-2 (and optional) items may still be uploaded.
+        return $application->acceptsStageTwoUploads() && ($item->isStageTwo() || $item->optional);
     }
 
     public function review(User $user, Document $document): bool

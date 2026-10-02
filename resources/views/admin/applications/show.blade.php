@@ -79,7 +79,7 @@
 
 {{-- 2. Checklist --}}
 <h2 class="h6">{{ __('app.review.checklist') }}</h2>
-@if ($pendingNotices !== [] && $termOpen && ! $application->isFinal())
+@if ($pendingNotices !== [] && $termOpen)
     <form method="post" action="{{ route('admin.applications.notify_rejections', $application) }}" class="mb-2">
         @csrf
         <button type="submit" class="btn btn-warning btn-sm">{{ __('app.review.notify_rejections') }} ({{ count($pendingNotices) }})</button>
@@ -134,7 +134,7 @@
                     @endif
                 </td>
                 <td>
-                    @if ($document && ! $application->isFinal() && $termOpen)
+                    @if ($document && $termOpen && (! $application->isFinal() || ($application->status === \App\Models\Application::STATUS_APPROVED && ($item->isStageTwo() || $item->optional))))
                         <div class="d-flex gap-2 align-items-start flex-wrap">
                             <form method="post" action="{{ route('admin.documents.review', $document) }}">
                                 @csrf
@@ -148,7 +148,7 @@
                                 <button type="submit" class="btn btn-sm btn-outline-danger text-nowrap">{{ __('app.documents.reject') }}</button>
                             </form>
                         </div>
-                    @elseif ($row['state'] === 'on_file' && $termOpen && in_array($application->status, \App\Models\Application::UNFINISHED_STATUSES, true))
+                    @elseif ($row['state'] === 'on_file' && $termOpen && (in_array($application->status, \App\Models\Application::UNFINISHED_STATUSES, true) || ($application->status === \App\Models\Application::STATUS_APPROVED && $item->isStageTwo())))
                         <form method="post" action="{{ route('admin.applications.renewals.store', [$application, $item->code]) }}" class="d-flex gap-1">
                             @csrf
                             <input type="text" name="reason" class="form-control form-control-sm" placeholder="{{ __('app.review.fresh_copy_reason') }}" maxlength="500" required>

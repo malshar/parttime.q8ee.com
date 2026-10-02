@@ -265,7 +265,10 @@ class ApplicationWorkflow
 
     public function reviewDocument(Document $document, User $admin, string $status, ?string $reason): void
     {
-        if ($document->application->isFinal()) {
+        $application = $document->application;
+        $stageTwoReview = $application->status === Application::STATUS_APPROVED
+            && ($document->checklistItem->isStageTwo() || $document->checklistItem->optional);
+        if ($application->isFinal() && ! $stageTwoReview) {
             throw new \DomainException(__('app.review.already_final'));
         }
         if (! $document->application->term->isOpen()) {
@@ -378,7 +381,8 @@ class ApplicationWorkflow
         if (! $application->term->isOpen()) {
             throw new \DomainException(__('app.applications.term_closed'));
         }
-        if (! in_array($application->status, Application::UNFINISHED_STATUSES, true)) {
+        $approvedStageTwo = $application->status === Application::STATUS_APPROVED && $item->isStageTwo();
+        if (! in_array($application->status, Application::UNFINISHED_STATUSES, true) && ! $approvedStageTwo) {
             throw new \DomainException(__('app.review.fresh_copy_wrong_status'));
         }
         $row = $this->checklist($application)[$item->code] ?? null;
@@ -386,12 +390,14 @@ class ApplicationWorkflow
             throw new \DomainException(__('app.review.fresh_copy_wrong_state'));
         }
 
-        DB::transaction(function () use ($application, $item, $admin, $reason) {
+        DB::transaction(function () use ($application, $item, $admin, $reason, $approvedStageTwo) {
             ChecklistRenewal::updateOrCreate(
                 ['application_id' => $application->id, 'checklist_item_id' => $item->id],
                 ['reason' => $reason, 'requested_by' => $admin->id, 'requested_at' => now(), 'notified_at' => null],
             );
-            $application->update(['status' => Application::STATUS_INCOMPLETE, 'complete_at' => null, 'reviewed_at' => $application->reviewed_at ?? now()]);
+            if (! $approvedStageTwo) {
+                $application->update(['status' => Application::STATUS_INCOMPLETE, 'complete_at' => null, 'reviewed_at' => $application->reviewed_at ?? now()]);
+            }
             AuditLog::record($admin->id, 'request_fresh_copy', $application, null, $item->code);
         });
     }
