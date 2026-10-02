@@ -1,39 +1,42 @@
 # CLAUDE.md — parttime.q8ee.com (المنتدبون / Part-timers & Interns Management)
 
-> **Status (2026-09-30): live at https://parttime.q8ee.com — milestones 1
-> and 2 merged on `main` and deployed (first deploy 2026-09-30).** Laravel 12
-> app (`php artisan test` green, 250 tests on branch
-> `milestone-4-term-close-on-file`). Milestone 1 (intake)
-> shipped first; milestone 2 adds: the `complete` application status with a
-> three-group attention list, a committee decision step (replacing direct
-> approve/reject) with a consolidated rejection notice, reopening of
-> withdrawn applications, audited admin profile edits (new
-> `audit_log.details` column), a sections/meetings/assignments schema, an
-> importer for the term's timetable exported from **jadawil** (CSV or XLSX,
-> parsed with `phpoffice/phpspreadsheet`) at `/admin/sections/import`, the
-> section list at `/admin/sections`, and instructor-to-section assignment at
-> `/admin/assignments` with dashboard alerts. **Milestone 3 (monthly (خ-3)
-> attestation: generator, admin screens at `/admin/attestations`, Word/PDF
-> and combined PDF via LibreOffice) is merged on `main` and deployed
-> (2026-09-30).**
-> **Milestone 4 is implemented on branch `milestone-4-term-close-on-file`:
-> term close rules (closing refuses unfinished applications, withdraws
-> drafts; the unused `archived` term status is removed from the code), on-file documents (accepted documents from
-> earlier applications count, with admin requests for a fresh copy; a copy
-> stops counting once a profile field it certifies changes after it was
-> accepted, read from the `edit_profile`/`admin_edit_profile` audit rows,
-> which carry field names only), and
-> the parked attestation fixes (locked saves refusing stale forms,
-> regenerate refused without assignments, nested placeholder markers,
-> converter working directory and leftovers, the last-day line on a
-> Friday/Saturday 1st of month, no underline in the note cell); deploy
-> pending.** The (خ-3) Word template is
-> `resources/forms/kh3-template.docx`, rebuilt by
+> **Status (2026-10-02): live at https://parttime.q8ee.com — milestones 1–4
+> merged on `main` and deployed.** Laravel 12 app (`php artisan test` green,
+> 271 tests passed, 1 skipped, on main). Milestone 1 (intake) shipped first;
+> milestone 2 adds: the `complete` application status with a three-group
+> attention list, a committee decision step (replacing direct approve/reject)
+> with a consolidated rejection notice, reopening of withdrawn applications,
+> audited admin profile edits (new `audit_log.details` column),
+> a sections/meetings/assignments schema, an importer for the term's timetable
+> exported from **jadawil** (CSV or XLSX, parsed with `phpoffice/phpspreadsheet`)
+> at `/admin/sections/import`, the section list at `/admin/sections`, and
+> instructor-to-section assignment at `/admin/assignments` with dashboard
+> alerts. Milestone 3 (monthly (خ-3) attestation: generator, admin screens at
+> `/admin/attestations`, Word/PDF and combined PDF via LibreOffice) is merged
+> and deployed. Milestone 4 (term close rules, on-file documents, attestation
+> fixes) is merged and deployed. **Milestone 5a (feedback round, branch
+> `milestone-5a-feedback`) is implemented, Tasks 1–5: (1) the (خ-3) template
+> fits one page per instructor with 9 pt table rows, fixed column widths, and
+> the footer caption "المنتدب" merged into one run, course lines as "name
+> code"; (2) nationality, employer and bank are lists via `App\Support\KuwaitLists`
+> (38 government agencies plus private sector / other, 15 banks keyed by IBAN
+> with IBAN pre-selecting the bank), profile forms keep non-sensitive values
+> after errors; (3) expired sessions redirect to login with a message, header
+> shows user name and role, admin application page shows applicant email,
+> documents open in in-page pop-ups for PDFs and images; (4) sections and
+> assignments tables show and sort by reference number with filters by
+> reference, course, name and instructor; (5) jadawil (v2.4.13+) timetable
+> export includes seat columns `الحد الأقصى`, `مسجلة`, `متبقية`, this app's
+> importer reads them — re-export and re-import after both deploys so the
+> student count prints on (خ-3). Deploy pending; all feedback items are
+> covered in 5a, remaining items (two-stage documents, transcript with
+> exemptions, salary timing, multi-file upload) are milestone 5b.** The (خ-3)
+> Word template is `resources/forms/kh3-template.docx`, rebuilt by
 > `scripts/build-kh3-template.py` from the official blank form. Design:
-> `docs/superpowers/specs/2026-09-28-parttime-system-design.md` (milestone 1)
-> and `docs/superpowers/specs/2026-09-29-milestone-2-assignment-design.md`
-> (milestone 2) and `docs/superpowers/specs/2026-09-30-milestone-3-attestation-design.md`
-> (milestone 3) and `docs/superpowers/specs/2026-09-30-milestone-4-term-close-on-file-design.md`
+> `docs/superpowers/specs/2026-09-28-parttime-system-design.md` (milestone 1),
+> `docs/superpowers/specs/2026-09-29-milestone-2-assignment-design.md`
+> (milestone 2), `docs/superpowers/specs/2026-09-30-milestone-3-attestation-design.md`
+> (milestone 3), `docs/superpowers/specs/2026-09-30-milestone-4-term-close-on-file-design.md`
 > (milestone 4); final reviews with rulings and deferred minors are in
 > `docs/superpowers/reviews/`. Deploy scripts/docs are in `deploy/` (`deploy/DEPLOY.md` for
 > the server setup as done on 2026-09-30, `./deploy/deploy.sh` for routine
@@ -125,10 +128,10 @@ Pick per scope. Arabic-first, RTL, complete translation coverage from day one.
 
 ## Next step
 
-Milestones 1-3 are live — see the status header above. Next: merge and
-deploy milestone 4 with `./deploy/deploy.sh` (one new migration,
-`checklist_renewals`; run the pre-deploy check in `deploy/DEPLOY.md`,
-"Milestone 4: deploy note", first), then the remaining post-deploy checks:
-the milestone 3 PDF visual check if not done yet (`deploy/DEPLOY.md`,
-"Milestone 3: PDF export") and the items under "After the first deploy"
-(browser checks, admin password, jadawil import).
+Milestones 1–4 are deployed and live. Milestone 5a (feedback round) is on
+branch `milestone-5a-feedback`; next: deploy it with `./deploy/deploy.sh`,
+then re-export and re-import the term's jadawil timetable (v2.4.13 or later,
+with seat columns `الحد الأقصى`, `مسجلة`, `متبقية`) so the student count
+prints on (خ-3), and verify the one-page PDF on the server. Then milestone 5b
+(two-stage documents, transcript with exemptions, salary timing, multi-file
+upload).

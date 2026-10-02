@@ -1,36 +1,25 @@
 # PROGRESS — parttime.q8ee.com
 
-## Status (2026-09-30)
-**Live at https://parttime.q8ee.com** since 2026-09-30 (first deploy of
-milestones 1 + 2, merged on `main`). Milestone 3 (monthly (خ-3) attestation)
-is merged on `main` (207 tests at merge) and was deployed on 2026-09-30.
-Milestone 4 (term close, on-file documents, parked attestation fixes) is
-implemented, Tasks 1-5, on branch `milestone-4-term-close-on-file`
-plus the final-review fix wave (`php artisan test` green, 250 tests, one
-skip without `soffice`); not deployed yet. Milestone 2
-review record: `docs/superpowers/reviews/2026-09-29-milestone-2-final-review.md`
-(deferred minors + rulings, start there for milestone 3). Deploy runbook and
-scripts: `deploy/` (`DEPLOY.md`, "After the first deploy"). Milestone 1
-(intake) shipped first on branch `milestone-1-intake`
-(`php artisan test` green, 89 tests; final whole-branch review + fix wave done — see
-`docs/superpowers/reviews/2026-09-28-milestone-1-final-review.md`). See
-`docs/superpowers/specs/2026-09-28-parttime-system-design.md` for the
-milestone 1 spec and `docs/superpowers/specs/2026-09-29-milestone-2-assignment-design.md`
-for the milestone 2 spec, `docs/superpowers/specs/2026-09-30-milestone-3-attestation-design.md`
-for milestone 3, `docs/superpowers/specs/2026-09-30-milestone-4-term-close-on-file-design.md`
-for milestone 4.
+## Status (2026-10-02)
+**Live at https://parttime.q8ee.com** since 2026-09-30 (milestones 1–4
+deployed). Milestone 5a (feedback round) is implemented on branch
+`milestone-5a-feedback`, Tasks 1–5 (`php artisan test` green, 271 tests passed,
+1 skipped). Final reviews and design specs: milestones 1–4 specs in
+`docs/superpowers/specs/`; reviews and deferred minors in
+`docs/superpowers/reviews/`. Deploy runbook and scripts: `deploy/` (`DEPLOY.md`,
+"Routine per-term setup" updated for jadawil v2.4.13+ seat columns).
 Real applicant documents are accumulating in `../part-time/` (10 applicants
 as of 2026-09-27; sensitive — see root `../CLAUDE.md`).
 
 ## Next
-1. Final review of milestone 4, merge to `main`, then deploy it with
-   `./deploy/deploy.sh` (ships milestone 4 only: one new migration;
-   run the pre-deploy check in `deploy/DEPLOY.md`, "Milestone 4: deploy
-   note", first). Then the milestone 3 PDF visual check if not done yet
-   (`deploy/DEPLOY.md`, "Milestone 3: PDF export").
-2. Remaining post-deploy items (`deploy/DEPLOY.md`, "After the first
-   deploy"): step 10's browser checks; the admin password change and
-   deleting `/root/parttime-admin-initial.txt`; the term's jadawil import.
+1. Deploy milestone 5a with `./deploy/deploy.sh` (feedback round, all items
+   covered; remaining items in 5b).
+2. Re-export the term's jadawil timetable (v2.4.13 or later, with seat
+   columns `الحد الأقصى`, `مسجلة`, `متبقية`) and re-import at
+   `/admin/sections/import` so the student count prints on (خ-3).
+3. Verify the one-page PDF on the server.
+4. Milestone 5b (two-stage documents, transcript with exemptions, salary
+   timing, multi-file upload).
 
 ## Decided (2026-09-28 brainstorm)
 Approach A: one Laravel 12 app, three milestones (intake → assignment →
@@ -120,3 +109,16 @@ the admin and signed on paper; there is no instructor confirmation step.
   neutral "need correction or updating" notice wording; docs corrected
   (milestone 3 deployed on 2026-09-30). `php artisan test` green (250
   tests, one skip).
+- 2026-10-02 — milestone 5a (feedback round, all items) on branch
+  `milestone-5a-feedback`, Tasks 1–5: (1) (خ-3) template fits one page per
+  instructor, 9 pt table rows, fixed column widths, footer "المنتدب" merged,
+  course lines as "name code"; (2) nationality, employer, bank via
+  `App\Support\KuwaitLists` (38 agencies, 15 banks by IBAN), profile forms
+  retain non-sensitive values after errors; (3) expired sessions redirect to
+  login with message, header shows user name/role, admin app page shows
+  applicant email, documents in in-page pop-ups; (4) sections/assignments
+  tables show and sort by reference number with filters by reference, course,
+  name, instructor; (5) jadawil v2.4.13+ seat columns `الحد الأقصى`,
+  `مسجلة`, `متبقية` imported — re-export/re-import after both deploys for
+  student count. `php artisan test` green (271 passed, 1 skipped).
+  Deploy pending.
