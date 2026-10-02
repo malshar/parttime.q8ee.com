@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Application;
+use App\Models\ChecklistItem;
 use App\Models\Document;
 use App\Models\Instructor;
 use App\Models\Term;
 use App\Models\User;
+use App\Services\DocumentStore;
 use Database\Seeders\ChecklistItemSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -84,6 +86,36 @@ class MultiFileUploadTest extends TestCase
         $this->actingAs($this->admin)->post(route('admin.documents.review', $head), ['status' => 'rejected', 'reason' => 'ناقص'])->assertRedirect()->assertSessionHasNoErrors();
         $this->assertSame(['rejected', 'rejected'], Document::orderBy('part')->pluck('status')->all());
         $this->assertSame(['ناقص', 'ناقص'], Document::orderBy('part')->pluck('rejection_reason')->all());
+    }
+
+    public function test_non_array_files_field_is_a_validation_error_not_a_500(): void
+    {
+        $this->upload(['files' => UploadedFile::fake()->create('a.pdf', 10, 'application/pdf')])->assertSessionHasErrors('files');
+        $this->assertDatabaseCount('documents', 0);
+    }
+
+    public function test_store_cleans_up_files_when_a_part_fails_to_persist(): void
+    {
+        $item = ChecklistItem::where('code', 'degree')->first();
+
+        // Simulate the second part's row failing to persist (a constraint violation, a lost
+        // connection, …) after its file has already been written to disk.
+        $created = 0;
+        Document::creating(function () use (&$created) {
+            if (++$created === 2) {
+                throw new \RuntimeException('simulated failure persisting the second part');
+            }
+        });
+
+        try {
+            app(DocumentStore::class)->store($this->application, $item, $this->files(2));
+            $this->fail('Expected an exception from the simulated failure.');
+        } catch (\RuntimeException) {
+            // expected
+        }
+
+        $this->assertDatabaseCount('documents', 0);
+        Storage::disk('local')->assertDirectoryEmpty("applications/{$this->application->id}");
     }
 
     public function test_pages_link_every_part_and_history_shows_the_count(): void

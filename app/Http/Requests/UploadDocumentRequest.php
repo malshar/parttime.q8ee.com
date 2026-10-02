@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Validator;
 
 class UploadDocumentRequest extends FormRequest
@@ -12,14 +14,13 @@ class UploadDocumentRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        // Legacy single-file posts: normalise into the `files` field so one validation/storage path handles both.
-        if (! $this->hasFile('files') && $this->hasFile('file')) {
+        // Legacy single-file posts: normalise into the `files` field so one validation/storage path
+        // handles both. Checked/set through the Symfony FileBag directly (has()/get()/set()), never
+        // through file()/hasFile() — those memoise allFiles() into $convertedFiles, and calling them
+        // before the bag is mutated would cache a stale result missing the new `files` entry.
+        if (! $this->files->has('files') && $this->files->has('file')) {
             $this->legacyField = true;
-            $this->merge(['files' => [$this->file('file')]]);
-            $this->files->set('files', [$this->file('file')]);
-            // file()/hasFile() memoise allFiles() in $convertedFiles; the lines above already
-            // called them (via hasFile), so the cache must be cleared or it still misses `files`.
-            $this->convertedFiles = null;
+            $this->files->set('files', [$this->files->get('file')]);
         }
     }
 
@@ -35,8 +36,14 @@ class UploadDocumentRequest extends FormRequest
     public function withValidator(Validator $v): void
     {
         $v->after(function (Validator $v) {
-            foreach ((array) $this->file('files', []) as $i => $f) {
-                if ($f && (str_ends_with(strtolower($f->getClientOriginalName()), '.zip') || $f->getMimeType() === 'application/zip')) {
+            // Runs even when the `array` rule already failed (e.g. `files` posted as a single file,
+            // not `files[]`): Arr::wrap() avoids casting a non-array UploadedFile to its properties,
+            // and the instanceof guard skips anything that is not actually an uploaded file.
+            foreach (Arr::wrap($this->file('files')) as $i => $f) {
+                if (! $f instanceof UploadedFile) {
+                    continue;
+                }
+                if (str_ends_with(strtolower($f->getClientOriginalName()), '.zip') || $f->getMimeType() === 'application/zip') {
                     $v->errors()->add("files.$i", __('app.documents.zip_rejected'));
                 }
             }
