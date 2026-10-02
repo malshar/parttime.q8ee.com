@@ -109,6 +109,12 @@ composer install --no-dev --optimize-autoloader --no-interaction
 php artisan key:generate --force
 ```
 
+`CIVIL_ID_CHECKSUM=false` (set in production on 2026-10-02): the civil ID is
+validated for shape only. The check-digit formula in `App\Rules\KuwaitCivilId`
+(weights 2,1,6,3,7,9,10,5,8,4,2, check = (11 − sum mod 11) mod 11) comes from
+public sources, not PACI, and rejected a real ID; turn it on only once the
+algorithm is verified against several real civil IDs.
+
 ⚠️ **APP_KEY**: generated once, never changed or lost — civil IDs and other
 encrypted instructor fields (see `SESSION_ENCRYPT=true` and the encrypted
 Instructor columns) are unreadable if it's lost or rotated. Back it up (e.g.
