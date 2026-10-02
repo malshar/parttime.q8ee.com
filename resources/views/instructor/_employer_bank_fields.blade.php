@@ -35,6 +35,8 @@
         <div class="col-md-6 mb-3" id="bank_other_wrap"><label class="form-label">{{ __('app.profile.bank_other_name') }}</label>
             <input name="bank_other" value="{{ old('bank_other', $bankChoice === 'other' ? $instructor->bank_name : '') }}" class="form-control"></div>
     </div>
+    {{-- Pushed to the end of <body>: the IBAN input is rendered after this partial. --}}
+    @push('scripts')
     <script>
     (function () {
         function toggle(select) {
@@ -48,8 +50,9 @@
         var codes = @json(array_keys(\App\Support\KuwaitLists::BANKS));
         if (iban && bank) iban.addEventListener('input', function () {
             var code = iban.value.replace(/\s+/g, '').substring(4, 8).toUpperCase();
-            if (codes.includes(code)) bank.value = code;
+            if (codes.includes(code)) { bank.value = code; toggle(bank); }
         });
     })();
     </script>
+    @endpush
 @endif

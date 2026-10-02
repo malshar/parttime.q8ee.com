@@ -164,4 +164,14 @@ class AdminProfileEditTest extends TestCase
             ->assertSessionHasErrors('nationality');
         $this->assertSame('KW', $this->application->instructor->fresh()->nationality);
     }
+
+    public function test_admin_form_pushes_the_bank_script_after_the_iban_input(): void
+    {
+        $html = $this->actingAs($this->admin)->get(route('admin.applications.profile.edit', $this->application))->assertOk()->getContent();
+        $iban = strpos($html, '<input name="iban"');
+        $script = strpos($html, 'querySelector(\'input[name="iban"]\')');
+        $this->assertNotFalse($iban);
+        $this->assertNotFalse($script);
+        $this->assertLessThan($script, $iban);
+    }
 }

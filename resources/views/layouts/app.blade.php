@@ -29,7 +29,7 @@
             <span class="fw-bold">{{ __('app.site_name') }}</span>
             <span class="d-none d-md-inline small opacity-75">— {{ __('app.dept_name') }}</span>
         </a>
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap align-items-center gap-2">
             @yield('nav')
             @auth
                 <span class="navbar-text text-white small ms-auto">
@@ -52,6 +52,7 @@
 </main>
 <footer class="container pb-4 text-center"><hr><div>{{ __('app.dept_name') }} — {{ __('app.college_name') }}</div></footer>
 @stack('scripts')
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>
