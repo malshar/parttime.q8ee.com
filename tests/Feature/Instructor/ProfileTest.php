@@ -233,12 +233,16 @@ class ProfileTest extends TestCase
 
     public function test_legacy_values_preselect_other_and_survive_an_untouched_save(): void
     {
-        $this->user->instructor->update(['nationality' => 'كويتي', 'employer' => 'شركة قديمة', 'employer_sector' => 'private', 'bank_name' => 'بنك قديم']);
+        $this->actingAs($this->user)->put(route('instructor.profile.update'), self::payload())->assertSessionHasNoErrors();
+        $this->user->instructor->refresh()->update(['nationality' => 'كويتي', 'employer' => 'شركة قديمة', 'employer_sector' => 'private', 'bank_name' => 'بنك قديم']);
 
         $r = $this->actingAs($this->user)->get(route('instructor.profile.edit'))->assertOk();
+        $r->assertSee('<option value="__keep" selected>كويتي</option>', false);
+        $r->assertSee('<option value="private" selected', false);
         $r->assertSee('<option value="other" selected', false);
         $r->assertSee('value="شركة قديمة"', false);
         $r->assertSee('value="بنك قديم"', false);
+        $r->assertDontSee('<option value="ZZ" selected', false);
         $this->assertSame('كويتي', $this->user->instructor->fresh()->nationalityLabel());
 
         // The bank select belongs with the branch/IBAN fields in the bank card, not the work card.
@@ -250,6 +254,84 @@ class ProfileTest extends TestCase
         $this->assertNotFalse($bankSelect);
         $this->assertNotFalse($iban);
         $this->assertTrue($workHeading < $bankSelect && $bankSelect < $iban);
+
+        // Submit what the untouched form carries, with only the mobile changed.
+        $before = AuditLog::where('action', 'edit_profile')->max('id');
+        $this->actingAs($this->user)->put(route('instructor.profile.update'), self::payload([
+            'mobile' => '99887766', 'nationality' => '__keep',
+            'employer_choice' => 'private', 'employer_other' => 'شركة قديمة',
+            'bank_choice' => 'other', 'bank_other' => 'بنك قديم',
+        ]))->assertSessionHasNoErrors();
+
+        $i = $this->user->instructor->fresh();
+        $this->assertSame('كويتي', $i->nationality);
+        $this->assertSame('شركة قديمة', $i->employer);
+        $this->assertSame('private', $i->employer_sector);
+        $this->assertSame('بنك قديم', $i->bank_name);
+        $this->assertSame('99887766', $i->mobile);
+        $rows = AuditLog::where('action', 'edit_profile')->where('id', '>', $before)->get();
+        $this->assertCount(1, $rows);
+        $this->assertSame('mobile', $rows->first()->details);
+    }
+
+    public function test_new_profile_starts_with_an_empty_nationality_choice(): void
+    {
+        $user = User::factory()->instructor()->create();
+
+        $r = $this->actingAs($user)->get(route('instructor.profile.edit'))->assertOk();
+        $r->assertSee('<option value="" selected>'.__('app.common.choose').'</option>', false);
+        $r->assertDontSee('<option value="ZZ" selected', false);
+        $r->assertDontSee('value="__keep"', false);
+
+        $this->actingAs($user)->put(route('instructor.profile.update'), self::payload(['nationality' => '']))
+            ->assertSessionHasErrors('nationality');
+        $this->assertNull($user->fresh()->instructor);
+    }
+
+    public function test_keep_is_rejected_when_the_stored_nationality_is_already_a_code(): void
+    {
+        $this->user->instructor->update(['nationality' => 'KW']);
+
+        $this->actingAs($this->user)->put(route('instructor.profile.update'), self::payload(['nationality' => '__keep']))
+            ->assertSessionHasErrors('nationality');
+        $this->assertSame('KW', $this->user->instructor->fresh()->nationality);
+
+        // A new profile has nothing to keep either.
+        $user = User::factory()->instructor()->create();
+        $this->actingAs($user)->put(route('instructor.profile.update'), self::payload(['nationality' => '__keep']))
+            ->assertSessionHasErrors('nationality');
+    }
+
+    public function test_country_lists_cover_regional_nationalities_on_both_selects(): void
+    {
+        $r = $this->actingAs($this->user)->get(route('instructor.profile.edit'))->assertOk();
+        $html = $r->getContent();
+        foreach (['SY', 'IQ', 'XB', 'ZZ'] as $code) {
+            $this->assertSame(2, substr_count($html, '<option value="'.$code.'"'), $code);
+        }
+
+        $this->actingAs($this->user)->put(route('instructor.profile.update'), self::payload(['nationality' => 'XB', 'degree_country' => 'SY']))
+            ->assertSessionHasNoErrors();
+        $this->assertSame(__('app.countries.XB'), $this->user->instructor->fresh()->nationalityLabel());
+    }
+
+    public function test_validation_errors_use_the_translated_field_names(): void
+    {
+        $this->actingAs($this->user)->put(route('instructor.profile.update'), self::payload([
+            'employer_choice' => 'private', 'employer_other' => '',
+        ]))->assertSessionHasErrors('employer_other');
+
+        $message = session('errors')->first('employer_other');
+        $this->assertStringContainsString(__('app.profile.employer_name'), $message);
+        $this->assertStringNotContainsString('employer other', $message);
+        $this->assertStringNotContainsString('employer_other', $message);
+    }
+
+    public function test_unknown_employer_and_bank_choices_fail_with_the_other_errors(): void
+    {
+        $this->actingAs($this->user)->put(route('instructor.profile.update'), self::payload([
+            'employer_choice' => 'جهة مزورة', 'bank_choice' => 'ZZZZ', 'mobile' => '12',
+        ]))->assertSessionHasErrors(['employer_choice', 'bank_choice', 'mobile']);
     }
 
     public function test_non_sensitive_values_are_retained_after_a_validation_error(): void

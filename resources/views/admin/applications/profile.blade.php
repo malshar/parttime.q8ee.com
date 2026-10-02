@@ -24,12 +24,19 @@
                     <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.civil_id_expires_on') }}</label>
                         <input type="date" name="civil_id_expires_on" value="{{ old('civil_id_expires_on', optional($instructor->civil_id_expires_on)->format('Y-m-d')) }}" class="form-control" required></div>
                     <div class="col-md-6 mb-3"><label class="form-label" for="nationality">{{ __('app.profile.nationality') }}</label>
+                        @php($storedNationality = (string) $instructor->nationality)
+                        @php($legacyNationality = $storedNationality !== '' && strlen($storedNationality) !== 2)
+                        @php($nationalityChoice = (string) old('nationality', $legacyNationality ? \App\Http\Requests\ProfileRequest::KEEP : $storedNationality))
                         <select id="nationality" name="nationality" class="form-select" required>
+                            <option value="" @selected($nationalityChoice === '')>{{ __('app.common.choose') }}</option>
+                            @if ($legacyNationality)
+                                <option value="{{ \App\Http\Requests\ProfileRequest::KEEP }}" @selected($nationalityChoice === \App\Http\Requests\ProfileRequest::KEEP)>{{ $storedNationality }}</option>
+                            @endif
                             @foreach (__('app.countries') as $code => $name)
-                                <option value="{{ $code }}" @selected(old('nationality', strlen($instructor->nationality) === 2 ? $instructor->nationality : 'ZZ') === $code)>{{ $name }}</option>
+                                <option value="{{ $code }}" @selected($nationalityChoice === $code)>{{ $name }}</option>
                             @endforeach
                         </select>
-                        @if ($instructor->nationality && strlen($instructor->nationality) !== 2)
+                        @if ($legacyNationality)
                             <div class="form-text">{{ __('app.profile.nationality_legacy', ['value' => $instructor->nationality]) }}</div>
                         @endif</div>
                 </div>
@@ -62,10 +69,9 @@
                     <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.degree_title') }}</label>
                         <input name="degree_title" value="{{ old('degree_title', $instructor->degree_title) }}" class="form-control" required></div>
                     <div class="col-md-3 mb-3"><label class="form-label">{{ __('app.profile.degree_country') }}</label>
-                        @php($countries = ['KW', 'SA', 'AE', 'BH', 'QA', 'OM', 'EG', 'JO', 'GB', 'US', 'CA', 'AU', 'MY', 'IN', 'PK', 'TR', 'DE', 'FR', 'ZZ'])
                         <select name="degree_country" class="form-select" required>
-                            @foreach ($countries as $code)
-                                <option value="{{ $code }}" @selected(old('degree_country', $instructor->degree_country ?: 'KW') === $code)>{{ __('app.countries.'.$code) }}</option>
+                            @foreach (__('app.countries') as $code => $name)
+                                <option value="{{ $code }}" @selected(old('degree_country', $instructor->degree_country ?: 'KW') === $code)>{{ $name }}</option>
                             @endforeach
                         </select></div>
                     <div class="col-md-3 mb-3"><label class="form-label">{{ __('app.profile.degree_obtained_on') }}</label>

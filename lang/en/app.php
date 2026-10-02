@@ -180,7 +180,10 @@ return [
     ],
     'countries' => ['KW' => 'Kuwait', 'SA' => 'Saudi Arabia', 'AE' => 'United Arab Emirates', 'BH' => 'Bahrain', 'QA' => 'Qatar', 'OM' => 'Oman',
         'EG' => 'Egypt', 'JO' => 'Jordan', 'GB' => 'United Kingdom', 'US' => 'United States', 'CA' => 'Canada', 'AU' => 'Australia',
-        'MY' => 'Malaysia', 'IN' => 'India', 'PK' => 'Pakistan', 'TR' => 'Turkey', 'DE' => 'Germany', 'FR' => 'France', 'ZZ' => 'Other country'],
+        'MY' => 'Malaysia', 'IN' => 'India', 'PK' => 'Pakistan', 'TR' => 'Turkey', 'DE' => 'Germany', 'FR' => 'France',
+        'SY' => 'Syria', 'IQ' => 'Iraq', 'LB' => 'Lebanon', 'PS' => 'Palestine', 'YE' => 'Yemen', 'SD' => 'Sudan', 'TN' => 'Tunisia',
+        'MA' => 'Morocco', 'DZ' => 'Algeria', 'LY' => 'Libya', 'IR' => 'Iran', 'PH' => 'Philippines', 'BD' => 'Bangladesh', 'LK' => 'Sri Lanka',
+        'NP' => 'Nepal', 'XB' => 'Stateless (بدون)', 'ZZ' => 'Other country'],
     'sections' => [
         'unsupported_file' => 'Unsupported file type. Accepted: CSV or XLSX from the schedule system.',
         'unreadable_xlsx' => 'Could not read the XLSX file.',

@@ -53,7 +53,7 @@ class Instructor extends Model
     /** The nationality for display: the country name for a 2-letter code, or the stored legacy text as-is. */
     public function nationalityLabel(): string
     {
-        return strlen($this->nationality) === 2 ? __('app.countries.'.$this->nationality) : (string) $this->nationality;
+        return strlen((string) $this->nationality) === 2 ? __('app.countries.'.$this->nationality) : (string) $this->nationality;
     }
 
     public function maskedCivilId(): string

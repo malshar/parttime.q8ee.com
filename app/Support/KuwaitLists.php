@@ -19,13 +19,13 @@ final class KuwaitLists
         'بنك الائتمان الكويتي', 'بيت الزكاة', 'جامعة الكويت', 'ديوان الخدمة المدنية', 'قوة الإطفاء العام',
     ];
 
-    /** Banks operating in Kuwait, keyed by the 4-letter IBAN bank code where known. */
+    /** Banks operating in Kuwait, keyed by the 4-letter IBAN bank code where known ('fab' is a slug: its code is unconfirmed). */
     public const BANKS = [
         'NBOK' => 'بنك الكويت الوطني', 'CBKU' => 'البنك التجاري الكويتي', 'GULB' => 'بنك الخليج',
         'ABKK' => 'البنك الأهلي الكويتي', 'BRGN' => 'بنك برقان', 'KFHO' => 'بيت التمويل الكويتي',
         'BBYN' => 'بنك بوبيان', 'KWIB' => 'بنك الكويت الدولي', 'WRBA' => 'بنك وربة', 'IBKK' => 'بنك الكويت الصناعي',
-        'bbk' => 'بنك البحرين والكويت', 'fab' => 'بنك أبوظبي الأول', 'hsbc' => 'بنك HSBC الشرق الأوسط',
-        'citi' => 'سيتي بنك', 'qnb' => 'بنك قطر الوطني',
+        'BBKU' => 'بنك البحرين والكويت', 'fab' => 'بنك أبوظبي الأول', 'BBME' => 'بنك HSBC الشرق الأوسط',
+        'CITI' => 'سيتي بنك', 'QNBA' => 'بنك قطر الوطني',
     ];
 
     public static function isEmployer(string $name): bool

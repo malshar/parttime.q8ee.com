@@ -32,4 +32,12 @@ class KuwaitListsTest extends TestCase
     {
         $this->assertSame(count(KuwaitLists::EMPLOYERS), count(array_unique(KuwaitLists::EMPLOYERS)));
     }
+
+    public function test_bank_for_iban_resolves_the_foreign_bank_codes(): void
+    {
+        $this->assertSame('بنك HSBC الشرق الأوسط', KuwaitLists::bankForIban('KW81BBME0000000000001234560101'));
+        $this->assertSame('بنك البحرين والكويت', KuwaitLists::bankForIban('KW81BBKU0000000000001234560101'));
+        $this->assertSame('سيتي بنك', KuwaitLists::bankForIban('KW81CITI0000000000001234560101'));
+        $this->assertSame('بنك قطر الوطني', KuwaitLists::bankForIban('KW81QNBA0000000000001234560101'));
+    }
 }

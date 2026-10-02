@@ -125,4 +125,43 @@ class AdminProfileEditTest extends TestCase
         $this->assertSame('government', $i->employer_sector);
         $this->assertSame('بنك وربة', $i->bank_name);
     }
+
+    public function test_admin_untouched_save_keeps_legacy_values_and_audits_mobile_only(): void
+    {
+        $route = route('admin.applications.profile.update', $this->application);
+        $payload = ProfileTest::payload(['civil_id' => $this->application->instructor->civil_id]);
+        $this->actingAs($this->admin)->put($route, $payload)->assertSessionHasNoErrors();
+        $this->application->instructor->refresh()->update(['nationality' => 'كويتي', 'employer' => 'شركة قديمة', 'employer_sector' => 'private', 'bank_name' => 'بنك قديم']);
+
+        $r = $this->actingAs($this->admin)->get(route('admin.applications.profile.edit', $this->application))->assertOk();
+        $r->assertSee('<option value="__keep" selected>كويتي</option>', false);
+        $r->assertDontSee('<option value="ZZ" selected', false);
+
+        $before = AuditLog::where('action', 'admin_edit_profile')->max('id');
+        $this->actingAs($this->admin)->put($route, array_merge($payload, [
+            'mobile' => '99887766', 'nationality' => '__keep',
+            'employer_choice' => 'private', 'employer_other' => 'شركة قديمة',
+            'bank_choice' => 'other', 'bank_other' => 'بنك قديم',
+        ]))->assertSessionHasNoErrors();
+
+        $i = $this->application->instructor->fresh();
+        $this->assertSame('كويتي', $i->nationality);
+        $this->assertSame('شركة قديمة', $i->employer);
+        $this->assertSame('private', $i->employer_sector);
+        $this->assertSame('بنك قديم', $i->bank_name);
+        $this->assertSame('99887766', $i->mobile);
+        $rows = AuditLog::where('action', 'admin_edit_profile')->where('id', '>', $before)->get();
+        $this->assertCount(1, $rows);
+        $this->assertSame('mobile', $rows->first()->details);
+    }
+
+    public function test_admin_keep_is_rejected_when_the_stored_nationality_is_a_code(): void
+    {
+        $this->application->instructor->update(['nationality' => 'KW']);
+        $payload = ProfileTest::payload(['civil_id' => $this->application->instructor->civil_id, 'nationality' => '__keep']);
+
+        $this->actingAs($this->admin)->put(route('admin.applications.profile.update', $this->application), $payload)
+            ->assertSessionHasErrors('nationality');
+        $this->assertSame('KW', $this->application->instructor->fresh()->nationality);
+    }
 }

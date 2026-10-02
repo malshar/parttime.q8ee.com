@@ -13,17 +13,20 @@ use Illuminate\Validation\Validator;
 
 class ProfileRequest extends FormRequest
 {
+    /** Nationality option that keeps a stored legacy free-text value (not a 2-letter code) unchanged. */
+    public const KEEP = '__keep';
+
     public function rules(): array
     {
         return [
             'full_name' => ['required', 'string', 'max:150'],
             'civil_id' => ['required', new KuwaitCivilId],
             'civil_id_expires_on' => ['required', 'date', 'after:today'],
-            'nationality' => ['required', 'string', Rule::in(array_keys(__('app.countries')))],
+            'nationality' => ['required', 'string', Rule::in([...array_keys(__('app.countries')), self::KEEP])],
             'mobile' => ['required', 'regex:/^[569]\d{7}$/'],
             'work_phone' => ['nullable', 'regex:/^\d{8}$/'],
             'home_phone' => ['nullable', 'regex:/^\d{8}$/'],
-            'employer_choice' => ['required', 'string', 'max:150'],
+            'employer_choice' => ['required', 'string', 'max:150', Rule::in([...KuwaitLists::EMPLOYERS, 'private', 'other'])],
             'employer_other' => ['nullable', 'string', 'max:150', Rule::requiredIf(fn () => in_array($this->employer_choice, ['private', 'other'], true))],
             'employer_sector' => ['nullable', Rule::in(Instructor::SECTORS), Rule::requiredIf(fn () => $this->employer_choice === 'other')],
             'job_title' => ['required', 'string', 'max:120'],
@@ -32,7 +35,7 @@ class ProfileRequest extends FormRequest
             'degree_country' => ['required', 'string', 'size:2', 'alpha'],
             'degree_obtained_on' => ['required', 'date', 'before_or_equal:today'],
             'experience_years' => ['nullable', 'integer', 'min:0', 'max:60', Rule::requiredIf(fn () => $this->highest_degree === 'bachelor')],
-            'bank_choice' => ['required', 'string', 'max:120'],
+            'bank_choice' => ['required', 'string', 'max:120', Rule::in([...array_keys(KuwaitLists::BANKS), 'other'])],
             'bank_other' => ['nullable', 'string', 'max:120', Rule::requiredIf(fn () => $this->bank_choice === 'other')],
             'bank_branch' => ['nullable', 'string', 'max:120'],
             'iban' => ['required', new Iban],
@@ -50,9 +53,28 @@ class ProfileRequest extends FormRequest
         ]);
     }
 
+    /** Field names in error messages, from the form's own labels. */
+    public function attributes(): array
+    {
+        $labels = [
+            'full_name' => 'full_name', 'civil_id' => 'civil_id', 'civil_id_expires_on' => 'civil_id_expires_on',
+            'nationality' => 'nationality', 'mobile' => 'mobile', 'work_phone' => 'work_phone', 'home_phone' => 'home_phone',
+            'employer_choice' => 'employer', 'employer_other' => 'employer_name', 'employer_sector' => 'employer_sector',
+            'job_title' => 'job_title', 'highest_degree' => 'highest_degree', 'degree_title' => 'degree_title',
+            'degree_country' => 'degree_country', 'degree_obtained_on' => 'degree_obtained_on', 'experience_years' => 'experience_years',
+            'bank_choice' => 'bank_name', 'bank_other' => 'bank_other_name', 'bank_branch' => 'bank_branch', 'iban' => 'iban',
+            'basic_salary' => 'basic_salary', 'total_salary' => 'total_salary',
+        ];
+
+        return array_map(fn ($key) => __('app.profile.'.$key), $labels);
+    }
+
     public function withValidator(Validator $v): void
     {
         $v->after(function (Validator $v) {
+            if ($this->nationality === self::KEEP && ! $this->hasLegacyNationality()) {
+                $v->errors()->add('nationality', __('validation.in', ['attribute' => __('app.profile.nationality')]));
+            }
             $existing = Instructor::findByCivilId((string) $this->civil_id);
             if ($existing && $existing->user_id !== $this->ownerUserId()) {
                 $v->errors()->add('civil_id', __('app.profile.civil_id_taken'));
@@ -64,6 +86,20 @@ class ProfileRequest extends FormRequest
     protected function ownerUserId(): ?int
     {
         return $this->user()?->id;
+    }
+
+    /** The stored profile being edited (null for a new one); overridden by the admin request. */
+    protected function editedInstructor(): ?Instructor
+    {
+        return $this->user()?->instructor;
+    }
+
+    /** Whether the edited profile holds a free-text nationality that the KEEP option can keep. */
+    private function hasLegacyNationality(): bool
+    {
+        $stored = (string) $this->editedInstructor()?->nationality;
+
+        return $stored !== '' && strlen($stored) !== 2;
     }
 
     /** The attributes to store, derived from the choice fields (spec of the 5a design, section B). */
@@ -88,6 +124,9 @@ class ProfileRequest extends FormRequest
             throw ValidationException::withMessages(['bank_choice' => __('app.profile.bank_choice_invalid')]);
         }
         unset($v['employer_choice'], $v['employer_other'], $v['bank_choice'], $v['bank_other']);
+        if ($v['nationality'] === self::KEEP) {
+            $v['nationality'] = $this->editedInstructor()->nationality;
+        }
 
         // Union with the computed values first: array union keeps the left side's value on key collisions,
         // and $v may still carry a submitted (possibly empty) employer_sector from the request.
