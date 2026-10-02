@@ -11,22 +11,17 @@ class InstructorFactory extends Factory
 
     public function definition(): array
     {
-        $serial = str_pad((string) $this->faker->unique()->numberBetween(0, 9999), 4, '0', STR_PAD_LEFT);
-        $first11 = '2900101'.$serial;
-        $w = [2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 3];
-        $sum = 0;
-        foreach (str_split($first11) as $i => $d) {
-            $sum += (int) $d * $w[$i];
-        }
-        $check = 11 - ($sum % 11);
-        if ($check >= 10) {                       // skip serials that yield an invalid check digit
-            $first11 = '2900101'.str_pad((string) (((int) $serial + 1) % 10000), 4, '0', STR_PAD_LEFT);
+        $w = [2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+        $serial = $this->faker->unique()->numberBetween(0, 9999);
+        do {                                      // skip serials whose check digit would be 10 or 11
+            $first11 = '2900101'.str_pad((string) $serial, 4, '0', STR_PAD_LEFT);
             $sum = 0;
             foreach (str_split($first11) as $i => $d) {
                 $sum += (int) $d * $w[$i];
             }
             $check = 11 - ($sum % 11);
-        }
+            $serial = ($serial + 1) % 10000;
+        } while ($check >= 10);
 
         return [
             'full_name' => $this->faker->name(),
