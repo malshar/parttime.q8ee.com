@@ -32,6 +32,11 @@ return [
         'reset_link_sent' => 'If that email is registered with us, a reset link has been sent.',
         'new_password' => 'New password', 'reset_button' => 'Change password',
         'password_reset_done' => 'Your password has been changed, you may log in.',
+        'session_expired' => 'Your session expired; please sign in again.',
+        'roles' => [
+            'admin' => 'Admin',
+            'instructor' => 'Instructor',
+        ],
     ],
     'mail' => [
         'automated' => 'This is an automated message, please do not reply.',

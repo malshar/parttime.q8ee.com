@@ -31,6 +31,12 @@
         </a>
         <div class="d-flex gap-2">
             @yield('nav')
+            @auth
+                <span class="navbar-text text-white small ms-auto">
+                    {{ auth()->user()->name }}
+                    <span class="badge bg-light text-dark">{{ __('app.auth.roles.'.auth()->user()->role) }}</span>
+                </span>
+            @endauth
             <a class="btn btn-outline-light btn-sm" href="{{ request()->fullUrlWithQuery(['lang' => $rtl ? 'en' : 'ar']) }}">{{ __('app.lang_toggle') }}</a>
         </div>
     </div>
@@ -46,5 +52,6 @@
 </main>
 <footer class="container pb-4 text-center"><hr><div>{{ __('app.dept_name') }} — {{ __('app.college_name') }}</div></footer>
 @stack('scripts')
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

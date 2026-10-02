@@ -234,6 +234,29 @@ class ReviewTest extends TestCase
         $this->assertDatabaseMissing('audit_log', ['action' => 'set_decision']);
     }
 
+    public function test_show_header_and_profile_card_show_role_and_applicant_email(): void
+    {
+        $r = $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))->assertOk();
+
+        $r->assertSee(__('app.auth.roles.admin'));
+        $r->assertSee('mailto:'.$this->instructorUser->email, false);
+        $r->assertSee($this->instructorUser->email);
+    }
+
+    public function test_pdf_document_row_offers_popup_and_docx_row_does_not(): void
+    {
+        $pdf = $this->application->latestDocuments()->get('civil_id');
+        $docx = Document::factory()->for($this->application)->forItem('degree')->create([
+            'mime' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'version' => 2,
+        ]);
+
+        $r = $this->actingAs($this->admin)->get(route('admin.applications.show', $this->application))->assertOk();
+
+        $r->assertSee('data-doc-url="'.route('admin.documents.view', $pdf).'"', false);
+        $r->assertDontSee('data-doc-url="'.route('admin.documents.view', $docx).'"', false);
+    }
+
     public function test_admin_sees_on_file_link_and_fresh_copy_form_only_when_allowed(): void
     {
         $instructor = $this->application->instructor;

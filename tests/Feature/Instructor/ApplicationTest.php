@@ -39,6 +39,14 @@ class ApplicationTest extends TestCase
         $this->actingAs($this->user)->get(route('instructor.home'))->assertOk()->assertSee(__('app.terms.none_open'));
     }
 
+    public function test_home_header_shows_user_name_role_and_profile_link(): void
+    {
+        $this->actingAs($this->user)->get(route('instructor.home'))->assertOk()
+            ->assertSee($this->user->name)
+            ->assertSee(__('app.auth.roles.instructor'))
+            ->assertSee(route('instructor.profile.edit'));
+    }
+
     public function test_start_creates_one_draft_per_open_term(): void
     {
         $term = Term::factory()->open()->create();

@@ -44,6 +44,9 @@
             <div class="col-md-4 mb-2"><strong>{{ __('app.profile.civil_id_expires_on') }}:</strong> {{ format_date($instructor->civil_id_expires_on) }}</div>
         </div>
         <div class="row">
+            <div class="col-md-4 mb-2"><strong>{{ __('app.auth.email') }}:</strong> <a href="mailto:{{ $instructor->user->email }}" dir="ltr">{{ $instructor->user->email }}</a></div>
+        </div>
+        <div class="row">
             <div class="col-md-4 mb-2"><strong>{{ __('app.profile.nationality') }}:</strong> {{ $instructor->nationalityLabel() }}</div>
             <div class="col-md-4 mb-2" dir="ltr"><strong>{{ __('app.profile.mobile') }}:</strong> {{ $instructor->mobile }}</div>
             <div class="col-md-4 mb-2" dir="ltr"><strong>{{ __('app.profile.work_phone') }}:</strong> {{ $instructor->work_phone }}</div>
@@ -119,8 +122,10 @@
                 <td>
                     @php($file = $document ?? $row['source'])
                     @if ($file)
-                        <a href="{{ route('admin.documents.view', $file) }}" target="_blank">{{ __('app.review.view') }}</a>
-                        —
+                        @if ($file->mime === 'application/pdf' || $file->isImage())
+                            <a href="{{ route('admin.documents.view', $file) }}" data-doc-url="{{ route('admin.documents.view', $file) }}" data-bs-toggle="modal" data-bs-target="#docModal">{{ __('app.review.view') }}</a>
+                            —
+                        @endif
                         <a href="{{ route('admin.documents.download', $file) }}">{{ __('app.documents.download') }}</a>
                         ({{ __('app.documents.version') }} {{ $file->version }})
                     @endif
@@ -339,5 +344,30 @@
 @if (Route::has('admin.applications.checklist'))
     <a href="{{ route('admin.applications.checklist', $application) }}" class="btn btn-outline-secondary" target="_blank">{{ __('app.review.print_checklist') }}</a>
 @endif
+
+<div class="modal fade" id="docModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ __('app.review.view') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <iframe id="docFrame" class="w-100" style="height:80vh" title="{{ __('app.review.view') }}"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+    document.getElementById('docModal')?.addEventListener('show.bs.modal', function (event) {
+        document.getElementById('docFrame').src = event.relatedTarget?.getAttribute('data-doc-url') ?? '';
+    });
+    document.getElementById('docModal')?.addEventListener('hide.bs.modal', function () {
+        document.getElementById('docFrame').src = '';
+    });
+</script>
+@endpush
 
 @endsection
