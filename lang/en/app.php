@@ -99,6 +99,8 @@ return [
         'sensitive_reenter' => 'For security these fields are not kept after an error; enter them again.',
         'nationality_legacy' => 'Stored value: :value',
         'salary_missing' => 'Salary details (basic and total)',
+        'salary_title' => 'Salary details', 'salary_later' => "Can be filled in after the committee's approval.",
+        'salary_saved' => 'Salary details saved.', 'salary_not_yet' => "Salary details are entered after the committee's approval.",
     ],
     'applications' => [
         'title' => 'Secondment application', 'start' => 'Apply for the current term', 'current' => 'Current application', 'past' => 'Past applications',

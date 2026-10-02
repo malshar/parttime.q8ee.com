@@ -121,11 +121,15 @@
                 <input name="iban" value="{{ old('iban', old() ? '' : $instructor->iban) }}" class="form-control" dir="ltr" autocapitalize="characters" {!! $sensitiveAttrs !!}>
                 {!! $reenter !!}</div>
             <div class="col-6 col-md-3"><label class="form-label mb-1">{{ __('app.profile.basic_salary') }}</label>
-                <input type="number" step="0.001" name="basic_salary" value="{{ old('basic_salary', old() ? '' : $instructor->basic_salary) }}" class="form-control" dir="ltr" inputmode="decimal" {!! $sensitiveAttrs !!} required>
+                <input type="number" step="0.001" name="basic_salary" value="{{ old('basic_salary', old() ? '' : $instructor->basic_salary) }}" class="form-control" dir="ltr" inputmode="decimal" {!! $sensitiveAttrs !!}>
                 {!! $reenter !!}</div>
             <div class="col-6 col-md-3"><label class="form-label mb-1">{{ __('app.profile.total_salary') }}</label>
-                <input type="number" step="0.001" name="total_salary" value="{{ old('total_salary', old() ? '' : $instructor->total_salary) }}" class="form-control" dir="ltr" inputmode="decimal" {!! $sensitiveAttrs !!} required>
-                {!! $reenter !!}</div>
+                <input type="number" step="0.001" name="total_salary" value="{{ old('total_salary', old() ? '' : $instructor->total_salary) }}" class="form-control" dir="ltr" inputmode="decimal" {!! $sensitiveAttrs !!}>
+                {!! $reenter !!}
+                @unless ($instructor->exists && $instructor->hasApprovedApplicationInOpenTerm())
+                    <div class="form-text">{{ __('app.profile.salary_later') }}</div>
+                @endunless
+            </div>
         </div>
     </div>
 </div>

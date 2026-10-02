@@ -43,6 +43,7 @@ Route::middleware(['auth', 'verified', 'role:instructor'])->prefix('my')->name('
     Route::get('/', [InstructorApplicationController::class, 'home'])->name('home');
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('salary', [ProfileController::class, 'updateSalary'])->name('salary.update');
     Route::post('applications', [InstructorApplicationController::class, 'start'])->name('applications.start');
     Route::get('applications/{application}', [InstructorApplicationController::class, 'show'])->name('applications.show');
     Route::post('applications/{application}/submit', [InstructorApplicationController::class, 'submit'])->name('applications.submit');

@@ -39,8 +39,8 @@ class ProfileRequest extends FormRequest
             'bank_other' => ['nullable', 'string', 'max:120', Rule::requiredIf(fn () => $this->bank_choice === 'other')],
             'bank_branch' => ['nullable', 'string', 'max:120'],
             'iban' => ['required', new Iban],
-            'basic_salary' => ['required', 'numeric', 'min:0', 'max:99999'],
-            'total_salary' => ['required', 'numeric', 'min:0', 'max:99999', 'gte:basic_salary'],
+            'basic_salary' => ['nullable', 'numeric', 'min:0', 'max:99999'],
+            'total_salary' => ['nullable', 'numeric', 'min:0', 'max:99999', Rule::when($this->filled('basic_salary'), ['gte:basic_salary'])],
         ];
     }
 
