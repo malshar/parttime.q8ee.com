@@ -107,6 +107,29 @@ def fit_table(tbl):
     return tbl[:rows[0].start()] + ''.join(new_rows) + tbl[rows[-1].end():]
 
 
+def drop_blank_before_note(tail):
+    """Remove the empty paragraphs between the schedule table and the 'ملاحظة مهمة' note, and give the
+    note paragraph <w:spacing w:before="120"/> in its pPr (created if absent, merged if present) so the
+    note doesn't spill alone onto a second page on a five-week month."""
+    paras = list(re.finditer(P, tail, re.S))
+    note_i = next(i for i, m in enumerate(paras) if 'ملاحظة مهمة' in text(m.group(0)))
+    for m in paras[:note_i]:
+        assert not text(m.group(0)).strip(), 'expected only empty paragraphs before the note'
+    note = paras[note_i]
+    note_p = note.group(0)
+    ppr = re.search(r'<w:pPr>(.*?)</w:pPr>', note_p, re.S)
+    if ppr:
+        assert '<w:spacing' not in ppr.group(1), 'note pPr already has spacing'
+        inner = ppr.group(1)
+        inner = inner.replace('<w:rPr>', '<w:spacing w:before="120"/><w:rPr>', 1) if '<w:rPr>' in inner \
+            else inner + '<w:spacing w:before="120"/>'
+        new_note_p = note_p[:ppr.start()] + '<w:pPr>' + inner + '</w:pPr>' + note_p[ppr.end():]
+    else:
+        ptag = re.match(r'<w:p\b[^>]*>', note_p).group(0)
+        new_note_p = ptag + '<w:pPr><w:spacing w:before="120"/></w:pPr>' + note_p[len(ptag):]
+    return new_note_p + tail[note.end():]
+
+
 def merge_footer(footer):
     """Each text paragraph becomes one run: the first run's rPr, then its texts and tabs in order (adjacent texts
     joined). The official file puts a tab inside "المنتدب" (المنتد<tab>ب); that tab moves after the word."""
@@ -186,7 +209,8 @@ for c, name in reversed(list(zip(tcells, sums))):
         continue
     new_tot = new_tot[:c.start()] + set_cell(c.group(0), '${%s}' % name if name else '') + new_tot[c.end():]
 new_t2 = fit_table(t2[:rows[0].start()] + r0 + rows[1].group(0) + new_week + new_tot + t2[rows[6].end():])
-body = body[:tables[1].start()] + new_t1 + body[tables[1].end():tables[2].start()] + new_t2 + body[tables[2].end():]
+sched_tail = drop_blank_before_note(body[tables[2].end():])
+body = body[:tables[1].start()] + new_t1 + body[tables[1].end():tables[2].start()] + new_t2 + sched_tail
 
 # 4. page block: ${page} before the first table; a page-break paragraph at the END of the block, then ${/page}.
 #    (A break at the start added a blank line to every page after the first.) Kh3TemplateProcessor::stripLastPageBreak()

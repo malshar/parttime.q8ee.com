@@ -276,6 +276,38 @@ class AttestationDocumentTest extends TestCase
         $this->assertSame($cols, array_map('intval', $tcw[1]));
     }
 
+    public function test_note_paragraph_has_no_blank_lines_before_it_and_spacing_before(): void
+    {
+        $zip = new \ZipArchive;
+        $zip->open(resource_path('forms/kh3-template.docx'));
+        $xml = $zip->getFromName('word/document.xml');
+        $zip->close();
+        $tail = substr($xml, strrpos($xml, '</w:tbl>') + strlen('</w:tbl>'));
+
+        preg_match_all('~<w:p\b(?:(?!<w:p\b).)*?</w:p>~s', $tail, $m);
+        $paragraphs = $m[0];
+        $this->assertNotEmpty($paragraphs, 'no paragraphs found after the schedule table');
+
+        $noteIndex = null;
+        foreach ($paragraphs as $i => $p) {
+            if (str_contains($p, 'ملاحظة مهمة')) {
+                $noteIndex = $i;
+                break;
+            }
+        }
+        $this->assertNotNull($noteIndex, 'note paragraph not found');
+
+        foreach (array_slice($paragraphs, 0, $noteIndex) as $p) {
+            preg_match_all('~<w:t[^>]*>([^<]*)</w:t>~', $p, $texts);
+            $this->assertSame('', trim(implode('', $texts[1])), 'an empty paragraph precedes the note paragraph');
+        }
+
+        preg_match('~<w:pPr>.*?</w:pPr>~s', $paragraphs[$noteIndex], $ppr);
+        $this->assertNotEmpty($ppr, 'note paragraph has no pPr');
+        $this->assertStringContainsString('w:before="120"', $ppr[0]);
+        $this->assertSame(1, substr_count($paragraphs[$noteIndex], '<w:spacing'), 'spacing duplicated in note pPr');
+    }
+
     /**
      * Builds a two-form sample and checks its XML. The output is deleted afterwards unless
      * KH3_WRITE_SAMPLE=1 is set, in which case it is kept at storage/app/private/generated/sample-kh3.docx
