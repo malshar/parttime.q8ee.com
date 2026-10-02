@@ -47,7 +47,7 @@
         <div class="card mb-3">
             <div class="card-header">{{ __('app.profile.work') }}</div>
             <div class="card-body">
-                @include('instructor._employer_bank_fields', ['instructor' => $instructor])
+                @include('instructor._employer_bank_fields', ['instructor' => $instructor, 'section' => 'employer'])
                 <div class="row">
                     <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.job_title') }}</label>
                         <input name="job_title" value="{{ old('job_title', $instructor->job_title) }}" class="form-control" required></div>
@@ -82,6 +82,7 @@
         <div class="card mb-3">
             <div class="card-header">{{ __('app.profile.bank') }}</div>
             <div class="card-body">
+                @include('instructor._employer_bank_fields', ['instructor' => $instructor, 'section' => 'bank'])
                 <div class="row">
                     <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.bank_branch') }}</label>
                         <input name="bank_branch" value="{{ old('bank_branch', $instructor->bank_branch) }}" class="form-control"></div>

@@ -102,6 +102,16 @@ class AdminProfileEditTest extends TestCase
         $r->assertSee('name="bank_choice"', false);
         $r->assertSee('name="nationality"', false);
 
+        // The bank select belongs with the branch/IBAN fields in the bank card, not the work card.
+        $html = $r->getContent();
+        $workHeading = strpos($html, __('app.profile.work'));
+        $bankSelect = strpos($html, 'name="bank_choice"');
+        $iban = strpos($html, 'name="iban"');
+        $this->assertNotFalse($workHeading);
+        $this->assertNotFalse($bankSelect);
+        $this->assertNotFalse($iban);
+        $this->assertTrue($workHeading < $bankSelect && $bankSelect < $iban);
+
         $payload = ProfileTest::payload([
             'civil_id' => $this->application->instructor->civil_id,
             'employer_choice' => 'وزارة العدل', 'employer_other' => '',

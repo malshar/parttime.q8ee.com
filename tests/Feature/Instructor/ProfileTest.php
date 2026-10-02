@@ -240,6 +240,16 @@ class ProfileTest extends TestCase
         $r->assertSee('value="شركة قديمة"', false);
         $r->assertSee('value="بنك قديم"', false);
         $this->assertSame('كويتي', $this->user->instructor->fresh()->nationalityLabel());
+
+        // The bank select belongs with the branch/IBAN fields in the bank card, not the work card.
+        $html = $r->getContent();
+        $workHeading = strpos($html, __('app.profile.work'));
+        $bankSelect = strpos($html, 'name="bank_choice"');
+        $iban = strpos($html, 'name="iban"');
+        $this->assertNotFalse($workHeading);
+        $this->assertNotFalse($bankSelect);
+        $this->assertNotFalse($iban);
+        $this->assertTrue($workHeading < $bankSelect && $bankSelect < $iban);
     }
 
     public function test_non_sensitive_values_are_retained_after_a_validation_error(): void
