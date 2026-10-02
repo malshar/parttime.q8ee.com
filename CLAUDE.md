@@ -1,8 +1,8 @@
 # CLAUDE.md — parttime.q8ee.com (المنتدبون / Part-timers & Interns Management)
 
-> **Status (2026-10-02): live at https://parttime.q8ee.com — milestones 1–4
-> merged on `main` and deployed.** Laravel 12 app (`php artisan test` green,
-> 286 tests passed, 1 skipped, on branch `milestone-5a-feedback`). Milestone 1 (intake) shipped first;
+> **Status (2026-10-02): live at https://parttime.q8ee.com — milestones 1–4,
+> 5a and the (خ-3) spacing hotfix merged on `main` and deployed.** Laravel 12 app
+> (`php artisan test` green, 288 tests passed, 1 skipped, on `main`). Milestone 1 (intake) shipped first;
 > milestone 2 adds: the `complete` application status with a three-group
 > attention list, a committee decision step (replacing direct approve/reject)
 > with a consolidated rejection notice, reopening of withdrawn applications,
@@ -29,7 +29,7 @@
 > reference, course, name and instructor; (5) jadawil (v2.4.13+) timetable
 > export includes seat columns `الحد الأقصى`, `مسجلة`, `متبقية`, this app's
 > importer reads them — re-export and re-import after both deploys so the
-> student count prints on (خ-3). Deploy pending. 5a covers feedback items
+> student count prints on (خ-3). 5a covers feedback items
 > 1–3, 5, 8–11 and 14–18; items 4, 6, 7, 12 and 13 (two-stage documents,
 > transcript with exemptions, salary timing, multi-file upload) are
 > milestone 5b.** The (خ-3)
@@ -130,10 +130,10 @@ Pick per scope. Arabic-first, RTL, complete translation coverage from day one.
 
 ## Next step
 
-Milestones 1–4 are deployed and live. Milestone 5a (feedback round) is on
-branch `milestone-5a-feedback`; next: deploy it with `./deploy/deploy.sh`,
-then re-export and re-import the term's jadawil timetable (v2.4.13 or later,
+Milestones 1–4, 5a and the (خ-3) spacing hotfix (page break folded into the
+note run, verified live at one page per instructor) are deployed. The
+synthetic test instructors were removed from production on 2026-10-02.
+Next: re-export and re-import the term's jadawil timetable (v2.4.13 or later,
 with seat columns `الحد الأقصى`, `مسجلة`, `متبقية`) so the student count
-prints on (خ-3), and verify the one-page PDF on the server. Then milestone 5b
-(two-stage documents, transcript with exemptions, salary timing, multi-file
-upload).
+prints on (خ-3). Then milestone 5b (two-stage documents, transcript with
+exemptions, salary timing, multi-file upload, parked minors).
