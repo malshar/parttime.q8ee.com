@@ -41,7 +41,7 @@ class FreshCopyTest extends TestCase
             Document::factory()->for($this->previous)->forItem($code)->accepted()->create(['reviewed_at' => now()->subMonth()]);
         }
         $this->application = Application::factory()->for($current)->for($this->instructor)->create(['status' => Application::STATUS_UNDER_REVIEW, 'submitted_at' => now(), 'reviewed_at' => now()]);
-        foreach (['salary_cert', 'employer_approval', 'undertaking'] as $code) {
+        foreach (['transcript_bachelor', 'transcript_master', 'salary_cert', 'employer_approval', 'undertaking'] as $code) {
             Document::factory()->for($this->application)->forItem($code)->accepted()->create();
         }
     }

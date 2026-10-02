@@ -35,10 +35,10 @@ class ChecklistResolverTest extends TestCase
         $i = Instructor::factory()->for(User::factory()->instructor())->create();
         $plan = app(ChecklistResolver::class)->for($i);
 
-        $this->assertSame(['civil_id', 'degree', 'salary_cert', 'iban', 'employer_approval', 'undertaking'], $this->codes($plan->required));
+        $this->assertSame(['civil_id', 'degree', 'transcript_bachelor', 'transcript_master', 'salary_cert', 'iban', 'employer_approval', 'undertaking'], $this->codes($plan->required));
         $this->assertSame(['schedule', 'assignment_letter', 'attestation'], $this->codes($plan->department));
         $this->assertSame(['equivalency', 'social_insurance', 'experience'], $this->codes($plan->notApplicable));
-        $this->assertSame(['transcript_bachelor', 'transcript_master'], $this->codes($plan->optional));
+        $this->assertSame([], $this->codes($plan->optional));
     }
 
     public function test_foreign_degree_adds_equivalency(): void
@@ -64,6 +64,6 @@ class ChecklistResolverTest extends TestCase
     public function test_all_three_conditions_together(): void
     {
         $i = Instructor::factory()->foreignDegree()->privateSector()->bachelor()->for(User::factory()->instructor())->create();
-        $this->assertCount(9, app(ChecklistResolver::class)->for($i)->required);
+        $this->assertCount(10, app(ChecklistResolver::class)->for($i)->required);
     }
 }

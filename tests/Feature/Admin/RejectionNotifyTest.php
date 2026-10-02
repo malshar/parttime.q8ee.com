@@ -32,7 +32,7 @@ class RejectionNotifyTest extends TestCase
         $this->instructorUser = User::factory()->instructor()->create();
         $instructor = Instructor::factory()->for($this->instructorUser)->create();
         $this->application = Application::factory()->for(Term::factory()->open())->for($instructor)->create(['status' => Application::STATUS_UNDER_REVIEW]);
-        foreach (['civil_id', 'degree', 'salary_cert', 'iban', 'employer_approval', 'undertaking'] as $code) {
+        foreach (['civil_id', 'degree', 'transcript_bachelor', 'transcript_master', 'salary_cert', 'iban', 'employer_approval', 'undertaking'] as $code) {
             Document::factory()->for($this->application)->forItem($code)->create();
         }
     }

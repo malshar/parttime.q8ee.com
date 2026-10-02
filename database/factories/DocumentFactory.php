@@ -18,7 +18,7 @@ class DocumentFactory extends Factory
             'checklist_item_id' => fn () => ChecklistItem::where('code', 'civil_id')->value('id'),
             'path' => 'applications/0/'.$this->faker->uuid().'.pdf',
             'original_name' => 'file.pdf', 'mime' => 'application/pdf', 'size' => 1000,
-            'status' => Document::STATUS_PENDING, 'version' => 1,
+            'status' => Document::STATUS_PENDING, 'version' => 1, 'part' => 1,
         ];
     }
 

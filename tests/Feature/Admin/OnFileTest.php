@@ -149,7 +149,7 @@ class OnFileTest extends TestCase
         foreach (['civil_id', 'degree', 'iban'] as $code) {
             $this->accepted($this->previous, $code);
         }
-        foreach (['salary_cert', 'employer_approval', 'undertaking'] as $code) {
+        foreach (['transcript_bachelor', 'transcript_master', 'salary_cert', 'employer_approval', 'undertaking'] as $code) {
             Document::factory()->for($this->application)->forItem($code)->accepted()->create();
         }
 

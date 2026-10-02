@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Document extends Model
 {
@@ -17,7 +18,7 @@ class Document extends Model
     public const STATUS_REJECTED = 'rejected';
 
     protected $fillable = ['application_id', 'checklist_item_id', 'path', 'original_name', 'mime', 'size',
-        'status', 'rejection_reason', 'reviewed_by', 'reviewed_at', 'version', 'notified_at'];
+        'status', 'rejection_reason', 'reviewed_by', 'reviewed_at', 'version', 'part', 'notified_at'];
 
     protected function casts(): array
     {
@@ -37,6 +38,13 @@ class Document extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    /** Every file of this document's version (part 1 is the head that carries the review state). */
+    public function parts(): HasMany
+    {
+        return $this->hasMany(Document::class, 'application_id', 'application_id')
+            ->where('checklist_item_id', $this->checklist_item_id)->where('version', $this->version)->orderBy('part');
     }
 
     public function isImage(): bool

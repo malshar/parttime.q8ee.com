@@ -34,7 +34,7 @@ class ReviewTest extends TestCase
         $this->instructorUser = User::factory()->instructor()->create();
         $instructor = Instructor::factory()->for($this->instructorUser)->create();
         $this->application = Application::factory()->submitted()->for(Term::factory()->open())->for($instructor)->create();
-        foreach (['civil_id', 'degree', 'salary_cert', 'iban', 'employer_approval', 'undertaking'] as $code) {
+        foreach (['civil_id', 'degree', 'transcript_bachelor', 'transcript_master', 'salary_cert', 'iban', 'employer_approval', 'undertaking'] as $code) {
             Document::factory()->for($this->application)->forItem($code)->create();
         }
     }

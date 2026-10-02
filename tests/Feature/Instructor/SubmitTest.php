@@ -37,7 +37,7 @@ class SubmitTest extends TestCase
 
     private function uploadAll(array $except = []): void
     {
-        foreach (['civil_id', 'degree', 'salary_cert', 'iban', 'employer_approval', 'undertaking'] as $code) {
+        foreach (['civil_id', 'degree', 'transcript_bachelor', 'transcript_master', 'salary_cert', 'iban', 'employer_approval', 'undertaking'] as $code) {
             if (! in_array($code, $except, true)) {
                 Document::factory()->for($this->application)->forItem($code)->create();
             }
