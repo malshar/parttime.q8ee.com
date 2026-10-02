@@ -107,10 +107,24 @@ def fit_table(tbl):
     return tbl[:rows[0].start()] + ''.join(new_rows) + tbl[rows[-1].end():]
 
 
+def add_spacing_before(ppr_inner, twips):
+    """Add w:before="<twips>" to ppr_inner's <w:spacing/> (merging), or insert a new <w:spacing
+    w:before="…"/> right before <w:rPr> (or at the end if there is none) if ppr_inner has no <w:spacing/>
+    yet. Asserts w:before isn't already set, so this never silently overrides an existing value."""
+    m = re.search(r'<w:spacing\b([^/]*)/>', ppr_inner)
+    if m:
+        assert 'w:before=' not in m.group(1), 'pPr already has w:before'
+        return ppr_inner[:m.start()] + '<w:spacing w:before="%d"%s/>' % (twips, m.group(1)) + ppr_inner[m.end():]
+    tag = '<w:spacing w:before="%d"/>' % twips
+    return ppr_inner.replace('<w:rPr>', tag + '<w:rPr>', 1) if '<w:rPr>' in ppr_inner else ppr_inner + tag
+
+
 def drop_blank_before_note(tail):
-    """Remove the empty paragraphs between the schedule table and the 'ملاحظة مهمة' note, and give the
-    note paragraph <w:spacing w:before="120"/> in its pPr (created if absent, merged if present) so the
-    note doesn't spill alone onto a second page on a five-week month."""
+    """Remove the empty paragraphs between the schedule table and the 'ملاحظة مهمة' note, give the note
+    paragraph <w:spacing w:before="120"/> in its pPr (created if absent, merged if present) so the note
+    doesn't spill alone onto a second page on a five-week month, and append the page-break as the note
+    paragraph's last run (instead of a standalone page-break paragraph) so a full page one doesn't push
+    an otherwise-empty page two."""
     paras = list(re.finditer(P, tail, re.S))
     note_i = next(i for i, m in enumerate(paras) if 'ملاحظة مهمة' in text(m.group(0)))
     for m in paras[:note_i]:
@@ -119,15 +133,33 @@ def drop_blank_before_note(tail):
     note_p = note.group(0)
     ppr = re.search(r'<w:pPr>(.*?)</w:pPr>', note_p, re.S)
     if ppr:
-        assert '<w:spacing' not in ppr.group(1), 'note pPr already has spacing'
-        inner = ppr.group(1)
-        inner = inner.replace('<w:rPr>', '<w:spacing w:before="120"/><w:rPr>', 1) if '<w:rPr>' in inner \
-            else inner + '<w:spacing w:before="120"/>'
-        new_note_p = note_p[:ppr.start()] + '<w:pPr>' + inner + '</w:pPr>' + note_p[ppr.end():]
+        new_note_p = note_p[:ppr.start()] + '<w:pPr>' + add_spacing_before(ppr.group(1), 120) + '</w:pPr>' + note_p[ppr.end():]
     else:
         ptag = re.match(r'<w:p\b[^>]*>', note_p).group(0)
         new_note_p = ptag + '<w:pPr><w:spacing w:before="120"/></w:pPr>' + note_p[len(ptag):]
+    assert new_note_p.endswith('</w:p>')
+    new_note_p = new_note_p[:-len('</w:p>')] + '<w:r><w:br w:type="page"/></w:r></w:p>'
     return new_note_p + tail[note.end():]
+
+
+def tighten_title_block(segment):
+    """Remove the empty paragraphs around the two schedule-title lines ('الجدول الدراسي…' and '(طبقاً
+    للجدول…)') between the phones field and the schedule table, and give the first title line <w:spacing
+    w:before="160"/> to reclaim some of the margin the removed blank lines used to provide above the
+    table."""
+    phones = next(m for m in re.finditer(P, segment, re.S) if '${phone_work}' in m.group(0))
+    before, after = segment[:phones.end()], segment[phones.end():]
+    paras = list(re.finditer(P, after, re.S))
+    titles = [p for p in paras if text(p.group(0)).strip()]
+    assert len(titles) == 2, 'expected exactly the two title-line paragraphs'
+    for p in paras:
+        if p not in titles:
+            assert not text(p.group(0)).strip(), 'expected only empty paragraphs around the title lines'
+    first = titles[0].group(0)
+    ppr = re.search(r'<w:pPr>(.*?)</w:pPr>', first, re.S)
+    assert ppr, 'title line has no pPr'
+    new_first = first[:ppr.start()] + '<w:pPr>' + add_spacing_before(ppr.group(1), 160) + '</w:pPr>' + first[ppr.end():]
+    return before + new_first + titles[1].group(0)
 
 
 def merge_footer(footer):
@@ -209,17 +241,18 @@ for c, name in reversed(list(zip(tcells, sums))):
         continue
     new_tot = new_tot[:c.start()] + set_cell(c.group(0), '${%s}' % name if name else '') + new_tot[c.end():]
 new_t2 = fit_table(t2[:rows[0].start()] + r0 + rows[1].group(0) + new_week + new_tot + t2[rows[6].end():])
+title_seg = tighten_title_block(body[tables[1].end():tables[2].start()])
 sched_tail = drop_blank_before_note(body[tables[2].end():])
-body = body[:tables[1].start()] + new_t1 + body[tables[1].end():tables[2].start()] + new_t2 + sched_tail
+body = body[:tables[1].start()] + new_t1 + title_seg + new_t2 + sched_tail
 
-# 4. page block: ${page} before the first table; a page-break paragraph at the END of the block, then ${/page}.
-#    (A break at the start added a blank line to every page after the first.) Kh3TemplateProcessor::stripLastPageBreak()
-#    removes the break after the last cloned page.
+# 4. page block: ${page} before the first table, ${/page} at the end. The page break itself is the last run
+#    of the note paragraph (see drop_blank_before_note), not a paragraph of its own — a standalone break
+#    paragraph after a full page one spills onto an otherwise-empty page two. Kh3TemplateProcessor::
+#    stripLastPageBreak() removes that break run after the last cloned page.
 first_tbl = body.index('<w:tbl>')
 body = (body[:first_tbl]
         + '<w:p><w:r><w:t>${page}</w:t></w:r></w:p>'
         + body[first_tbl:]
-        + '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
         + '<w:p><w:r><w:t>${/page}</w:t></w:r></w:p>')
 
 new_xml = head + '<w:body>' + body + tail

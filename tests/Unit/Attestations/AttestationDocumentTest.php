@@ -306,6 +306,33 @@ class AttestationDocumentTest extends TestCase
         $this->assertNotEmpty($ppr, 'note paragraph has no pPr');
         $this->assertStringContainsString('w:before="120"', $ppr[0]);
         $this->assertSame(1, substr_count($paragraphs[$noteIndex], '<w:spacing'), 'spacing duplicated in note pPr');
+
+        // the page break is the note paragraph's own last run, not a standalone paragraph: a full page one
+        // must not push a separate break paragraph onto an otherwise-empty page two.
+        $this->assertSame(1, substr_count($xml, '<w:br w:type="page"/>'), 'template must carry exactly one page break');
+        $this->assertStringEndsWith('<w:r><w:br w:type="page"/></w:r></w:p>', $paragraphs[$noteIndex]);
+    }
+
+    public function test_no_blank_paragraphs_between_phones_line_and_schedule_table(): void
+    {
+        $zip = new \ZipArchive;
+        $zip->open(resource_path('forms/kh3-template.docx'));
+        $xml = $zip->getFromName('word/document.xml');
+        $zip->close();
+        $phonesEnd = strpos($xml, '${phone_work}');
+        $this->assertNotFalse($phonesEnd, 'phones placeholder not found');
+        $tableStart = strpos($xml, '<w:tbl>', $phonesEnd);
+        $segment = substr($xml, $phonesEnd, $tableStart - $phonesEnd);
+
+        preg_match_all('~<w:p\b(?:(?!<w:p\b).)*?</w:p>~s', $segment, $m);
+        $paragraphs = $m[0];
+        $this->assertCount(2, $paragraphs, 'expected only the two title-line paragraphs between the phones line and the schedule table');
+        $this->assertStringContainsString('الجدول الدراسي لعضو هيئة التدريس المنتدب', $paragraphs[0]);
+        $this->assertStringContainsString('طبقاً للجدول المعتمد', $paragraphs[1]);
+        preg_match('~<w:pPr>.*?</w:pPr>~s', $paragraphs[0], $ppr);
+        $this->assertNotEmpty($ppr, 'first title line has no pPr');
+        $this->assertStringContainsString('w:before="160"', $ppr[0]);
+        $this->assertSame(1, substr_count($paragraphs[0], '<w:spacing'), 'spacing duplicated in title line pPr');
     }
 
     /**
