@@ -36,9 +36,10 @@
 
 @if (! $term)
     <div class="alert alert-info">{{ __('app.terms.none_open') }}</div>
-@elseif ($rows->isEmpty())
-    <div class="alert alert-info">{{ __('app.attestations.no_listed') }}</div>
 @else
+    @if ($rows->isEmpty())
+    <div class="alert alert-info">{{ __('app.attestations.no_listed') }}</div>
+    @else
     <div class="d-flex gap-2 mb-3">
         @if ($term->isOpen())
             <form method="post" action="{{ route('admin.attestations.generate') }}">
@@ -92,5 +93,15 @@
             </tbody>
         </table>
     </div>
+    @endif
+
+    @if ($awaiting->isNotEmpty())
+        <h2 class="h6 mt-4">{{ __('app.attestations.awaiting_documents') }}</h2>
+        <ul class="mb-4">
+            @foreach ($awaiting as $a)
+                <li><a href="{{ route('admin.applications.show', $a) }}">{{ $a->instructor->full_name }}</a> — {{ implode('، ', $a->missing) }}</li>
+            @endforeach
+        </ul>
+    @endif
 @endif
 @endsection

@@ -6,11 +6,13 @@ use App\Models\Application;
 use App\Models\Assignment;
 use App\Models\Attestation;
 use App\Models\AuditLog;
+use App\Models\Document;
 use App\Models\Instructor;
 use App\Models\Section;
 use App\Models\Term;
 use App\Models\User;
 use App\Services\Attestations\AttestationGenerator;
+use Database\Seeders\ChecklistItemSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -29,11 +31,26 @@ class AttestationsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->seed(ChecklistItemSeeder::class);
         $this->admin = User::factory()->admin()->create();
         $this->term = Term::factory()->open()->create(['type' => 'summer', 'academic_year' => '2025-2026', 'teaching_starts_on' => '2026-06-07', 'teaching_ends_on' => '2026-07-23']);
         $this->assigned = Application::factory()->approved()->for($this->term)->for(Instructor::factory()->for(User::factory()->instructor())->create(['full_name' => 'أحمد سالم']))->create();
         Assignment::factory()->for($this->assigned)->for(Section::factory()->for($this->term)->withMeetings()->create())->create();
+        $this->completeStageTwo($this->assigned);
         $this->unassigned = Application::factory()->approved()->for($this->term)->for(Instructor::factory()->for(User::factory()->instructor())->create(['full_name' => 'بدر ناصر']))->create();
+    }
+
+    /** Marks an approved application's stage 2 complete: the four stage-2 items accepted, plus social_insurance if private-sector, and both salary fields set. */
+    private function completeStageTwo(Application $application): void
+    {
+        $codes = ['salary_cert', 'iban', 'employer_approval', 'undertaking'];
+        if ($application->instructor->isPrivateSector()) {
+            $codes[] = 'social_insurance';
+        }
+        foreach ($codes as $code) {
+            Document::factory()->for($application)->forItem($code)->accepted()->create();
+        }
+        $application->instructor->update(['basic_salary' => '900', 'total_salary' => '1200']);
     }
 
     public function test_instructor_is_forbidden_on_index_and_generate(): void
@@ -70,6 +87,7 @@ class AttestationsTest extends TestCase
     {
         $second = Application::factory()->approved()->for($this->term)->for(Instructor::factory()->for(User::factory()->instructor())->create(['full_name' => 'خالد عيسى']))->create();
         Assignment::factory()->for($second)->for(Section::factory()->for($this->term)->withMeetings()->create())->create();
+        $this->completeStageTwo($second);
         Attestation::factory()->for($this->assigned)->create(['year' => 2026, 'month' => 6]);
 
         $this->actingAs($this->admin)->post(route('admin.attestations.generate'), ['term' => $this->term->id, 'month' => 1])

@@ -6,13 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Application;
 use App\Models\Attestation;
 use App\Models\Term;
+use App\Services\ApplicationWorkflow;
 use App\Services\Attestations\AttestationService;
 use Carbon\Carbon;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __construct(private AttestationService $attestations) {}
+    public function __construct(private AttestationService $attestations, private ApplicationWorkflow $workflow) {}
 
     public function index(): View
     {
@@ -21,6 +22,13 @@ class DashboardController extends Controller
 
         $department = (clone $base)->whereIn('status', [Application::STATUS_SUBMITTED, Application::STATUS_UNDER_REVIEW])->orderBy('submitted_at')->get();
         $committee = (clone $base)->where('status', Application::STATUS_COMPLETE)->orderBy('complete_at')->get();
+
+        $awaitingDocuments = collect();
+        if ($term) {
+            $awaitingDocuments = (clone $base)->where('status', Application::STATUS_APPROVED)->get()
+                ->reject(fn ($a) => $this->workflow->stageTwoComplete($a))
+                ->each(fn ($a) => $a->missing = $this->workflow->stageTwoMissing($a))->values();
+        }
 
         $alerts = collect();
         if ($term) {
@@ -56,6 +64,6 @@ class DashboardController extends Controller
         $counts = Application::whereHas('term', fn ($q) => $q->open())
             ->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status');
 
-        return view('admin.dashboard', compact('department', 'committee', 'alerts', 'counts', 'term'));
+        return view('admin.dashboard', compact('department', 'committee', 'awaitingDocuments', 'alerts', 'counts', 'term'));
     }
 }

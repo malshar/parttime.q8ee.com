@@ -27,7 +27,7 @@ class AttestationController extends Controller
         $terms = Term::orderByDesc('teaching_starts_on')->get();
         $term = $request->filled('term') ? Term::findOrFail($request->term) : Term::current();
         if (! $term) {
-            return view('admin.attestations.index', ['term' => null, 'terms' => $terms, 'months' => [], 'month' => null, 'rows' => collect()]);
+            return view('admin.attestations.index', ['term' => null, 'terms' => $terms, 'months' => [], 'month' => null, 'rows' => collect(), 'awaiting' => collect()]);
         }
         $month = $this->service->resolveMonth($term, $request->filled('month') ? (int) $request->month : null);
         abort_if($month === null, 404);
@@ -41,7 +41,8 @@ class AttestationController extends Controller
         $rows = $applications->sortBy(fn ($a) => $a->instructor->full_name)->values()
             ->map(fn ($a) => ['application' => $a, 'attestation' => $existing[$a->id] ?? null]);
 
-        return view('admin.attestations.index', ['term' => $term, 'terms' => $terms, 'months' => $term->months(), 'month' => $month, 'rows' => $rows, 'existingCount' => $existing->count()]);
+        return view('admin.attestations.index', ['term' => $term, 'terms' => $terms, 'months' => $term->months(), 'month' => $month, 'rows' => $rows,
+            'existingCount' => $existing->count(), 'awaiting' => $this->service->awaitingDocuments($term)]);
     }
 
     public function generate(Request $request): RedirectResponse

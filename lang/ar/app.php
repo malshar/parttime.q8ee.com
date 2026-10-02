@@ -165,6 +165,8 @@ return [
         'decision_not_approved' => 'لا يمكن إدخال قرار التكليف إلا بعد اعتماد الطلب.',
         'group_department' => 'بانتظار مراجعة القسم',
         'group_committee' => 'بانتظار اللجنة',
+        'group_awaiting_documents' => 'معتمد، بانتظار المستندات',
+        'no_awaiting_documents' => 'لا توجد طلبات معتمدة بانتظار المستندات.',
         'group_alerts' => 'تنبيهات',
         'no_alerts' => 'لا توجد تنبيهات.',
         'alert_unassigned' => 'المنتدب :name معتمد ولم تسند له أي شعبة.',
@@ -323,5 +325,6 @@ return [
         'pdf_unavailable' => 'تعذر إنشاء ملف PDF على الخادم؛ يمكن تنزيل ملف Word بدلا منه.',
         'alert_missing' => ':n مزاولة غير مولدة في :month.',
         'alert_unexported' => ':n مزاولة مولدة وغير مصدرة في :month.',
+        'awaiting_documents' => 'بانتظار استكمال المستندات (لا تصدر لهم المزاولة بعد)',
     ],
 ];

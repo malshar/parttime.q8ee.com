@@ -46,6 +46,17 @@
     </div>
 @endif
 
+<h2 class="h6 mt-4">{{ __('app.review.group_awaiting_documents') }}</h2>
+@if ($awaitingDocuments->isEmpty())
+    <div class="alert alert-info">{{ __('app.review.no_awaiting_documents') }}</div>
+@else
+    <ul>
+        @foreach ($awaitingDocuments as $a)
+            <li><a href="{{ route('admin.applications.show', $a) }}">{{ $a->instructor->full_name }}</a> — {{ implode('، ', $a->missing) }}</li>
+        @endforeach
+    </ul>
+@endif
+
 <h2 class="h6 mt-4">{{ __('app.review.group_alerts') }}</h2>
 @if ($alerts->isEmpty())
     <div class="alert alert-info">{{ __('app.review.no_alerts') }}</div>

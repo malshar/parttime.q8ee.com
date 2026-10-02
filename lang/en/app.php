@@ -159,6 +159,8 @@ return [
         'decision_not_approved' => 'The assignment decision can only be entered after the application is approved.',
         'group_department' => 'Awaiting department review',
         'group_committee' => 'Awaiting committee',
+        'group_awaiting_documents' => 'Approved, awaiting documents',
+        'no_awaiting_documents' => 'No approved applications are awaiting documents.',
         'group_alerts' => 'Alerts',
         'no_alerts' => 'There are no alerts.',
         'alert_unassigned' => 'The approved part-timer :name has no section assigned.',
@@ -317,5 +319,6 @@ return [
         'pdf_unavailable' => 'The server could not produce the PDF; download the Word file instead.',
         'alert_missing' => ':n attestation(s) not generated for :month.',
         'alert_unexported' => ':n attestation(s) generated but not exported for :month.',
+        'awaiting_documents' => 'Awaiting documents (no attestation yet)',
     ],
 ];

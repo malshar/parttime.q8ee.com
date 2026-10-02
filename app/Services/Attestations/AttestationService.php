@@ -8,6 +8,7 @@ use App\Models\AttestationWeek;
 use App\Models\AuditLog;
 use App\Models\Term;
 use App\Models\User;
+use App\Services\ApplicationWorkflow;
 use Carbon\Carbon;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,10 +18,22 @@ use Illuminate\Support\Facades\DB;
 /** Admin-facing operations around AttestationGenerator, each audited (spec §5, §7). */
 final class AttestationService
 {
-    public function __construct(private AttestationGenerator $generator) {}
+    public function __construct(private AttestationGenerator $generator, private ApplicationWorkflow $workflow) {}
 
-    /** Approved applications with at least one assignment, by instructor name. */
+    /** Approved applications with at least one assignment and stage 2 complete (spec 5b §6), by instructor name. */
     public function listed(Term $term): Collection
+    {
+        return $this->approvedAssigned($term)->filter(fn ($a) => $this->workflow->stageTwoComplete($a))->values();
+    }
+
+    /** Approved and assigned but not yet listed; each application gets a `missing` attribute (labels). */
+    public function awaitingDocuments(Term $term): Collection
+    {
+        return $this->approvedAssigned($term)->reject(fn ($a) => $this->workflow->stageTwoComplete($a))
+            ->each(fn ($a) => $a->missing = $this->workflow->stageTwoMissing($a))->values();
+    }
+
+    private function approvedAssigned(Term $term): Collection
     {
         return $term->applications()->where('status', Application::STATUS_APPROVED)->has('assignments')->with('instructor')->get()
             ->sortBy(fn ($a) => $a->instructor->full_name)->values();
