@@ -218,6 +218,12 @@ return [
         'unassigned_only' => 'Unassigned only',
         'warnings' => 'Warnings',
         'errors' => 'Errors',
+        'reference' => 'Reference',
+        'filter_name' => 'Course name',
+        'filter_instructor' => 'Instructor',
+        'filter' => 'Filter',
+        'clear' => 'Clear',
+        'no_matches' => 'No matching sections.',
     ],
     'assignments' => [
         'title' => 'Section assignments',

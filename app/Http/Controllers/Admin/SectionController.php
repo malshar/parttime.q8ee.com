@@ -14,13 +14,14 @@ class SectionController extends Controller
     {
         $this->authorize('viewAny', Section::class);
         $term = $request->filled('term') ? Term::findOrFail($request->term) : Term::current();
+        $filters = $request->only(['reference', 'course', 'name', 'instructor']);
         $sections = $term
             ? $term->sections()->with(['meetings', 'assignment.application.instructor'])
-                ->when($request->filled('course'), fn ($q) => $q->where('course_code', 'like', $request->course.'%'))
+                ->filter($filters)
                 ->when($request->boolean('unassigned'), fn ($q) => $q->doesntHave('assignment'))
-                ->orderBy('course_code')->orderBy('section_number')->get()
+                ->orderedByReference()->get()
             : collect();
 
-        return view('admin.sections.index', ['term' => $term, 'sections' => $sections, 'terms' => Term::orderByDesc('teaching_starts_on')->get()]);
+        return view('admin.sections.index', ['term' => $term, 'sections' => $sections, 'filters' => $filters, 'terms' => Term::orderByDesc('teaching_starts_on')->get()]);
     }
 }

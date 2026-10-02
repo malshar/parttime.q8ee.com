@@ -19,17 +19,18 @@ class AssignmentController extends Controller
     {
         $this->authorize('viewAny', Section::class);
         $term = $request->filled('term') ? Term::findOrFail($request->term) : Term::current();
+        $filters = $request->only(['reference', 'course', 'name', 'instructor']);
         if (! $term) {
-            return view('admin.assignments.index', ['term' => null, 'sections' => collect(), 'approved' => collect(), 'suggestions' => [], 'totals' => collect(), 'terms' => Term::orderByDesc('teaching_starts_on')->get()]);
+            return view('admin.assignments.index', ['term' => null, 'sections' => collect(), 'approved' => collect(), 'suggestions' => [], 'totals' => collect(), 'filters' => $filters, 'terms' => Term::orderByDesc('teaching_starts_on')->get()]);
         }
-        $sections = $term->sections()->with(['meetings', 'assignment.application.instructor'])->orderBy('course_code')->orderBy('section_number')->get();
+        $sections = $term->sections()->with(['meetings', 'assignment.application.instructor'])->filter($filters)->orderedByReference()->get();
         $approved = $term->applications()->where('status', Application::STATUS_APPROVED)->with('instructor')->withCount('assignments')->get()->sortBy(fn ($a) => $a->instructor->full_name);
         $totals = $approved->map(fn ($a) => ['name' => $a->instructor->full_name, 'hours' => $a->weeklyHoursLabel(), 'count' => $a->assignments_count]);
 
         return view('admin.assignments.index', [
             'term' => $term, 'sections' => $sections, 'approved' => $approved,
             'suggestions' => $this->service->suggestionsFor($term), 'totals' => $totals,
-            'terms' => Term::orderByDesc('teaching_starts_on')->get(),
+            'filters' => $filters, 'terms' => Term::orderByDesc('teaching_starts_on')->get(),
         ]);
     }
 

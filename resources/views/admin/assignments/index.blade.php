@@ -6,20 +6,14 @@
     <h1 class="h4 mb-0">{{ __('app.assignments.title') }}</h1>
 </div>
 
-<form method="get" action="{{ route('admin.assignments.index') }}" class="row g-2 align-items-center mb-3">
-    <div class="col-auto">
-        <select name="term" class="form-select" onchange="this.form.submit()">
-            @foreach ($terms as $t)
-                <option value="{{ $t->id }}" @selected($term && $term->id === $t->id)>{{ $t->label() }}</option>
-            @endforeach
-        </select>
-    </div>
-</form>
+@include('admin.sections._filters', ['routeName' => 'admin.assignments.index', 'showUnassigned' => false])
 
 @if (! $term)
     <div class="alert alert-info">{{ __('app.terms.none_open') }}</div>
 @elseif ($approved->isEmpty())
     <div class="alert alert-info">{{ __('app.assignments.no_approved') }}</div>
+@elseif ($sections->isEmpty() && array_filter($filters))
+    <div class="alert alert-info">{{ __('app.sections.no_matches') }}</div>
 @else
     <div class="row">
         <div class="col-lg-9">
@@ -27,6 +21,7 @@
                 <table class="table table-striped align-middle">
                     <thead>
                     <tr>
+                        <th>{{ __('app.sections.reference') }}</th>
                         <th>{{ __('app.sections.course') }}</th>
                         <th>{{ __('app.sections.section') }}</th>
                         <th>{{ __('app.sections.course_name') }}</th>
@@ -42,6 +37,7 @@
                     @foreach ($sections as $s)
                         @php($hours = $s->weeklyMinutesByType())
                         <tr>
+                            <td>{{ $s->reference_number }}</td>
                             <td>
                                 {{ $s->course_code }}
                                 @if ($s->missing_since_import)

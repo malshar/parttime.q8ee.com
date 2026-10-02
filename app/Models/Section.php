@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -33,6 +34,23 @@ class Section extends Model
     public function assignment(): HasOne
     {
         return $this->hasOne(Assignment::class);
+    }
+
+    /** @param  array{reference?: ?string, course?: ?string, name?: ?string, instructor?: ?string}  $f */
+    public function scopeFilter(Builder $q, array $f): Builder
+    {
+        return $q
+            ->when($f['reference'] ?? null, fn ($q, $v) => $q->where('reference_number', 'like', $v.'%'))
+            ->when($f['course'] ?? null, fn ($q, $v) => $q->where('course_code', 'like', $v.'%'))
+            ->when($f['name'] ?? null, fn ($q, $v) => $q->where('course_name_ar', 'like', '%'.str_replace(['%', '_'], ['\%', '\_'], $v).'%'))
+            ->when($f['instructor'] ?? null, fn ($q, $v) => $q->where(fn ($w) => $w
+                ->where('scheduled_instructor', 'like', '%'.$v.'%')
+                ->orWhereHas('assignment.application.instructor', fn ($i) => $i->where('full_name', 'like', '%'.$v.'%'))));
+    }
+
+    public function scopeOrderedByReference(Builder $q): Builder
+    {
+        return $q->orderByRaw('reference_number is null')->orderBy('reference_number')->orderBy('course_code')->orderBy('section_number');
     }
 
     /** @return array{theory:int, practical:int, field:int} */

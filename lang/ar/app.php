@@ -224,6 +224,12 @@ return [
         'unassigned_only' => 'غير المسندة فقط',
         'warnings' => 'تنبيهات',
         'errors' => 'أخطاء',
+        'reference' => 'الرقم المرجعي',
+        'filter_name' => 'اسم المقرر',
+        'filter_instructor' => 'المدرس',
+        'filter' => 'تصفية',
+        'clear' => 'مسح',
+        'no_matches' => 'لا توجد شعب مطابقة.',
     ],
     'assignments' => [
         'title' => 'إسناد الشعب',
