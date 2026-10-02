@@ -19,20 +19,26 @@
         .btn-eet { background: var(--eet-primary); color: #fff; }
         .btn-eet:hover { background: #163c6a; color: #fff; }
         footer { color: #6c757d; font-size: .875rem; }
+        /* Phones: keep the header one line high by scrolling the action buttons sideways instead of wrapping. */
+        @media (max-width: 767.98px) {
+            .nav-actions { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+            .nav-actions::-webkit-scrollbar { display: none; }
+            .nav-actions > * { flex: 0 0 auto; }
+        }
     </style>
     @stack('head')
 </head>
 <body>
-<nav class="navbar navbar-eet navbar-dark">
+<nav class="navbar navbar-eet navbar-dark sticky-top shadow-sm">
     <div class="container py-1">
         <a class="navbar-brand" href="{{ route('home') }}">
             <span class="fw-bold">{{ __('app.site_name') }}</span>
             <span class="d-none d-md-inline small opacity-75">— {{ __('app.dept_name') }}</span>
         </a>
-        <div class="d-flex flex-wrap align-items-center gap-2">
+        <div class="d-flex flex-wrap align-items-center gap-2 nav-actions">
             @yield('nav')
             @auth
-                <span class="navbar-text text-white small ms-auto">
+                <span class="navbar-text text-white small ms-auto d-none d-md-inline">
                     {{ auth()->user()->name }}
                     <span class="badge bg-light text-dark">{{ __('app.auth.roles.'.auth()->user()->role) }}</span>
                 </span>
