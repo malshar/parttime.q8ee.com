@@ -50,6 +50,12 @@ class Instructor extends Model
         return self::where('civil_id_hash', self::hashCivilId($civilId))->first();
     }
 
+    /** The nationality for display: the country name for a 2-letter code, or the stored legacy text as-is. */
+    public function nationalityLabel(): string
+    {
+        return strlen($this->nationality) === 2 ? __('app.countries.'.$this->nationality) : (string) $this->nationality;
+    }
+
     public function maskedCivilId(): string
     {
         return mask_middle($this->civil_id);

@@ -18,13 +18,23 @@
                     <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.full_name') }}</label>
                         <input name="full_name" value="{{ old('full_name', $instructor->full_name) }}" class="form-control" required></div>
                     <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.civil_id') }}</label>
-                        <input name="civil_id" value="{{ old('civil_id', $instructor->civil_id) }}" class="form-control" dir="ltr" maxlength="12" required></div>
+                        <input name="civil_id" value="{{ old('civil_id', old() ? '' : $instructor->civil_id) }}" class="form-control" dir="ltr" maxlength="12" required>
+                        @if (old())
+                            <div class="form-text">{{ __('app.profile.sensitive_reenter') }}</div>
+                        @endif</div>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.civil_id_expires_on') }}</label>
                         <input type="date" name="civil_id_expires_on" value="{{ old('civil_id_expires_on', optional($instructor->civil_id_expires_on)->format('Y-m-d')) }}" class="form-control" required></div>
-                    <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.nationality') }}</label>
-                        <input name="nationality" value="{{ old('nationality', $instructor->nationality) }}" class="form-control" required></div>
+                    <div class="col-md-6 mb-3"><label class="form-label" for="nationality">{{ __('app.profile.nationality') }}</label>
+                        <select id="nationality" name="nationality" class="form-select" required>
+                            @foreach (__('app.countries') as $code => $name)
+                                <option value="{{ $code }}" @selected(old('nationality', strlen($instructor->nationality) === 2 ? $instructor->nationality : 'ZZ') === $code)>{{ $name }}</option>
+                            @endforeach
+                        </select>
+                        @if ($instructor->nationality && strlen($instructor->nationality) !== 2)
+                            <div class="form-text">{{ __('app.profile.nationality_legacy', ['value' => $instructor->nationality]) }}</div>
+                        @endif</div>
                 </div>
                 <div class="row">
                     <div class="col-md-4 mb-3"><label class="form-label">{{ __('app.profile.mobile') }}</label>
@@ -40,16 +50,7 @@
         <div class="card mb-3">
             <div class="card-header">{{ __('app.profile.work') }}</div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.employer') }}</label>
-                        <input name="employer" value="{{ old('employer', $instructor->employer) }}" class="form-control" required></div>
-                    <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.employer_sector') }}</label>
-                        <select name="employer_sector" class="form-select" required>
-                            @foreach (\App\Models\Instructor::SECTORS as $sector)
-                                <option value="{{ $sector }}" @selected(old('employer_sector', $instructor->employer_sector) === $sector)>{{ __('app.profile.sectors.'.$sector) }}</option>
-                            @endforeach
-                        </select></div>
-                </div>
+                @include('instructor._employer_bank_fields', ['instructor' => $instructor])
                 <div class="row">
                     <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.job_title') }}</label>
                         <input name="job_title" value="{{ old('job_title', $instructor->job_title) }}" class="form-control" required></div>
@@ -85,20 +86,27 @@
             <div class="card-header">{{ __('app.profile.bank') }}</div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.bank_name') }}</label>
-                        <input name="bank_name" value="{{ old('bank_name', $instructor->bank_name) }}" class="form-control" required></div>
                     <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.bank_branch') }}</label>
                         <input name="bank_branch" value="{{ old('bank_branch', $instructor->bank_branch) }}" class="form-control"></div>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.iban') }}</label>
-                        <input name="iban" value="{{ old('iban', $instructor->iban) }}" class="form-control" dir="ltr"></div>
+                        <input name="iban" value="{{ old('iban', old() ? '' : $instructor->iban) }}" class="form-control" dir="ltr">
+                        @if (old())
+                            <div class="form-text">{{ __('app.profile.sensitive_reenter') }}</div>
+                        @endif</div>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.basic_salary') }}</label>
-                        <input type="number" step="0.001" name="basic_salary" value="{{ old('basic_salary', $instructor->basic_salary) }}" class="form-control" dir="ltr" required></div>
+                        <input type="number" step="0.001" name="basic_salary" value="{{ old('basic_salary', old() ? '' : $instructor->basic_salary) }}" class="form-control" dir="ltr" required>
+                        @if (old())
+                            <div class="form-text">{{ __('app.profile.sensitive_reenter') }}</div>
+                        @endif</div>
                     <div class="col-md-6 mb-3"><label class="form-label">{{ __('app.profile.total_salary') }}</label>
-                        <input type="number" step="0.001" name="total_salary" value="{{ old('total_salary', $instructor->total_salary) }}" class="form-control" dir="ltr" required></div>
+                        <input type="number" step="0.001" name="total_salary" value="{{ old('total_salary', old() ? '' : $instructor->total_salary) }}" class="form-control" dir="ltr" required>
+                        @if (old())
+                            <div class="form-text">{{ __('app.profile.sensitive_reenter') }}</div>
+                        @endif</div>
                 </div>
             </div>
         </div>

@@ -44,7 +44,7 @@
             <div class="col-md-4 mb-2"><strong>{{ __('app.profile.civil_id_expires_on') }}:</strong> {{ format_date($instructor->civil_id_expires_on) }}</div>
         </div>
         <div class="row">
-            <div class="col-md-4 mb-2"><strong>{{ __('app.profile.nationality') }}:</strong> {{ $instructor->nationality }}</div>
+            <div class="col-md-4 mb-2"><strong>{{ __('app.profile.nationality') }}:</strong> {{ $instructor->nationalityLabel() }}</div>
             <div class="col-md-4 mb-2" dir="ltr"><strong>{{ __('app.profile.mobile') }}:</strong> {{ $instructor->mobile }}</div>
             <div class="col-md-4 mb-2" dir="ltr"><strong>{{ __('app.profile.work_phone') }}:</strong> {{ $instructor->work_phone }}</div>
         </div>

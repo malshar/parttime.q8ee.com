@@ -14,6 +14,7 @@ return [
     'common' => [
         'save' => 'Save', 'cancel' => 'Cancel', 'back' => 'Back', 'yes' => 'Yes', 'no' => 'No',
         'actions' => 'Actions', 'page_expired' => 'The page expired, please try again.', 'saved' => 'Saved.',
+        'choose' => 'Choose…',
     ],
     'auth' => [
         'turnstile_failed' => 'Human verification failed, please try again.',
@@ -73,12 +74,14 @@ return [
         'full_name' => 'Full name', 'civil_id' => 'Civil ID', 'civil_id_expires_on' => 'Civil ID expiry date',
         'nationality' => 'Nationality', 'mobile' => 'Mobile', 'work_phone' => 'Work phone', 'home_phone' => 'Home phone',
         'employer' => 'Employer', 'employer_sector' => 'Employer sector',
+        'employer_private' => 'Private sector', 'employer_other' => 'Other', 'employer_name' => 'Employer name',
         'sectors' => ['government' => 'Government', 'private' => 'Private'],
         'job_title' => 'Job title', 'highest_degree' => 'Highest degree',
         'degrees' => ['bachelor' => "Bachelor's", 'master' => "Master's", 'phd' => 'PhD'],
         'degree_title' => 'Degree title', 'degree_country' => 'Degree issuing country', 'degree_obtained_on' => 'Degree obtained on',
         'experience_years' => 'Years of experience', 'experience_hint' => "Required for bachelor's holders (at least 10 years).",
         'bank_name' => 'Bank name', 'bank_branch' => 'Branch', 'iban' => 'IBAN',
+        'bank_other' => 'Other bank', 'bank_other_name' => 'Bank name',
         'basic_salary' => 'Basic salary (KD)', 'total_salary' => 'Total salary (KD)',
         'civil_id_format' => 'The civil ID must be 12 digits starting with 2 or 3.',
         'civil_id_checksum' => 'The civil ID is invalid, please double-check it.',
@@ -86,6 +89,10 @@ return [
         'iban_invalid' => 'The IBAN is invalid. Format: KW + 28 characters.',
         'incomplete' => 'Please complete your personal information first.',
         'locked' => 'Your details cannot be changed while your application is under review or after it has been approved. Contact the department for any change.',
+        'employer_choice_invalid' => 'Choose the employer from the list.',
+        'bank_choice_invalid' => 'Choose the bank from the list.',
+        'sensitive_reenter' => 'For security these fields are not kept after an error; enter them again.',
+        'nationality_legacy' => 'Stored value: :value',
     ],
     'applications' => [
         'title' => 'Secondment application', 'start' => 'Apply for the current term', 'current' => 'Current application', 'past' => 'Past applications',

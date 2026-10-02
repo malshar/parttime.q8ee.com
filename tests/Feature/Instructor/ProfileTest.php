@@ -16,22 +16,33 @@ class ProfileTest extends TestCase
 {
     use RefreshDatabase;
 
+    private User $user;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->user = User::factory()->instructor()->create();
+        Instructor::factory()->for($this->user)->create();
+    }
+
     public static function payload(array $overrides = []): array
     {
         return array_merge([
             'full_name' => 'محمد أحمد علي الفهد',
             'civil_id' => CivilIdRuleTest::withCheckDigit('29001011234'),
             'civil_id_expires_on' => '2028-01-01',
-            'nationality' => 'كويتي',
+            'nationality' => 'KW',
             'mobile' => '99001122',
-            'employer' => 'وزارة الكهرباء والماء',
-            'employer_sector' => 'government',
+            'employer_choice' => 'وزارة الكهرباء والماء والطاقة المتجددة',
+            'employer_other' => '',
+            'employer_sector' => '',
             'job_title' => 'مهندس كهربائي',
             'highest_degree' => 'master',
             'degree_title' => 'ماجستير هندسة كهربائية',
             'degree_country' => 'KW',
             'degree_obtained_on' => '2018-06-01',
-            'bank_name' => 'بنك الكويت الوطني',
+            'bank_choice' => 'NBOK',
+            'bank_other' => '',
             'bank_branch' => 'الرميثية',
             'iban' => 'KW81CBKU0000000000001234560101',
             'basic_salary' => '1200',
@@ -159,7 +170,7 @@ class ProfileTest extends TestCase
         $before = AuditLog::where('action', 'edit_profile')->count();
 
         $this->actingAs($user)->put(route('instructor.profile.update'), self::payload([
-            'mobile' => '99887766', 'iban' => 'KW16NBOK0000000000001234560101', 'bank_name' => 'بنك الخليج',
+            'mobile' => '99887766', 'iban' => 'KW16NBOK0000000000001234560101', 'bank_choice' => 'GULB',
         ]))->assertSessionHasNoErrors();
 
         $rows = AuditLog::where('action', 'edit_profile')->orderBy('id')->get()->slice($before);
@@ -183,5 +194,73 @@ class ProfileTest extends TestCase
         $this->actingAs($user)->put(route('instructor.profile.update'), self::payload())->assertSessionHasNoErrors();
 
         $this->assertSame($before, AuditLog::where('action', 'edit_profile')->count());
+    }
+
+    public function test_agency_choice_sets_employer_and_government_sector(): void
+    {
+        $r = $this->actingAs($this->user)->put(route('instructor.profile.update'), self::payload([
+            'employer_choice' => 'وزارة الصحة', 'employer_other' => '', 'nationality' => 'KW',
+            'bank_choice' => 'NBOK', 'bank_other' => '',
+        ]));
+        $r->assertSessionHasNoErrors();
+        $i = $this->user->instructor->fresh();
+        $this->assertSame('وزارة الصحة', $i->employer);
+        $this->assertSame('government', $i->employer_sector);
+        $this->assertSame('بنك الكويت الوطني', $i->bank_name);
+        $this->assertSame('KW', $i->nationality);
+        $this->assertSame(__('app.countries.KW'), $i->nationalityLabel());
+    }
+
+    public function test_private_and_other_choices_require_a_name_and_keep_the_sector(): void
+    {
+        $this->actingAs($this->user)->put(route('instructor.profile.update'), self::payload([
+            'employer_choice' => 'private', 'employer_other' => '', 'bank_choice' => 'other', 'bank_other' => '',
+        ]))->assertSessionHasErrors(['employer_other', 'bank_other']);
+
+        $this->actingAs($this->user)->put(route('instructor.profile.update'), self::payload([
+            'employer_choice' => 'private', 'employer_other' => 'شركة الخليج للكابلات', 'bank_choice' => 'other', 'bank_other' => 'بنك آخر',
+        ]))->assertSessionHasNoErrors();
+        $i = $this->user->instructor->fresh();
+        $this->assertSame('شركة الخليج للكابلات', $i->employer);
+        $this->assertSame('private', $i->employer_sector);
+        $this->assertSame('بنك آخر', $i->bank_name);
+
+        $this->actingAs($this->user)->put(route('instructor.profile.update'), self::payload([
+            'employer_choice' => 'other', 'employer_other' => 'جمعية تعاونية', 'employer_sector' => 'government',
+        ]))->assertSessionHasNoErrors();
+        $this->assertSame('government', $this->user->instructor->fresh()->employer_sector);
+    }
+
+    public function test_legacy_values_preselect_other_and_survive_an_untouched_save(): void
+    {
+        $this->user->instructor->update(['nationality' => 'كويتي', 'employer' => 'شركة قديمة', 'employer_sector' => 'private', 'bank_name' => 'بنك قديم']);
+
+        $r = $this->actingAs($this->user)->get(route('instructor.profile.edit'))->assertOk();
+        $r->assertSee('<option value="other" selected', false);
+        $r->assertSee('value="شركة قديمة"', false);
+        $r->assertSee('value="بنك قديم"', false);
+        $this->assertSame('كويتي', $this->user->instructor->fresh()->nationalityLabel());
+    }
+
+    public function test_non_sensitive_values_are_retained_after_a_validation_error(): void
+    {
+        $r = $this->actingAs($this->user)->from(route('instructor.profile.edit'))->put(route('instructor.profile.update'), self::payload([
+            'mobile' => '12', 'full_name' => 'اسم للاختبار', 'employer_choice' => 'وزارة العدل', 'bank_choice' => 'WRBA', 'nationality' => 'SA',
+        ]))->assertRedirect(route('instructor.profile.edit'))->assertSessionHasErrors('mobile');
+
+        $page = $this->actingAs($this->user)->get(route('instructor.profile.edit'));
+        $page->assertSee('value="اسم للاختبار"', false);
+        $page->assertSee('<option value="وزارة العدل" selected', false);
+        $page->assertSee('<option value="WRBA" selected', false);
+        $page->assertSee('<option value="SA" selected', false);
+        $page->assertDontSee($this->user->instructor->iban);
+        $page->assertSee(__('app.profile.sensitive_reenter'));
+    }
+
+    public function test_unknown_iban_bank_code_does_not_block_saving(): void
+    {
+        $this->actingAs($this->user)->put(route('instructor.profile.update'), self::payload([
+            'iban' => 'KW40ZZZZ0000000000001234560101', 'bank_choice' => 'GULB',
+        ]))->assertSessionDoesntHaveErrors(['bank_choice', 'iban']);
     }
 }

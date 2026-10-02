@@ -66,7 +66,7 @@ class AdminProfileEditTest extends TestCase
     public function test_works_even_when_profile_is_locked_for_the_instructor(): void
     {
         $this->assertTrue($this->application->instructor->hasLockedApplication());
-        $payload = ProfileTest::payload(['civil_id' => $this->application->instructor->civil_id, 'employer' => 'وزارة الدفاع']);
+        $payload = ProfileTest::payload(['civil_id' => $this->application->instructor->civil_id, 'employer_choice' => 'وزارة الدفاع']);
         $this->actingAs($this->admin)->put(route('admin.applications.profile.update', $this->application), $payload)->assertSessionHasNoErrors();
         $this->assertSame('وزارة الدفاع', $this->application->instructor->fresh()->employer);
     }
@@ -93,5 +93,26 @@ class AdminProfileEditTest extends TestCase
         $r->assertSessionHasErrors('mobile');
         $r->assertSessionMissing('_old_input.civil_id');
         $r->assertSessionMissing('_old_input.iban');
+    }
+
+    public function test_admin_form_shows_the_employer_bank_nationality_selects_and_maps_an_agency_choice(): void
+    {
+        $r = $this->actingAs($this->admin)->get(route('admin.applications.profile.edit', $this->application))->assertOk();
+        $r->assertSee('name="employer_choice"', false);
+        $r->assertSee('name="bank_choice"', false);
+        $r->assertSee('name="nationality"', false);
+
+        $payload = ProfileTest::payload([
+            'civil_id' => $this->application->instructor->civil_id,
+            'employer_choice' => 'وزارة العدل', 'employer_other' => '',
+            'bank_choice' => 'WRBA', 'bank_other' => '',
+        ]);
+        $this->actingAs($this->admin)->put(route('admin.applications.profile.update', $this->application), $payload)
+            ->assertSessionHasNoErrors();
+
+        $i = $this->application->instructor->fresh();
+        $this->assertSame('وزارة العدل', $i->employer);
+        $this->assertSame('government', $i->employer_sector);
+        $this->assertSame('بنك وربة', $i->bank_name);
     }
 }

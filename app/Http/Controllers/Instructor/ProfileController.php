@@ -29,7 +29,7 @@ class ProfileController extends Controller
         if ($user->instructor?->hasLockedApplication()) {
             return back()->withErrors(['profile' => __('app.profile.locked')]);
         }
-        $data = $request->validated();
+        $data = $request->profileAttributes();
         if ($data['highest_degree'] !== 'bachelor') {
             $data['experience_years'] = null;
         }

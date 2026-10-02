@@ -26,7 +26,7 @@ class ProfileController extends Controller
     {
         $this->authorize('review', $application);
         $instructor = $application->instructor;
-        $data = $request->validated();
+        $data = $request->profileAttributes();
         if ($data['highest_degree'] !== 'bachelor') {
             $data['experience_years'] = null;
         }
