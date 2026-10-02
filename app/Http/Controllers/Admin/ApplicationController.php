@@ -39,10 +39,14 @@ class ApplicationController extends Controller
         $this->workflow->markUnderReview($application);
         $application->refresh();
 
+        $checklist = $this->workflow->checklist($application);
+
         return view('admin.applications.show', [
             'application' => $application,
             'instructor' => $application->instructor,
-            'checklist' => $this->workflow->checklist($application),
+            'checklist' => $checklist,
+            'stage1' => array_filter($checklist, fn ($r) => $r['stage'] === 1),
+            'stage2' => array_filter($checklist, fn ($r) => $r['stage'] === 2 || $r['optional']),
             'plan' => $this->workflow->plan($application),
             'sections' => $application->sections()->with('meetings')->get(),
             'history' => $application->documents()->with('checklistItem')->where('part', 1)->orderBy('checklist_item_id')->orderByDesc('version')->get(),
@@ -50,6 +54,10 @@ class ApplicationController extends Controller
             'canComplete' => in_array($application->status, [Application::STATUS_UNDER_REVIEW, Application::STATUS_INCOMPLETE], true)
                 && $application->term->isOpen() && $this->workflow->allRequiredAccepted($application),
             'pendingNotices' => $this->workflow->pendingRejectionNotices($application),
+            'stageTwoComplete' => $this->workflow->stageTwoComplete($application),
+            'stageTwoMissing' => $this->workflow->stageTwoMissing($application),
+            'undecidedExemptions' => $this->workflow->hasUndecidedExemptions($application),
+            'completeBlockMessage' => $this->workflow->completeBlockMessage($application),
         ]);
     }
 

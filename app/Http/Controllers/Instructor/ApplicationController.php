@@ -55,11 +55,18 @@ class ApplicationController extends Controller
     {
         $this->authorize('view', $application);
 
+        $checklist = $this->workflow->checklist($application);
+
         return view('instructor.application', [
             'application' => $application,
-            'checklist' => $this->workflow->checklist($application),
+            'checklist' => $checklist,
+            'stage1' => array_filter($checklist, fn ($r) => $r['stage'] === 1),
+            'stage2' => array_filter($checklist, fn ($r) => $r['stage'] === 2 || $r['optional']),
             'plan' => $this->workflow->plan($application),
             'canSubmit' => $application->isEditable() && $this->workflow->allRequiredUploaded($application),
+            'stageTwoComplete' => $this->workflow->stageTwoComplete($application),
+            'stageTwoMissing' => $this->workflow->stageTwoMissing($application),
+            'showSalaryForm' => $application->acceptsStageTwoUploads() && ($application->instructor->basic_salary === null || $application->instructor->total_salary === null),
         ]);
     }
 

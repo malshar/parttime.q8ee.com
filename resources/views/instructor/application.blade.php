@@ -20,58 +20,22 @@
         <div class="alert alert-danger">{{ $application->rejection_reason }}</div>
     @endif
 
-    <h2 class="h6">{{ __('app.applications.required_items') }}</h2>
-    <div class="table-responsive mb-4">
-        <table class="table table-striped align-middle">
-            <thead>
-            <tr>
-                <th>{{ __('app.documents.item') }}</th>
-                <th>{{ __('app.documents.status') }}</th>
-                <th>{{ __('app.documents.file') }}</th>
-                <th>{{ __('app.common.actions') }}</th>
-            </tr>
-            </thead>
-            <tbody>
-            @foreach ($checklist as $code => $row)
-                @php($item = $row['item'])
-                @php($document = $row['document'])
-                <tr>
-                    <td>
-                        {{ $item->label_ar }}
-                        @if ($row['optional'])
-                            <span class="badge bg-light text-dark border">{{ __('app.documents.optional') }}</span>
-                        @endif
-                        @if ($item->note_ar)
-                            <div class="small text-muted">{{ $item->note_ar }}</div>
-                        @endif
-                    </td>
-                    <td>
-                        <span class="badge {{ $row['state'] === 'on_file' ? 'bg-info text-dark' : 'bg-secondary' }}">{{ __('app.documents.states.'.$row['state']) }}</span>
-                        @if ($row['state'] === 'on_file')
-                            <div class="small text-muted">{{ __('app.documents.on_file_from', ['term' => $row['source']->application->term->label()]) }}</div>
-                        @endif
-                        @if ($row['state'] === 'rejected' && $document?->rejection_reason)
-                            <div class="small text-danger">{{ $document->rejection_reason }}</div>
-                        @endif
-                        @if ($row['renewal'] && ! $document)
-                            <div class="small text-danger">{{ __('app.documents.renewal_requested', ['reason' => $row['renewal']->reason]) }}</div>
-                        @endif
-                    </td>
-                    <td>
-                        @if ($document)
-                            @include('_document_links', ['document' => $document, 'route' => 'instructor'])
-                        @endif
-                    </td>
-                    <td>
-                        @if (Route::has('instructor.documents.store'))
-                            @include('instructor._upload', ['application' => $application, 'item' => $item, 'document' => $document, 'onFile' => $row['state'] === 'on_file'])
-                        @endif
-                    </td>
-                </tr>
-            @endforeach
-            </tbody>
-        </table>
-    </div>
+    <h2 class="h6">{{ __('app.applications.stage1_title') }}</h2>
+    @include('instructor._checklist_table', ['rows' => $stage1, 'application' => $application, 'uploads' => $application->isEditable()])
+
+    <h2 class="h6">{{ __('app.applications.stage2_title') }}</h2>
+    <p class="text-muted small">{{ __('app.documents.stage2_hint') }}</p>
+    @if ($application->status === \App\Models\Application::STATUS_APPROVED)
+        @if ($stageTwoComplete)
+            <div class="alert alert-success py-2">{{ __('app.applications.stage2_complete') }}</div>
+        @else
+            <div class="alert alert-warning py-2">{{ __('app.applications.stage2_pending') }}: {{ implode('، ', $stageTwoMissing) }}</div>
+        @endif
+        @if ($showSalaryForm)
+            @include('instructor._salary_form', ['instructor' => $application->instructor])
+        @endif
+    @endif
+    @include('instructor._checklist_table', ['rows' => $stage2, 'application' => $application, 'uploads' => $application->acceptsStageTwoUploads()])
 
     <h2 class="h6">{{ __('app.applications.department_items') }}</h2>
     <p class="text-muted small">{{ __('app.applications.by_department') }}</p>

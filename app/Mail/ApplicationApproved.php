@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\Application;
+use App\Services\ApplicationWorkflow;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -22,6 +23,7 @@ class ApplicationApproved extends Mailable
             'name' => $this->application->instructor->full_name,
             'term' => $this->application->term->label(),
             'url' => route('instructor.applications.show', $this->application),
+            'items' => app(ApplicationWorkflow::class)->plan($this->application)->stage2->pluck('label_ar')->all(),
         ]);
     }
 }

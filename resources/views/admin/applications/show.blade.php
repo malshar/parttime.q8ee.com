@@ -86,76 +86,11 @@
         <span class="form-text d-inline">{{ __('app.review.notify_hint') }}</span>
     </form>
 @endif
-<div class="table-responsive mb-4">
-    <table class="table table-striped align-middle">
-        <thead>
-        <tr>
-            <th>{{ __('app.documents.item') }}</th>
-            <th>{{ __('app.documents.status') }}</th>
-            <th>{{ __('app.documents.file') }}</th>
-            <th>{{ __('app.common.actions') }}</th>
-        </tr>
-        </thead>
-        <tbody>
-        @foreach ($checklist as $code => $row)
-            @php($item = $row['item'])
-            @php($document = $row['document'])
-            <tr>
-                <td>
-                    {{ $item->label_ar }}
-                    @if ($row['optional'])
-                        <span class="badge bg-light text-dark border">{{ __('app.documents.optional') }}</span>
-                    @endif
-                    @if ($item->note_ar)
-                        <div class="small text-muted">{{ $item->note_ar }}</div>
-                    @endif
-                </td>
-                <td>
-                    <span class="badge {{ $row['state'] === 'on_file' ? 'bg-info text-dark' : 'bg-secondary' }}">{{ __('app.documents.states.'.$row['state']) }}</span>
-                    @if ($row['state'] === 'on_file')
-                        <div class="small text-muted">{{ __('app.documents.on_file_from', ['term' => $row['source']->application->term->label()]) }}</div>
-                    @endif
-                    @if ($row['state'] === 'rejected' && $document?->rejection_reason)
-                        <div class="small text-danger">{{ $document->rejection_reason }}</div>
-                    @endif
-                    @if ($row['renewal'] && ! $document)
-                        <div class="small text-danger">{{ __('app.documents.renewal_requested', ['reason' => $row['renewal']->reason]) }} ({{ $row['renewal']->requester?->name }})</div>
-                    @endif
-                </td>
-                <td>
-                    @php($file = $document ?? $row['source'])
-                    @if ($file)
-                        @include('_document_links', ['document' => $file, 'route' => 'admin'])
-                    @endif
-                </td>
-                <td>
-                    @if ($document && $termOpen && (! $application->isFinal() || ($application->status === \App\Models\Application::STATUS_APPROVED && ($item->isStageTwo() || $item->optional))))
-                        <div class="d-flex gap-2 align-items-start flex-wrap">
-                            <form method="post" action="{{ route('admin.documents.review', $document) }}">
-                                @csrf
-                                <input type="hidden" name="status" value="accepted">
-                                <button type="submit" class="btn btn-sm btn-outline-success">{{ __('app.documents.accept') }}</button>
-                            </form>
-                            <form method="post" action="{{ route('admin.documents.review', $document) }}" class="d-flex gap-1">
-                                @csrf
-                                <input type="hidden" name="status" value="rejected">
-                                <input type="text" name="reason" class="form-control form-control-sm" placeholder="{{ __('app.documents.reason') }}" required>
-                                <button type="submit" class="btn btn-sm btn-outline-danger text-nowrap">{{ __('app.documents.reject') }}</button>
-                            </form>
-                        </div>
-                    @elseif ($row['state'] === 'on_file' && $termOpen && (in_array($application->status, \App\Models\Application::UNFINISHED_STATUSES, true) || ($application->status === \App\Models\Application::STATUS_APPROVED && $item->isStageTwo())))
-                        <form method="post" action="{{ route('admin.applications.renewals.store', [$application, $item->code]) }}" class="d-flex gap-1">
-                            @csrf
-                            <input type="text" name="reason" class="form-control form-control-sm" placeholder="{{ __('app.review.fresh_copy_reason') }}" maxlength="500" required>
-                            <button type="submit" class="btn btn-sm btn-outline-warning text-nowrap">{{ __('app.review.request_fresh_copy') }}</button>
-                        </form>
-                    @endif
-                </td>
-            </tr>
-        @endforeach
-        </tbody>
-    </table>
-</div>
+<h3 class="h6">{{ __('app.applications.stage1_title') }}</h3>
+@include('admin.applications._checklist_table', ['rows' => $stage1, 'application' => $application, 'termOpen' => $termOpen])
+
+<h3 class="h6">{{ __('app.applications.stage2_title') }}</h3>
+@include('admin.applications._checklist_table', ['rows' => $stage2, 'application' => $application, 'termOpen' => $termOpen])
 
 {{-- 2.5 Assigned sections (Task 12) --}}
 @php($canUnassign = $termOpen && $application->status === \App\Models\Application::STATUS_APPROVED)
@@ -273,6 +208,13 @@
                     @if ($application->committee_note)<div>{{ $application->committee_note }}</div>@endif
                 </div>
             @endif
+            @if ($application->status === \App\Models\Application::STATUS_APPROVED)
+                @if ($stageTwoComplete)
+                    <div class="alert alert-success py-2 mt-2 mb-0">{{ __('app.review.stage2_complete') }}</div>
+                @else
+                    <div class="alert alert-warning py-2 mt-2 mb-0">{{ __('app.review.stage2_missing') }}: {{ implode('، ', $stageTwoMissing) }}</div>
+                @endif
+            @endif
             @if ($application->status === \App\Models\Application::STATUS_WITHDRAWN && $termOpen)
                 <form method="post" action="{{ route('admin.applications.reopen', $application) }}" class="mt-2" onsubmit="return confirm(@js(__('app.review.reopen_confirm')))">
                     @csrf
@@ -333,7 +275,7 @@
                     <button type="submit" class="btn btn-eet btn-sm">{{ __('app.review.mark_complete') }}</button>
                 </form>
             @else
-                <div class="alert alert-warning py-2 mb-0">{{ __('app.review.complete_blocked') }}</div>
+                <div class="alert alert-warning py-2 mb-0">{{ $completeBlockMessage }}</div>
             @endif
         @endif
     </div>

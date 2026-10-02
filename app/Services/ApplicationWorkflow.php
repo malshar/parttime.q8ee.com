@@ -175,7 +175,13 @@ class ApplicationWorkflow
     /** Committee gate (spec 5b §5): every stage-1 item accepted, on file or exempted. */
     public function allRequiredAccepted(Application $application): bool
     {
-        foreach ($this->stageOneRows($application) as $row) {
+        return $this->rowsAllAccepted($this->stageOneRows($application));
+    }
+
+    /** @param array<string, array<string, mixed>> $rows */
+    private function rowsAllAccepted(array $rows): bool
+    {
+        foreach ($rows as $row) {
             if (! in_array($row['state'], self::SATISFIED_STATES, true)) {
                 return false;
             }
@@ -198,7 +204,13 @@ class ApplicationWorkflow
 
     public function hasUndecidedExemptions(Application $application): bool
     {
-        foreach ($this->stageOneRows($application) as $row) {
+        return $this->rowsHaveUndecidedExemptions($this->stageOneRows($application));
+    }
+
+    /** @param array<string, array<string, mixed>> $rows */
+    private function rowsHaveUndecidedExemptions(array $rows): bool
+    {
+        foreach ($rows as $row) {
             if ($row['state'] === self::STATE_EXEMPTION_REQUESTED) {
                 return true;
             }
@@ -423,17 +435,31 @@ class ApplicationWorkflow
         if (! $application->term->isOpen()) {
             throw new \DomainException(__('app.applications.term_closed'));
         }
-        if (! $this->allRequiredAccepted($application)) {
-            throw new \DomainException($this->hasUndecidedExemptions($application) && $this->onlyExemptionsBlock($application)
-                ? __('app.review.complete_blocked_exemptions') : __('app.review.complete_blocked'));
+        $rows = $this->stageOneRows($application);
+        if (! $this->rowsAllAccepted($rows)) {
+            throw new \DomainException($this->blockMessageForRows($rows));
         }
         $application->update(['status' => Application::STATUS_COMPLETE, 'complete_at' => now()]);
         AuditLog::record($admin->id, 'mark_complete', $application);
     }
 
-    private function onlyExemptionsBlock(Application $application): bool
+    /** Spec 5b §5/§6: the message to show when the file cannot be marked complete yet. */
+    public function completeBlockMessage(Application $application): string
     {
-        foreach ($this->stageOneRows($application) as $row) {
+        return $this->blockMessageForRows($this->stageOneRows($application));
+    }
+
+    /** @param array<string, array<string, mixed>> $rows */
+    private function blockMessageForRows(array $rows): string
+    {
+        return $this->rowsHaveUndecidedExemptions($rows) && $this->rowsOnlyExemptionsBlock($rows)
+            ? __('app.review.complete_blocked_exemptions') : __('app.review.complete_blocked');
+    }
+
+    /** @param array<string, array<string, mixed>> $rows */
+    private function rowsOnlyExemptionsBlock(array $rows): bool
+    {
+        foreach ($rows as $row) {
             if (! in_array($row['state'], [...self::SATISFIED_STATES, self::STATE_EXEMPTION_REQUESTED], true)) {
                 return false;
             }
