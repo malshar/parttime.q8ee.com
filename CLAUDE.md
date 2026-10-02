@@ -133,6 +133,12 @@ Pick per scope. Arabic-first, RTL, complete translation coverage from day one.
 Milestones 1–4, 5a and the (خ-3) spacing hotfix (page break folded into the
 note run, verified live at one page per instructor) are deployed. The
 synthetic test instructors were removed from production on 2026-10-02.
+Also deployed 2026-10-02: the civil-ID check-digit fix (PACI weights
+2,1,6,3,7,9,10,5,8,4,2), two **optional** checklist items (`transcript_bachelor`,
+`transcript_master`; `checklist_items.optional` flag, `ChecklistPlan::optional`,
+never block submission/completion, not printed on the Check List) and the
+compact responsive profile form (`resources/views/instructor/_profile_fields.blade.php`,
+shared by the instructor and admin pages).
 Next: re-export and re-import the term's jadawil timetable (v2.4.13 or later,
 with seat columns `الحد الأقصى`, `مسجلة`, `متبقية`) so the student count
 prints on (خ-3). Then milestone 5b (two-stage documents, transcript with
