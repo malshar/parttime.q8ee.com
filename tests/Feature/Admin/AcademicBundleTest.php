@@ -81,8 +81,17 @@ class AcademicBundleTest extends TestCase
 
     public function test_route_streams_zip_for_admin_only_audits_and_cleans_up(): void
     {
-        $this->actingAs($this->admin)->get(route('admin.instructors.bundle', $this->instructor))->assertOk()->assertHeader('content-type', 'application/zip');
+        $response = $this->actingAs($this->admin)->get(route('admin.instructors.bundle', $this->instructor));
+        $response->assertOk()->assertHeader('content-type', 'application/zip');
         $this->assertDatabaseHas('audit_log', ['action' => 'export_academic_bundle', 'subject_id' => $this->instructor->id]);
+
+        // Laravel's HTTP test client never calls Response::send(), so BinaryFileResponse's
+        // deleteFileAfterSend cleanup (which runs inside sendContent()) never fires on its own.
+        // Trigger it explicitly to reproduce what a real request/response cycle does.
+        ob_start();
+        $response->baseResponse->sendContent();
+        ob_end_clean();
+
         $this->assertSame([], Storage::disk('local')->files('generated/tmp'));
         $this->actingAs($this->instructor->user)->get(route('admin.instructors.bundle', $this->instructor))->assertForbidden();
     }

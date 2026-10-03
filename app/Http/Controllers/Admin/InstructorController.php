@@ -27,12 +27,9 @@ class InstructorController extends Controller
     public function bundle(Request $request, Instructor $instructor, AcademicBundle $bundle): BinaryFileResponse
     {
         $this->authorize('viewAny', Application::class);
-        AuditLog::record($request->user()->id, 'export_academic_bundle', $instructor);
 
         $path = $bundle->build($instructor, $request->user());
-        // Guaranteed cleanup even when nothing ever calls Response::send() (e.g. the HTTP test
-        // client), which is when deleteFileAfterSend's own cleanup (inside sendContent()) never fires.
-        app()->terminating(fn () => @unlink($path));
+        AuditLog::record($request->user()->id, 'export_academic_bundle', $instructor);
 
         return response()->download($path, "academic-{$instructor->id}.zip", [
             'Content-Type' => 'application/zip',
