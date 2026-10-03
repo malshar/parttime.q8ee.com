@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AssignmentController;
 use App\Http\Controllers\Admin\AttestationController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController as AdminDocumentController;
+use App\Http\Controllers\Admin\InstructorController as AdminInstructorController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Admin\RenewalController;
 use App\Http\Controllers\Admin\SectionController;
@@ -98,4 +99,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('renewals', [RenewalController::class, 'store'])->name('renewals.store');
     Route::get('renewals/list', [RenewalController::class, 'list'])->name('renewals.list');
     Route::delete('renewals/{approval}', [RenewalController::class, 'destroy'])->name('renewals.destroy');
+    Route::get('instructors/{instructor}', [AdminInstructorController::class, 'show'])->name('instructors.show');
+    Route::get('instructors/{instructor}/academic-bundle', [AdminInstructorController::class, 'bundle'])->name('instructors.bundle');
 });

@@ -26,6 +26,7 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <span>{{ __('app.review.profile') }}</span>
         <div class="d-flex gap-2 align-items-center">
+            <a href="{{ route('admin.instructors.show', $instructor) }}" class="btn btn-sm btn-outline-secondary">{{ __('app.review.instructor_record') }}</a>
             <a href="{{ route('admin.applications.profile.edit', $application) }}" class="btn btn-sm btn-outline-secondary">{{ __('app.review.edit_profile') }}</a>
             @if (! $revealed)
                 <form method="post" action="{{ route('admin.applications.reveal', $application) }}">

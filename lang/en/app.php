@@ -163,6 +163,7 @@ return [
         'applicant_reason' => "Applicant's reason",
     ],
     'review' => [
+        'instructor_record' => 'Part-timer record', 'approvals' => 'Committee approvals',
         'attention' => 'Needs attention', 'applications' => 'Applications', 'no_attention' => 'No applications are awaiting review.',
         'applicant' => 'Applicant', 'term' => 'Term', 'submitted_at' => 'Submitted on', 'open' => 'Open',
         'filter' => 'Filter', 'all_statuses' => 'All statuses',
@@ -363,5 +364,11 @@ return [
         'not_a_candidate' => 'One of the selected part-timers is not a renewal candidate.',
         'already_recorded' => 'A decision for one of the part-timers has already been recorded for this year.',
         'cannot_delete' => 'This record cannot be deleted: it is not a renewal, or the part-timer has submitted their application.',
+    ],
+    'bundle' => [
+        'title' => 'Academic documents summary', 'download' => 'Academic documents bundle',
+        'on_file' => 'On file (as of :date)', 'exempted' => 'Exempted by department decision',
+        'missing' => 'Not available', 'not_applicable' => 'Not applicable',
+        'generated' => 'Generated on :date by :name',
     ],
 ];
