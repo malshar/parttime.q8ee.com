@@ -14,6 +14,7 @@ use App\Models\AuditLog;
 use App\Models\ChecklistExemption;
 use App\Models\ChecklistItem;
 use App\Models\ChecklistRenewal;
+use App\Models\CommitteeApproval;
 use App\Models\Document;
 use App\Models\Instructor;
 use App\Models\Term;
@@ -497,18 +498,28 @@ class ApplicationWorkflow
         if (! $application->term->isOpen()) {
             throw new \DomainException(__('app.applications.term_closed'));
         }
+        if ($application->instructor->hasApprovalFor($application->term->academic_year)) {
+            throw new \DomainException(__('app.review.committee_not_needed'));
+        }
 
         $approved = $outcome === 'approved';
-        $application->update([
-            'status' => $approved ? Application::STATUS_APPROVED : Application::STATUS_REJECTED,
-            'decided_at' => now(),
-            'committee_outcome' => $outcome,
-            'committee_met_on' => $metOn,
-            'committee_reference' => $reference,
-            'committee_note' => $note,
-            'rejection_reason' => $approved ? null : $note,
-        ]);
-        AuditLog::record($admin->id, 'committee_decision', $application);
+        DB::transaction(function () use ($application, $admin, $outcome, $metOn, $reference, $note, $approved) {
+            $application->update([
+                'status' => $approved ? Application::STATUS_APPROVED : Application::STATUS_REJECTED,
+                'decided_at' => now(), 'committee_outcome' => $outcome, 'committee_met_on' => $metOn,
+                'committee_reference' => $reference, 'committee_note' => $note,
+                'rejection_reason' => $approved ? null : $note,
+            ]);
+            if ($approved) {
+                $approval = CommitteeApproval::create([
+                    'instructor_id' => $application->instructor_id, 'academic_year' => $application->term->academic_year,
+                    'kind' => CommitteeApproval::KIND_INITIAL, 'outcome' => CommitteeApproval::OUTCOME_APPROVED,
+                    'committee_met_on' => $metOn, 'committee_reference' => $reference, 'note' => $note, 'decided_by' => $admin->id,
+                ]);
+                $application->update(['approval_id' => $approval->id]);
+            }
+            AuditLog::record($admin->id, 'committee_decision', $application);
+        });
         $this->safeSend(
             $application->instructor->user->email,
             $approved ? new ApplicationApproved($application) : new ApplicationRejected($application),

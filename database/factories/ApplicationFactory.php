@@ -35,4 +35,9 @@ class ApplicationFactory extends Factory
     {
         return $this->state(fn () => ['status' => Application::STATUS_APPROVED, 'decided_at' => now()]);
     }
+
+    public function continuation(): static
+    {
+        return $this->state(fn () => ['kind' => Application::KIND_CONTINUATION]);
+    }
 }

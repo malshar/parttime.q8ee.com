@@ -115,4 +115,20 @@ class Instructor extends Model
     {
         return $this->hasMany(Application::class);
     }
+
+    public function approvals(): HasMany
+    {
+        return $this->hasMany(CommitteeApproval::class);
+    }
+
+    public function approvalFor(string $academicYear): ?CommitteeApproval
+    {
+        return $this->approvals()->where('academic_year', $academicYear)->first();
+    }
+
+    /** Spec M6 §4.1: an approved row for the year (initial or renewal). */
+    public function hasApprovalFor(string $academicYear): bool
+    {
+        return $this->approvals()->where('academic_year', $academicYear)->where('outcome', CommitteeApproval::OUTCOME_APPROVED)->exists();
+    }
 }

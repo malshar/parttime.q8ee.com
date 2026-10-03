@@ -23,6 +23,10 @@ class Application extends Model
 
     public const STATUS_COMPLETE = 'complete';
 
+    public const KIND_INITIAL = 'initial';
+
+    public const KIND_CONTINUATION = 'continuation';
+
     /** Statuses in which the admin may still act on documents. */
     public const REVIEWABLE_STATUSES = [self::STATUS_UNDER_REVIEW, self::STATUS_INCOMPLETE, self::STATUS_COMPLETE];
 
@@ -43,7 +47,7 @@ class Application extends Model
     /** Not final and not a draft: the term cannot close while any application is here. */
     public const UNFINISHED_STATUSES = [self::STATUS_SUBMITTED, self::STATUS_UNDER_REVIEW, self::STATUS_INCOMPLETE, self::STATUS_COMPLETE];
 
-    protected $fillable = ['term_id', 'instructor_id', 'status', 'submitted_at', 'reviewed_at', 'complete_at', 'decided_at',
+    protected $fillable = ['term_id', 'instructor_id', 'status', 'kind', 'approval_id', 'submitted_at', 'reviewed_at', 'complete_at', 'decided_at',
         'assignment_decision_number', 'assignment_decision_date', 'weekly_minutes',
         'admin_note', 'rejection_reason', 'committee_outcome', 'committee_met_on', 'committee_reference', 'committee_note'];
 
@@ -91,6 +95,16 @@ class Application extends Model
     public function exemptions(): HasMany
     {
         return $this->hasMany(ChecklistExemption::class);
+    }
+
+    public function approval(): BelongsTo
+    {
+        return $this->belongsTo(CommitteeApproval::class, 'approval_id');
+    }
+
+    public function isContinuation(): bool
+    {
+        return $this->kind === self::KIND_CONTINUATION;
     }
 
     public function weeklyHoursLabel(): string

@@ -193,6 +193,7 @@ return [
         'committee_confirm' => 'Record the committee decision? This cannot be undone.',
         'committee_saved' => 'The committee decision has been recorded and the applicant notified.',
         'committee_wrong_status' => 'The committee decision cannot be recorded before the file is complete.',
+        'committee_not_needed' => 'This application continues an existing approval and needs no committee decision.',
         'committee_record' => 'Committee decision: :outcome on :date (reference :ref)',
         'notify_rejections' => 'Finish review and notify applicant',
         'notify_hint' => 'Sends one message listing all documents that need correction or updating.',
