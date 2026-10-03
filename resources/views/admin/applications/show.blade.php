@@ -4,7 +4,10 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h5 mb-0">{{ $instructor->full_name }} — {{ $application->term->label() }}</h1>
-    <span class="badge bg-secondary">{{ __('app.applications.statuses.'.$application->status) }}</span>
+    <div>
+        <span class="badge bg-secondary">{{ __('app.applications.statuses.'.$application->status) }}</span>
+        @if ($isContinuation)<span class="badge bg-info text-dark">{{ __('app.applications.kinds.continuation') }}</span>@endif
+    </div>
 </div>
 
 @php($termOpen = $application->term->isOpen())
@@ -208,6 +211,11 @@
                     @if ($application->committee_note)<div>{{ $application->committee_note }}</div>@endif
                 </div>
             @endif
+            @if ($application->approval)
+                <div class="small text-muted mt-2">
+                    {{ __('app.review.year_approval', ['year' => $application->approval->academic_year, 'kind' => __('app.applications.kinds.'.$application->kind), 'date' => format_date($application->approval->committee_met_on), 'ref' => $application->approval->committee_reference]) }}
+                </div>
+            @endif
             @if ($application->status === \App\Models\Application::STATUS_APPROVED)
                 @if ($stageTwoComplete)
                     <div class="alert alert-success py-2 mt-2 mb-0">{{ __('app.review.stage2_complete') }}</div>
@@ -240,7 +248,7 @@
         @elseif (! $termOpen)
             <div class="alert alert-warning py-2 mb-0">{{ __('app.applications.term_closed') }}</div>
         @else
-            @if ($application->status === \App\Models\Application::STATUS_COMPLETE)
+            @if ($application->status === \App\Models\Application::STATUS_COMPLETE && ! $isContinuation)
                 <div class="alert alert-info py-2">{{ __('app.review.awaiting_committee') }}</div>
                 <form method="post" action="{{ route('admin.applications.committee', $application) }}" class="row g-2 align-items-end">
                     @csrf
@@ -272,7 +280,7 @@
             @elseif ($canComplete)
                 <form method="post" action="{{ route('admin.applications.complete', $application) }}" class="mb-3">
                     @csrf
-                    <button type="submit" class="btn btn-eet btn-sm">{{ __('app.review.mark_complete') }}</button>
+                    <button type="submit" class="btn btn-eet btn-sm">{{ $isContinuation ? __('app.review.approve_continuation') : __('app.review.mark_complete') }}</button>
                 </form>
             @else
                 <div class="alert alert-warning py-2 mb-0">{{ $completeBlockMessage }}</div>

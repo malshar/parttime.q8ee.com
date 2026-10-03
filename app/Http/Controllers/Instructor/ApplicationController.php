@@ -28,8 +28,9 @@ class ApplicationController extends Controller
         $past = $instructor->applications()->with('term')->when($current, fn ($q) => $q->whereKeyNot($current->id))
             ->orderByDesc('created_at')->get();
         $assigned = $current?->sections()->with('meetings')->get() ?? collect();
+        $nextIsContinuation = $term && ! $current && $instructor->hasApprovalFor($term->academic_year);
 
-        return view('instructor.home', compact('instructor', 'term', 'current', 'past', 'assigned'));
+        return view('instructor.home', compact('instructor', 'term', 'current', 'past', 'assigned', 'nextIsContinuation'));
     }
 
     public function start(Request $request): RedirectResponse
@@ -67,6 +68,8 @@ class ApplicationController extends Controller
             'stageTwoComplete' => $this->workflow->stageTwoComplete($application),
             'stageTwoMissing' => $this->workflow->stageTwoMissing($application),
             'showSalaryForm' => $application->acceptsStageTwoUploads() && ($application->instructor->basic_salary === null || $application->instructor->total_salary === null),
+            'isContinuation' => $application->isContinuation(),
+            'requiredMissing' => $this->workflow->requiredMissing($application),
         ]);
     }
 

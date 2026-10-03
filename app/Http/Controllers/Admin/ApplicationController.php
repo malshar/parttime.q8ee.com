@@ -58,6 +58,8 @@ class ApplicationController extends Controller
             'stageTwoMissing' => $this->workflow->stageTwoMissing($application),
             'undecidedExemptions' => $this->workflow->hasUndecidedExemptions($application),
             'completeBlockMessage' => $this->workflow->completeBlockMessage($application),
+            'isContinuation' => $application->isContinuation(),
+            'requiredMissing' => $this->workflow->requiredMissing($application),
         ]);
     }
 

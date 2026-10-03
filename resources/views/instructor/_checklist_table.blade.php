@@ -1,4 +1,5 @@
-{{-- Expects $rows, $application, $uploads (bool: render upload controls). --}}
+{{-- Expects $rows, $application, $uploads (bool: render upload controls), $hideSatisfied (bool, optional). --}}
+@php($hideSatisfied = $hideSatisfied ?? false)
 <div class="table-responsive mb-4">
     <table class="table table-striped align-middle">
         <thead>
@@ -49,18 +50,20 @@
                     @endif
                 </td>
                 <td>
-                    @if ($uploads && Route::has('instructor.documents.store'))
-                        @include('instructor._upload', ['application' => $application, 'item' => $item, 'document' => $document, 'onFile' => $row['state'] === 'on_file'])
-                    @endif
-                    @if ($uploads && $item->exemptable && $row['state'] === 'missing' && $application->isEditable())
-                        <details class="mt-1">
-                            <summary class="small">{{ __('app.exemptions.request') }}</summary>
-                            <form method="post" action="{{ route('instructor.exemptions.store', [$application, $row['item']->code]) }}" class="d-flex gap-1 mt-1">
-                                @csrf
-                                <input type="text" name="reason" class="form-control form-control-sm" placeholder="{{ __('app.exemptions.reason') }}" maxlength="500" required>
-                                <button class="btn btn-sm btn-outline-secondary text-nowrap">{{ __('app.exemptions.request') }}</button>
-                            </form>
-                        </details>
+                    @if (! ($hideSatisfied && in_array($row['state'], \App\Services\ApplicationWorkflow::SATISFIED_STATES, true)))
+                        @if ($uploads && Route::has('instructor.documents.store'))
+                            @include('instructor._upload', ['application' => $application, 'item' => $item, 'document' => $document, 'onFile' => $row['state'] === 'on_file'])
+                        @endif
+                        @if ($uploads && $item->exemptable && $row['state'] === 'missing' && $application->isEditable() && ! $application->isContinuation())
+                            <details class="mt-1">
+                                <summary class="small">{{ __('app.exemptions.request') }}</summary>
+                                <form method="post" action="{{ route('instructor.exemptions.store', [$application, $row['item']->code]) }}" class="d-flex gap-1 mt-1">
+                                    @csrf
+                                    <input type="text" name="reason" class="form-control form-control-sm" placeholder="{{ __('app.exemptions.reason') }}" maxlength="500" required>
+                                    <button class="btn btn-sm btn-outline-secondary text-nowrap">{{ __('app.exemptions.request') }}</button>
+                                </form>
+                            </details>
+                        @endif
                     @endif
                 </td>
             </tr>

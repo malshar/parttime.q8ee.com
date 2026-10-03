@@ -29,7 +29,7 @@
     @else
         <form method="post" action="{{ route('instructor.applications.start') }}" class="mb-3">
             @csrf
-            <button type="submit" class="btn btn-eet">{{ __('app.applications.start') }}</button>
+            <button type="submit" class="btn btn-eet">{{ $nextIsContinuation ? __('app.applications.start_continuation') : __('app.applications.start') }}</button>
         </form>
     @endif
 

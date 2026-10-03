@@ -4,7 +4,7 @@
 <div class="row justify-content-center"><div class="col-md-10">
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h5 mb-0">{{ $application->term->label() }}</h1>
+        <h1 class="h5 mb-0">{{ $isContinuation ? __('app.applications.continuation_title').' — '.$application->term->label() : $application->term->label() }}</h1>
         <span class="badge bg-secondary">{{ __('app.applications.statuses.'.$application->status) }}</span>
     </div>
 
@@ -20,11 +20,11 @@
         <div class="alert alert-danger">{{ $application->rejection_reason }}</div>
     @endif
 
-    <h2 class="h6">{{ __('app.applications.stage1_title') }}</h2>
-    @include('instructor._checklist_table', ['rows' => $stage1, 'application' => $application, 'uploads' => $application->isEditable()])
+    <h2 class="h6">{{ $isContinuation ? __('app.applications.academic_on_file') : __('app.applications.stage1_title') }}</h2>
+    @include('instructor._checklist_table', ['rows' => $stage1, 'application' => $application, 'uploads' => $application->isEditable(), 'hideSatisfied' => $isContinuation])
 
-    <h2 class="h6">{{ __('app.applications.stage2_title') }}</h2>
-    <p class="text-muted small">{{ __('app.documents.stage2_hint') }}</p>
+    <h2 class="h6">{{ $isContinuation ? __('app.applications.term_papers') : __('app.applications.stage2_title') }}</h2>
+    <p class="text-muted small">{{ $isContinuation ? __('app.applications.term_papers_hint') : __('app.documents.stage2_hint') }}</p>
     @if ($application->status === \App\Models\Application::STATUS_APPROVED)
         @if ($stageTwoComplete)
             <div class="alert alert-success py-2">{{ __('app.applications.stage2_complete') }}</div>
@@ -35,7 +35,11 @@
             @include('instructor._salary_form', ['instructor' => $application->instructor])
         @endif
     @endif
-    @include('instructor._checklist_table', ['rows' => $stage2, 'application' => $application, 'uploads' => $application->acceptsStageTwoUploads()])
+    @include('instructor._checklist_table', ['rows' => $stage2, 'application' => $application, 'uploads' => $isContinuation ? ($application->isEditable() || $application->acceptsStageTwoUploads()) : $application->acceptsStageTwoUploads()])
+
+    @if ($application->isEditable() && $requiredMissing !== [])
+        <div class="alert alert-warning py-2">{{ __('app.applications.still_required') }}: {{ implode('، ', $requiredMissing) }}</div>
+    @endif
 
     <h2 class="h6">{{ __('app.applications.department_items') }}</h2>
     <p class="text-muted small">{{ __('app.applications.by_department') }}</p>

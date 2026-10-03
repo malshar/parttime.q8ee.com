@@ -8,6 +8,7 @@ use App\Mail\ApplicationApproved;
 use App\Mail\ApplicationRejected;
 use App\Mail\ApplicationReopened;
 use App\Mail\ApplicationSubmitted;
+use App\Mail\ContinuationApproved;
 use App\Mail\DocumentsRejected;
 use App\Models\Application;
 use App\Models\AuditLog;
@@ -43,10 +44,14 @@ class ApplicationWorkflow
         if (! $term->isOpen()) {
             throw new TermClosedException;
         }
+        $approval = $instructor->approvalFor($term->academic_year);
+        $continuation = $approval?->isApproved() === true;
 
         return Application::firstOrCreate(
             ['term_id' => $term->id, 'instructor_id' => $instructor->id],
-            ['status' => Application::STATUS_DRAFT],
+            ['status' => Application::STATUS_DRAFT,
+                'kind' => $continuation ? Application::KIND_CONTINUATION : Application::KIND_INITIAL,
+                'approval_id' => $continuation ? $approval->id : null],
         );
     }
 
@@ -92,10 +97,36 @@ class ApplicationWorkflow
         return $out;
     }
 
-    /** @return array<string, array<string, mixed>> stage-1 required rows only */
-    private function stageOneRows(Application $application): array
+    /**
+     * Rows the submit and complete gates read (spec M6 §4.3): stage-1 required rows for an initial
+     * application; for a continuation the renewing stage-2 items plus any stage-1 row not satisfied.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private function gateRows(Application $application): array
     {
-        return array_filter($this->checklist($application), fn ($row) => $row['stage'] === ChecklistItem::STAGE_COMMITTEE && ! $row['optional']);
+        $rows = $this->checklist($application);
+        if (! $application->isContinuation()) {
+            return array_filter($rows, fn ($row) => $row['stage'] === ChecklistItem::STAGE_COMMITTEE && ! $row['optional']);
+        }
+
+        return array_filter($rows, fn ($row) => ! $row['optional'] && (
+            ($row['stage'] === ChecklistItem::STAGE_AFTER_APPROVAL && $row['item']->renews_each_term)
+            || ($row['stage'] === ChecklistItem::STAGE_COMMITTEE && ! in_array($row['state'], self::SATISFIED_STATES, true))
+        ));
+    }
+
+    /** Labels of the gate rows not yet satisfied, in checklist order (any status). */
+    public function requiredMissing(Application $application): array
+    {
+        $out = [];
+        foreach ($this->gateRows($application) as $row) {
+            if (! in_array($row['state'], self::SATISFIED_STATES, true)) {
+                $out[] = $row['item']->label_ar;
+            }
+        }
+
+        return $out;
     }
 
     /** @return array<string, array<string, mixed>> stage-2 required rows only */
@@ -176,7 +207,7 @@ class ApplicationWorkflow
     /** Committee gate (spec 5b §5): every stage-1 item accepted, on file or exempted. */
     public function allRequiredAccepted(Application $application): bool
     {
-        return $this->rowsAllAccepted($this->stageOneRows($application));
+        return $this->rowsAllAccepted($this->gateRows($application));
     }
 
     /** @param array<string, array<string, mixed>> $rows */
@@ -194,7 +225,7 @@ class ApplicationWorkflow
     /** Submission gate (spec 5b §5): every stage-1 item uploaded, on file, exempted or exemption-requested. */
     public function allRequiredUploaded(Application $application): bool
     {
-        foreach ($this->stageOneRows($application) as $row) {
+        foreach ($this->gateRows($application) as $row) {
             if ($row['state'] === 'missing' || $row['state'] === Document::STATUS_REJECTED) {
                 return false;
             }
@@ -205,7 +236,7 @@ class ApplicationWorkflow
 
     public function hasUndecidedExemptions(Application $application): bool
     {
-        return $this->rowsHaveUndecidedExemptions($this->stageOneRows($application));
+        return $this->rowsHaveUndecidedExemptions($this->gateRows($application));
     }
 
     /** @param array<string, array<string, mixed>> $rows */
@@ -454,9 +485,17 @@ class ApplicationWorkflow
         if (! $application->term->isOpen()) {
             throw new \DomainException(__('app.applications.term_closed'));
         }
-        $rows = $this->stageOneRows($application);
+        $rows = $this->gateRows($application);
         if (! $this->rowsAllAccepted($rows)) {
             throw new \DomainException($this->blockMessageForRows($rows));
+        }
+        if ($application->isContinuation()) {
+            $application->update(['status' => Application::STATUS_APPROVED, 'decided_at' => now(), 'complete_at' => now(),
+                'approval_id' => $application->approval_id ?? $application->instructor->approvalFor($application->term->academic_year)?->id]);
+            AuditLog::record($admin->id, 'approve_continuation', $application);
+            $this->safeSend($application->instructor->user->email, new ContinuationApproved($application));
+
+            return;
         }
         $application->update(['status' => Application::STATUS_COMPLETE, 'complete_at' => now()]);
         AuditLog::record($admin->id, 'mark_complete', $application);
@@ -465,7 +504,7 @@ class ApplicationWorkflow
     /** Spec 5b §5/§6: the message to show when the file cannot be marked complete yet. */
     public function completeBlockMessage(Application $application): string
     {
-        return $this->blockMessageForRows($this->stageOneRows($application));
+        return $this->blockMessageForRows($this->gateRows($application));
     }
 
     /** @param array<string, array<string, mixed>> $rows */
@@ -489,6 +528,9 @@ class ApplicationWorkflow
 
     public function committeeDecision(Application $application, User $admin, string $outcome, string $metOn, string $reference, ?string $note): void
     {
+        if ($application->isContinuation() || $application->instructor->hasApprovalFor($application->term->academic_year)) {
+            throw new \DomainException(__('app.review.committee_not_needed'));
+        }
         if ($application->isFinal()) {
             throw new \DomainException(__('app.review.already_final'));
         }
@@ -497,9 +539,6 @@ class ApplicationWorkflow
         }
         if (! $application->term->isOpen()) {
             throw new \DomainException(__('app.applications.term_closed'));
-        }
-        if ($application->instructor->hasApprovalFor($application->term->academic_year)) {
-            throw new \DomainException(__('app.review.committee_not_needed'));
         }
 
         $approved = $outcome === 'approved';

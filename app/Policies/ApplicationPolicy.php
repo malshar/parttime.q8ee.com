@@ -32,7 +32,7 @@ class ApplicationPolicy
     /** Called as: $user->can('requestExemption', [$application, $item]) */
     public function requestExemption(User $user, Application $application, ChecklistItem $item): bool
     {
-        return $this->owns($user, $application) && $application->isEditable()
+        return $this->owns($user, $application) && $application->isEditable() && ! $application->isContinuation()
             && $item->exemptable && $item->stage === ChecklistItem::STAGE_COMMITTEE
             && app(ChecklistResolver::class)->for($application->instructor)->isRequired($item->code);
     }
