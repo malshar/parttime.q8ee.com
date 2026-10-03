@@ -65,9 +65,21 @@ class RenewalsTest extends TestCase
         $this->actingAs($this->a->user)->get(route('admin.renewals.index'))->assertForbidden();
     }
 
-    public function test_page_falls_back_to_the_default_year_when_the_query_value_is_malformed(): void
+    public function test_page_defaults_to_the_newest_first_terms_year_when_it_has_candidates(): void
     {
-        // The only open term is 2027-2028 (first), so the default is the year after it: 2028-2029.
+        // setUp's only `first` term is 2027-2028 (open), and it has candidates (a, b) since
+        // 2026-2027 is approved for both. The malformed query value must fall back to it,
+        // not to the year after the current open term (2028-2029).
+        $this->actingAs($this->admin)->get(route('admin.renewals.index', ['year' => 'not-a-year']))
+            ->assertOk()->assertSee('2027-2028')->assertSee('أحمد المرشح')->assertDontSee('2028-2029');
+    }
+
+    public function test_page_falls_back_to_next_year_when_the_newest_first_term_has_no_candidates(): void
+    {
+        CommitteeApproval::factory()->for($this->a)->renewal()->create(['academic_year' => '2027-2028']);
+        CommitteeApproval::factory()->for($this->b)->renewal()->create(['academic_year' => '2027-2028']);
+        // Now 2027-2028 (the newest first term's year) has no candidates left, so the default
+        // falls back to the year after the current open term's year: 2028-2029.
         $this->actingAs($this->admin)->get(route('admin.renewals.index', ['year' => 'not-a-year']))
             ->assertOk()->assertSee('2028-2029');
     }
@@ -131,16 +143,41 @@ class RenewalsTest extends TestCase
         $this->assertSame($this->a->approvalFor('2027-2028')->id, $existing->approval_id);
     }
 
-    public function test_record_leaves_a_non_draft_application_untouched(): void
+    public function test_record_converts_non_draft_initial_applications_in_the_target_year(): void
     {
-        $existing = Application::factory()->submitted()->for($this->nextFirst)->for($this->a)->create(['kind' => Application::KIND_INITIAL]);
+        // A submitted initial application in a later term of the target year: kind and
+        // approval_id convert, but its status is left as-is (only a `complete` one moves).
+        $secondTerm = Term::factory()->open()->create(['academic_year' => '2027-2028', 'type' => 'second', 'teaching_starts_on' => '2028-02-06', 'teaching_ends_on' => '2028-05-26']);
+        $submitted = Application::factory()->submitted()->for($secondTerm)->for($this->a)->create(['kind' => Application::KIND_INITIAL]);
+        $summerTerm = Term::factory()->open()->create(['academic_year' => '2027-2028', 'type' => 'summer', 'teaching_starts_on' => '2028-06-19', 'teaching_ends_on' => '2028-08-20']);
+        $complete = Application::factory()->complete()->for($summerTerm)->for($this->a)->create(['kind' => Application::KIND_INITIAL]);
 
         app(RenewalService::class)->record('2027-2028', [$this->a->id => ['outcome' => 'renewed']], '2027-06-15', 'ق/22', $this->admin);
 
-        $existing->refresh();
-        $this->assertSame(Application::KIND_INITIAL, $existing->kind);
-        $this->assertNull($existing->approval_id);
-        $this->assertSame(1, Application::where('instructor_id', $this->a->id)->where('term_id', $this->nextFirst->id)->count());
+        $ra = $this->a->approvalFor('2027-2028');
+        $submitted->refresh();
+        $this->assertSame(Application::KIND_CONTINUATION, $submitted->kind);
+        $this->assertSame($ra->id, $submitted->approval_id);
+        $this->assertSame(Application::STATUS_SUBMITTED, $submitted->status);
+
+        $complete->refresh();
+        $this->assertSame(Application::KIND_CONTINUATION, $complete->kind);
+        $this->assertSame($ra->id, $complete->approval_id);
+        $this->assertSame(Application::STATUS_UNDER_REVIEW, $complete->status);
+        $this->assertNull($complete->complete_at);
+    }
+
+    public function test_record_refused_when_the_first_term_is_closed(): void
+    {
+        $this->nextFirst->update(['status' => Term::STATUS_CLOSED]);
+
+        try {
+            app(RenewalService::class)->record('2027-2028', [$this->a->id => ['outcome' => 'renewed']], '2027-06-15', 'ق/22', $this->admin);
+            $this->fail('expected refusal');
+        } catch (\DomainException $e) {
+            $this->assertSame(__('app.renewals.first_term_closed', ['year' => '2027-2028']), $e->getMessage());
+        }
+        $this->assertNull($this->a->approvalFor('2027-2028'));
     }
 
     public function test_record_refusals(): void

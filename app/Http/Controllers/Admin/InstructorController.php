@@ -31,7 +31,7 @@ class InstructorController extends Controller
         $path = $bundle->build($instructor, $request->user());
         AuditLog::record($request->user()->id, 'export_academic_bundle', $instructor);
 
-        return response()->download($path, "academic-{$instructor->id}.zip", [
+        return response()->download($path, "academic-{$instructor->id}-".now()->format('Y-m-d').'.zip', [
             'Content-Type' => 'application/zip',
         ])->deleteFileAfterSend(true);
     }

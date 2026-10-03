@@ -175,11 +175,35 @@ the admin and signed on paper; there is no instructor confirmation step.
   creates first-term continuation drafts for the renewed names (the target
   year's first term must already exist), mails `RenewalApproved`/
   `RenewalRefused`, exports an audited names-list Word document
-  (`export_renewal_list`), and allows deleting the batch only while its
-  drafts are untouched; the instructor record at `/admin/instructors/{id}`
-  (linked from the application page's profile card) shows approval history
+  (`export_renewal_list`); deleting a renewal row is allowed only while its
+  draft is still a draft (per row, not per batch); the instructor record at
+  `/admin/instructors/{id}` (linked from the application page's profile card) shows approval history
   and an academic bundle ZIP export (`export_academic_bundle`); the
   term-end page at `/admin/terms/{id}/closing` (linked from the terms
   index) shows attestation-month coverage, next-term continuation
   readiness, and counts. `php artisan test` green (375 passed, 1 skipped).
   Deploy pending.
+- 2026-10-03 — milestone 6 final fix wave on branch
+  `milestone-6-year-approval`: accepted exemptions now carry over to later
+  applications the same way accepted documents do
+  (`ApplicationWorkflow::onFileExemptions()`); a `not_renewed` row no
+  longer blocks a fresh initial application (`committeeDecision('approved')`
+  replaces it, the one exception to approval rows never being updated);
+  `ApplicationWorkflow::convertToContinuations()` converts every
+  not-yet-final initial application of the instructor's in the approved
+  academic year to a continuation (a `complete` one returns to
+  `under_review`), called from `committeeDecision()` and from
+  `RenewalService::record()` (replacing the old "convert only the
+  first-term draft" logic), and `reopen()` re-derives the kind the same way
+  `start()` does; the renewals page now defaults to the newest `first`
+  term's year when it has candidates; review minors: `markComplete()`
+  refuses an unapprovable continuation, `RenewalService::record()` refuses
+  a closed target first term, the renewal delete button and note field get
+  confirmation/hint text, the candidates table shows employer and highest
+  degree and links the last term, the names-list headers and the
+  instructor-record page's masked civil ID/empty-state copy move to lang
+  keys, the renewal list export audits only after the document is built,
+  the academic bundle download is dated and its build() cleans up on
+  failure, a continuation's stage-2 table hides satisfied on-file rows, and
+  `committeeDecision()` checks `isFinal()` before `committee_not_needed`.
+  `php artisan test` green (383 passed, 1 skipped). Deploy pending.

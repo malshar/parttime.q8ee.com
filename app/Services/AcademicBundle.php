@@ -53,35 +53,54 @@ class AcademicBundle
             ->keyBy(fn (ChecklistExemption $e) => $e->item->code);
     }
 
-    /** Builds the ZIP (summary + latest accepted academic parts) under the local disk's generated/tmp and returns its path. */
+    /**
+     * Builds the ZIP (summary + latest accepted academic parts) under the local disk's
+     * generated/tmp and returns its path. The temp summary and, on any failure, the partial ZIP
+     * are always removed: a half-written bundle must never linger in generated/tmp.
+     */
     public function build(Instructor $instructor, User $by): string
     {
         $documents = $this->latestAccepted($instructor);
         $exemptions = $this->acceptedExemptions($instructor);
 
-        $summaryPath = $this->buildSummary($instructor, $documents, $exemptions, $by);
-
         Storage::disk('local')->makeDirectory('generated/tmp');
         $zipPath = Storage::disk('local')->path('generated/tmp/bundle-'.$instructor->id.'-'.Str::random(12).'.zip');
+        $summaryPath = null;
+        $succeeded = false;
 
-        $zip = new \ZipArchive;
-        $zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
-        $zip->addFile($summaryPath, '00-summary.docx');
+        try {
+            $summaryPath = $this->buildSummary($instructor, $documents, $exemptions, $by);
 
-        foreach (self::ITEMS as $code) {
-            $document = $documents->get($code);
-            if (! $document) {
-                continue;
+            $zip = new \ZipArchive;
+            $zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+            if (! $zip->addFile($summaryPath, '00-summary.docx')) {
+                throw new \RuntimeException('Failed to add the summary to the academic bundle.');
             }
-            foreach ($document->parts as $part) {
-                $zip->addFile(Storage::disk('local')->path($part->path), "{$code}-{$part->part}-{$part->original_name}");
+
+            foreach (self::ITEMS as $code) {
+                $document = $documents->get($code);
+                if (! $document) {
+                    continue;
+                }
+                foreach ($document->parts as $part) {
+                    if (! $zip->addFile(Storage::disk('local')->path($part->path), "{$code}-{$part->part}-{$part->original_name}")) {
+                        throw new \RuntimeException('Failed to add a document to the academic bundle.');
+                    }
+                }
+            }
+
+            $zip->close();
+            $succeeded = true;
+
+            return $zipPath;
+        } finally {
+            if ($summaryPath !== null) {
+                @unlink($summaryPath);
+            }
+            if (! $succeeded) {
+                @unlink($zipPath);
             }
         }
-
-        $zip->close();
-        @unlink($summaryPath);
-
-        return $zipPath;
     }
 
     private function buildSummary(Instructor $instructor, Collection $documents, Collection $exemptions, User $by): string

@@ -79,10 +79,28 @@ class AcademicBundleTest extends TestCase
         $this->assertStringNotContainsString($this->instructor->iban, $text);
     }
 
+    public function test_build_removes_the_partial_zip_and_summary_when_a_document_file_is_missing(): void
+    {
+        // civil_id's stored file (from setUp) is never actually written to disk by this update,
+        // so ZipArchive::addFile() for it fails and build() must throw and clean up after itself.
+        Document::whereHas('checklistItem', fn ($q) => $q->where('code', 'civil_id'))
+            ->update(['path' => 'applications/missing/not-there.pdf']);
+
+        try {
+            app(AcademicBundle::class)->build($this->instructor, $this->admin);
+            $this->fail('expected an exception');
+        } catch (\Throwable $e) {
+            // expected
+        }
+
+        $this->assertSame([], Storage::disk('local')->files('generated/tmp'));
+    }
+
     public function test_route_streams_zip_for_admin_only_audits_and_cleans_up(): void
     {
         $response = $this->actingAs($this->admin)->get(route('admin.instructors.bundle', $this->instructor));
         $response->assertOk()->assertHeader('content-type', 'application/zip');
+        $response->assertHeader('content-disposition', 'attachment; filename=academic-'.$this->instructor->id.'-'.now()->format('Y-m-d').'.zip');
         $this->assertDatabaseHas('audit_log', ['action' => 'export_academic_bundle', 'subject_id' => $this->instructor->id]);
 
         // Laravel's HTTP test client never calls Response::send(), so BinaryFileResponse's

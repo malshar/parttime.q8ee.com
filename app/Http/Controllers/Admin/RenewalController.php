@@ -54,9 +54,10 @@ class RenewalController extends Controller
         $this->authorize('viewAny', Application::class);
         $year = $this->resolveYear($request);
         $candidates = $this->renewals->candidates($year);
+        $path = $doc->build($year, $candidates, $request->user());
         AuditLog::record($request->user()->id, 'export_renewal_list', null, null, $year);
 
-        return response()->download($doc->build($year, $candidates, $request->user()), "renewal-list-{$year}.docx", [
+        return response()->download($path, "renewal-list-{$year}.docx", [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ])->deleteFileAfterSend(true);
     }
@@ -74,9 +75,10 @@ class RenewalController extends Controller
     }
 
     /**
-     * The year from the query string, when it is well-formed, otherwise the default
-     * (next year after the current open term, or after the current calendar year).
-     * An invalid value (mistyped by hand) falls back rather than 404s, since this is a
+     * The year from the query string, when it is well-formed, otherwise the default: the
+     * newest `first` term's academic year, when that year still has renewal candidates;
+     * otherwise the year after the current open term (or after the current calendar year), as
+     * before. An invalid value (mistyped by hand) falls back rather than 404s, since this is a
      * plain filter field, not a resource lookup.
      */
     private function resolveYear(Request $request): string
@@ -84,6 +86,11 @@ class RenewalController extends Controller
         $year = $request->string('year')->value();
         if ($year !== '' && preg_match('/^\d{4}-\d{4}$/', $year)) {
             return $year;
+        }
+
+        $newestFirst = Term::where('type', 'first')->orderByDesc('teaching_starts_on')->first();
+        if ($newestFirst && $this->renewals->candidates($newestFirst->academic_year)->isNotEmpty()) {
+            return $newestFirst->academic_year;
         }
 
         return CommitteeApproval::nextYear(Term::current()?->academic_year ?? (now()->year.'-'.(now()->year + 1)));

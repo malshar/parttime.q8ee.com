@@ -1,8 +1,9 @@
 # CLAUDE.md — parttime.q8ee.com (المنتدبون / Part-timers & Interns Management)
 
-> **Status (2026-10-02): live at https://parttime.q8ee.com — milestones 1–4,
+> **Status (2026-10-03): live at https://parttime.q8ee.com — milestones 1–4,
 > 5a and the (خ-3) spacing hotfix merged on `main` and deployed.** Laravel 12 app
-> (`php artisan test` green, 288 tests passed, 1 skipped, on `main`). Milestone 1 (intake) shipped first;
+> (`php artisan test` green, 383 tests passed, 1 skipped, on branch
+> `milestone-6-year-approval` after the milestone 6 final fix wave). Milestone 1 (intake) shipped first;
 > milestone 2 adds: the `complete` application status with a three-group
 > attention list, a committee decision step (replacing direct approve/reject)
 > with a consolidated rejection notice, reopening of withdrawn applications,
@@ -69,8 +70,8 @@
 > the whole list (renewed / not renewed with a note), creates first-term
 > continuation drafts for the renewed names (the target year's first term
 > must already exist), mails `RenewalApproved`/`RenewalRefused`, exports an
-> audited names-list Word document, and allows deleting the batch only
-> while its drafts are untouched. The instructor record at
+> audited names-list Word document; deleting a renewal row is allowed only
+> while its draft is still a draft (per row, not per batch). The instructor record at
 > `/admin/instructors/{id}` (linked from the application page's profile
 > card) shows approval history and an academic bundle ZIP export. The
 > term-end page at `/admin/terms/{id}/closing` (linked from the terms
@@ -204,8 +205,8 @@ approved last year with no row yet this year, records one meeting decision
 (renewed, or not renewed with a note) for the whole list, creates first-term
 continuation drafts for the renewed names (the target year's first term must
 already exist), mails `RenewalApproved`/`RenewalRefused`, exports an audited
-names-list Word document, and allows deleting the batch only while its draft
-applications are untouched. The instructor record at
+names-list Word document; deleting a renewal row is allowed only while its
+draft is still a draft (per row, not per batch). The instructor record at
 `/admin/instructors/{id}` (linked from the application page's profile card)
 shows the approval history and an academic bundle ZIP export. The term-end
 page at `/admin/terms/{id}/closing` (linked from the terms index) shows

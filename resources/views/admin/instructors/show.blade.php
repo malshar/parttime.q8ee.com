@@ -3,7 +3,7 @@
 @section('content')
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h5 mb-0" dir="ltr">{{ $instructor->full_name }} — {{ $instructor->maskedCivilId() }}</h1>
+    <h1 class="h5 mb-0">{{ $instructor->full_name }} — <span dir="ltr">{{ $instructor->maskedCivilId() }}</span></h1>
     <a href="{{ route('admin.instructors.bundle', $instructor) }}" class="btn btn-eet btn-sm">{{ __('app.bundle.download') }}</a>
 </div>
 
@@ -46,7 +46,7 @@
 
 <h2 class="h6">{{ __('app.review.applications') }}</h2>
 @if ($applications->isEmpty())
-    <p class="text-muted">{{ __('app.review.no_attention') }}</p>
+    <p class="text-muted">{{ __('app.review.no_applications') }}</p>
 @else
     <div class="table-responsive">
         <table class="table table-striped align-middle">

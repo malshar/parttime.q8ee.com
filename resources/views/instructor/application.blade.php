@@ -35,7 +35,7 @@
             @include('instructor._salary_form', ['instructor' => $application->instructor])
         @endif
     @endif
-    @include('instructor._checklist_table', ['rows' => $stage2, 'application' => $application, 'uploads' => $isContinuation ? ($application->isEditable() || $application->acceptsStageTwoUploads()) : $application->acceptsStageTwoUploads()])
+    @include('instructor._checklist_table', ['rows' => $stage2, 'application' => $application, 'uploads' => $isContinuation ? ($application->isEditable() || $application->acceptsStageTwoUploads()) : $application->acceptsStageTwoUploads(), 'hideSatisfied' => $isContinuation])
 
     @if ($application->isEditable() && $requiredMissing !== [])
         <div class="alert alert-warning py-2">{{ __('app.applications.still_required') }}: {{ implode('، ', $requiredMissing) }}</div>

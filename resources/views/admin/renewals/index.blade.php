@@ -41,6 +41,8 @@
                 <thead>
                 <tr>
                     <th>{{ __('app.profile.full_name') }}</th>
+                    <th>{{ __('app.profile.employer') }}</th>
+                    <th>{{ __('app.profile.highest_degree') }}</th>
                     <th>{{ __('app.renewals.last_term') }}</th>
                     <th>{{ __('app.renewals.outcome') }}</th>
                     <th>{{ __('app.renewals.note') }}</th>
@@ -50,7 +52,13 @@
                 @foreach ($candidates as $i)
                     <tr>
                         <td>{{ $i->full_name }}</td>
-                        <td>{{ $i->lastTerm?->label() }}</td>
+                        <td>{{ $i->employer }}</td>
+                        <td>{{ __('app.profile.degrees.'.$i->highest_degree) }}</td>
+                        <td>
+                            @if ($i->lastTerm)
+                                <a href="{{ route('admin.applications.index', ['term' => $i->lastTerm->id]) }}">{{ $i->lastTerm->label() }}</a>
+                            @endif
+                        </td>
                         <td>
                             <select name="rows[{{ $i->id }}][outcome]" class="form-select form-select-sm">
                                 <option value="">—</option>
@@ -60,6 +68,7 @@
                         </td>
                         <td>
                             <input name="rows[{{ $i->id }}][note]" value="{{ old('rows.'.$i->id.'.note') }}" class="form-control form-control-sm" maxlength="500">
+                            <div class="form-text">{{ __('app.renewals.note_hint') }}</div>
                         </td>
                     </tr>
                 @endforeach
@@ -106,7 +115,7 @@
                     <td>{{ $row->committee_reference }}</td>
                     <td>
                         @if ($deletable)
-                            <form method="post" action="{{ route('admin.renewals.destroy', $row) }}">
+                            <form method="post" action="{{ route('admin.renewals.destroy', $row) }}" onsubmit="return confirm(@js(__('app.renewals.delete_confirm')))">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('app.renewals.delete') }}</button>

@@ -69,6 +69,7 @@ class ApplicationWorkflow
         $renewals = $application->renewals()->get()->keyBy('checklist_item_id');
         $exemptions = $application->exemptions()->get()->keyBy('checklist_item_id');
         $onFile = null;
+        $onFileExemptions = null;
         $out = [];
         foreach ($plan->required->concat($plan->optional) as $item) {
             $doc = $docs->get($item->code);
@@ -85,10 +86,19 @@ class ApplicationWorkflow
             } elseif ($row['renewal'] === null && ! $item->renews_each_term
                 // Rule 4 is skipped for final applications so their record does not flip once the card expires.
                 && ! ($item->code === 'civil_id' && ! $application->isFinal() && $application->instructor->civilIdExpired())) {
-                $onFile ??= $this->onFileDocuments($application);
-                if ($source = $onFile->get($item->code)) {
-                    $row['state'] = self::STATE_ON_FILE;
-                    $row['source'] = $source;
+                if ($exemption === null) {
+                    $onFileExemptions ??= $this->onFileExemptions($application);
+                    if ($earlierExemption = $onFileExemptions->get($item->code)) {
+                        $row['state'] = self::STATE_EXEMPTED;
+                        $row['exemption'] = $earlierExemption;
+                    }
+                }
+                if ($row['state'] === 'missing') {
+                    $onFile ??= $this->onFileDocuments($application);
+                    if ($source = $onFile->get($item->code)) {
+                        $row['state'] = self::STATE_ON_FILE;
+                        $row['source'] = $source;
+                    }
                 }
             }
             $out[$item->code] = $row;
@@ -175,6 +185,29 @@ class ApplicationWorkflow
             return $fields !== [] && $edits->contains(fn (AuditLog $log) => $log->created_at > $source->reviewed_at
                 && array_intersect($fields, explode(',', (string) $log->details)) !== []);
         });
+    }
+
+    /**
+     * Sibling to onFileDocuments(): an accepted exemption from one of the instructor's other
+     * applications in an earlier term carries over the same way an accepted document does
+     * (spec M6 §4.3). Keyed by item code; `item` and `application.term` are loaded.
+     *
+     * @return Collection<string, ChecklistExemption>
+     */
+    public function onFileExemptions(Application $application): Collection
+    {
+        $termStart = $application->term->teaching_starts_on;
+
+        return ChecklistExemption::query()
+            ->where('status', ChecklistExemption::STATUS_ACCEPTED)
+            ->whereHas('application', fn ($q) => $q->where('instructor_id', $application->instructor_id)
+                ->whereKeyNot($application->id)
+                ->whereHas('term', fn ($t) => $t->where('teaching_starts_on', '<', $termStart)))
+            ->with(['item', 'application.term'])
+            ->orderByDesc('decided_at')->orderByDesc('id')
+            ->get()
+            ->unique('checklist_item_id')
+            ->keyBy(fn (ChecklistExemption $e) => $e->item->code);
     }
 
     /**
@@ -495,6 +528,11 @@ class ApplicationWorkflow
                 $approval = $application->instructor->approvalFor($application->term->academic_year);
                 $approvalId = $approval?->isApproved() === true ? $approval->id : null;
             }
+            // Defensive (should not occur via start()/convertToContinuations()): a continuation
+            // with no linked approval and no approved row for the year has nothing to approve into.
+            if ($approvalId === null) {
+                throw new \DomainException(__('app.review.committee_not_needed'));
+            }
             $application->update(['status' => Application::STATUS_APPROVED, 'decided_at' => now(), 'complete_at' => now(),
                 'approval_id' => $approvalId]);
             AuditLog::record($admin->id, 'approve_continuation', $application);
@@ -533,11 +571,11 @@ class ApplicationWorkflow
 
     public function committeeDecision(Application $application, User $admin, string $outcome, string $metOn, string $reference, ?string $note): void
     {
-        if ($application->isContinuation() || $application->instructor->hasApprovalFor($application->term->academic_year)) {
-            throw new \DomainException(__('app.review.committee_not_needed'));
-        }
         if ($application->isFinal()) {
             throw new \DomainException(__('app.review.already_final'));
+        }
+        if ($application->isContinuation() || $application->instructor->hasApprovalFor($application->term->academic_year)) {
+            throw new \DomainException(__('app.review.committee_not_needed'));
         }
         if ($application->status !== Application::STATUS_COMPLETE) {
             throw new \DomainException(__('app.review.committee_wrong_status'));
@@ -555,12 +593,21 @@ class ApplicationWorkflow
                 'rejection_reason' => $approved ? null : $note,
             ]);
             if ($approved) {
+                // A `not_renewed` row for the year does not block a fresh initial application
+                // (hasApprovalFor() above only guards an approved row); replace it so the
+                // instructor+year unique key holds (spec M6 §4.1, the one exception to rows
+                // being immutable).
+                CommitteeApproval::where('instructor_id', $application->instructor_id)
+                    ->where('academic_year', $application->term->academic_year)
+                    ->where('outcome', CommitteeApproval::OUTCOME_NOT_RENEWED)
+                    ->delete();
                 $approval = CommitteeApproval::create([
                     'instructor_id' => $application->instructor_id, 'academic_year' => $application->term->academic_year,
                     'kind' => CommitteeApproval::KIND_INITIAL, 'outcome' => CommitteeApproval::OUTCOME_APPROVED,
                     'committee_met_on' => $metOn, 'committee_reference' => $reference, 'note' => $note, 'decided_by' => $admin->id,
                 ]);
                 $application->update(['approval_id' => $approval->id]);
+                $this->convertToContinuations($application->instructor, $approval);
             }
             AuditLog::record($admin->id, 'committee_decision', $application);
         });
@@ -568,6 +615,37 @@ class ApplicationWorkflow
             $application->instructor->user->email,
             $approved ? new ApplicationApproved($application) : new ApplicationRejected($application),
         );
+    }
+
+    /**
+     * Spec M6 §4.4/§5.2: once an academic year is approved by any route (initial committee
+     * decision or renewal batch), every other initial application of the instructor's in a term
+     * of that year that is not already final converts to a continuation of it, so it is never
+     * stuck needing a committee decision that will not come. A `complete` one is sent back to
+     * `under_review`: it must now be approved through "file complete", and its stage-1 gate rows
+     * differ from a committee-bound one.
+     *
+     * @return int number of applications converted
+     */
+    public function convertToContinuations(Instructor $instructor, CommitteeApproval $approval): int
+    {
+        $applications = Application::query()
+            ->where('instructor_id', $instructor->id)
+            ->where('kind', Application::KIND_INITIAL)
+            ->whereNotIn('status', [Application::STATUS_APPROVED, Application::STATUS_REJECTED])
+            ->whereHas('term', fn ($q) => $q->where('academic_year', $approval->academic_year))
+            ->get();
+
+        foreach ($applications as $application) {
+            $update = ['kind' => Application::KIND_CONTINUATION, 'approval_id' => $approval->id];
+            if ($application->status === Application::STATUS_COMPLETE) {
+                $update['status'] = Application::STATUS_UNDER_REVIEW;
+                $update['complete_at'] = null;
+            }
+            $application->update($update);
+        }
+
+        return $applications->count();
     }
 
     public function reopen(Application $application, User $admin): void
@@ -578,7 +656,15 @@ class ApplicationWorkflow
         if (! $application->term->isOpen()) {
             throw new \DomainException(__('app.applications.term_closed'));
         }
-        $application->update(['status' => Application::STATUS_DRAFT, 'decided_at' => null]);
+        // Re-derives the kind the same way start() does: the year may have been approved (by a
+        // committee decision or a renewal) while this application sat withdrawn.
+        $approval = $application->instructor->approvalFor($application->term->academic_year);
+        $continuation = $approval?->isApproved() === true;
+        $application->update([
+            'status' => Application::STATUS_DRAFT, 'decided_at' => null,
+            'kind' => $continuation ? Application::KIND_CONTINUATION : Application::KIND_INITIAL,
+            'approval_id' => $continuation ? $approval->id : null,
+        ]);
         AuditLog::record($admin->id, 'reopen_application', $application);
         $this->safeSend($application->instructor->user->email, new ApplicationReopened($application));
     }

@@ -39,7 +39,7 @@ class RenewalListDocument
 
         $table = $section->addTable(['borderSize' => 6, 'borderColor' => '000000', 'cellMargin' => 80, 'bidiVisual' => true]);
         $headerCellStyle = ['bgColor' => 'D9D9D9'];
-        $headers = ['م', 'الاسم', 'الرقم المدني', 'جهة العمل', 'المؤهل', 'الفصول السابقة'];
+        $headers = array_values(__('app.renewals.list_headers', [], 'ar'));
         $table->addRow();
         foreach ($headers as $header) {
             $table->addCell(Converter::cmToTwip(3), $headerCellStyle)->addText($header, $bold, $rtl);

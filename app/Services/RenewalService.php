@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Storage;
 /** Spec M6 §5: the yearly renewal batch. */
 class RenewalService
 {
+    public function __construct(private ApplicationWorkflow $workflow) {}
+
     /** Instructors approved for the previous year with no row for $year, by name, with `lastTerm` set. */
     public function candidates(string $year): Collection
     {
@@ -46,6 +48,9 @@ class RenewalService
         $firstTerm = Term::where('academic_year', $year)->where('type', 'first')->first();
         if (! $firstTerm) {
             throw new \DomainException(__('app.renewals.no_first_term', ['year' => $year]));
+        }
+        if (! $firstTerm->isOpen()) {
+            throw new \DomainException(__('app.renewals.first_term_closed', ['year' => $year]));
         }
         $candidates = $this->candidates($year)->keyBy('id');
         foreach (array_keys($rows) as $id) {
@@ -78,11 +83,13 @@ class RenewalService
                             'term_id' => $firstTerm->id, 'instructor_id' => $instructor->id,
                             'status' => Application::STATUS_DRAFT, 'kind' => Application::KIND_CONTINUATION, 'approval_id' => $approval->id,
                         ]);
-                    } elseif ($application->status === Application::STATUS_DRAFT && $application->kind === Application::KIND_INITIAL) {
-                        // The instructor already clicked "start" before the batch ran; this draft becomes
-                        // the continuation draft instead of leaving a duplicate initial one behind.
-                        $application->update(['kind' => Application::KIND_CONTINUATION, 'approval_id' => $approval->id]);
                     }
+                    // The instructor may already have clicked "start" on this or another term of
+                    // the target year before the batch ran, leaving one or more initial
+                    // applications behind; convert all of them to continuations of this approval
+                    // (spec M6 §5.2, replacing the old "convert only the first-term draft" logic).
+                    $this->workflow->convertToContinuations($instructor, $approval);
+                    $application = $application->fresh();
                     $mails[] = [$instructor->user->email, new RenewalApproved($instructor, $approval, $application)];
                     $counts['renewed']++;
                 } else {

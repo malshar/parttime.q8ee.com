@@ -85,7 +85,9 @@ applications.
 
 `Instructor::hasApprovalFor(string $academicYear): bool` = an approval row
 for that year with `outcome = approved`. A `rejected` initial application
-creates no row; the instructor may apply again next term as initial.
+creates no row; the instructor may apply again next term as initial. A
+`not_renewed` row does not block a fresh initial application; approving it
+replaces the row (the one exception to "rows are never updated").
 
 ### 4.2 Start
 
@@ -101,10 +103,10 @@ be a continuation.
 `checklist()` for a continuation application:
 
 - Stage-1 rows are listed but **informational**: every stage-1 item resolves
-  through the normal rules; by construction the initial application's
-  accepted copies make them `on_file`. The only stage-1 row that can become
-  `missing` is `civil_id` when the card expired (M4 rule 4), and it is then
-  required.
+  through the normal rules; accepted copies resolve `on_file` and accepted
+  exemptions resolve `exempted` across applications. The only stage-1 row
+  that can become `missing` is `civil_id` when the card expired (M4 rule 4),
+  and it is then required.
 - Required rows = stage-2 items with `renews_each_term = true` + any stage-1
   row that is not satisfied. Stage-2 items that do not renew (`iban`) resolve
   `on_file` as today and are satisfied.
@@ -138,7 +140,8 @@ same year cannot exist: `start()` makes it a continuation.
 ### 5.1 Screen
 
 `GET /admin/renewals?year=YYYY-YYYY` (admin only). The target year defaults
-to the year after the current term's year. The page lists instructors with
+to the newest `first` term's academic year when that year still has renewal
+candidates, otherwise to the year after the current term's year. The page lists instructors with
 an `approved` row for the previous academic year and no row for the target
 year: name, employer, highest degree, last term taught (link), a checkbox,
 an outcome select (renewed / not renewed) and an optional note. One form
