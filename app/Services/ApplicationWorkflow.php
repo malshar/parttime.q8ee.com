@@ -116,12 +116,12 @@ class ApplicationWorkflow
         ));
     }
 
-    /** Labels of the gate rows not yet satisfied, in checklist order (any status). */
+    /** Labels of the gate rows the applicant still has to provide (missing or rejected), in checklist order. */
     public function requiredMissing(Application $application): array
     {
         $out = [];
         foreach ($this->gateRows($application) as $row) {
-            if (! in_array($row['state'], self::SATISFIED_STATES, true)) {
+            if ($row['state'] === 'missing' || $row['state'] === Document::STATUS_REJECTED) {
                 $out[] = $row['item']->label_ar;
             }
         }
@@ -490,8 +490,13 @@ class ApplicationWorkflow
             throw new \DomainException($this->blockMessageForRows($rows));
         }
         if ($application->isContinuation()) {
+            $approvalId = $application->approval_id;
+            if ($approvalId === null) {
+                $approval = $application->instructor->approvalFor($application->term->academic_year);
+                $approvalId = $approval?->isApproved() === true ? $approval->id : null;
+            }
             $application->update(['status' => Application::STATUS_APPROVED, 'decided_at' => now(), 'complete_at' => now(),
-                'approval_id' => $application->approval_id ?? $application->instructor->approvalFor($application->term->academic_year)?->id]);
+                'approval_id' => $approvalId]);
             AuditLog::record($admin->id, 'approve_continuation', $application);
             $this->safeSend($application->instructor->user->email, new ContinuationApproved($application));
 

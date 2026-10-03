@@ -79,6 +79,7 @@ class ContinuationTest extends TestCase
             Document::factory()->for($app)->forItem($code)->create();
         }
         $this->assertTrue($this->workflow->allRequiredUploaded($app->fresh()));
+        $this->assertSame([], $this->workflow->requiredMissing($app->fresh()));
     }
 
     public function test_continuation_requires_civil_id_when_expired(): void
@@ -132,6 +133,13 @@ class ContinuationTest extends TestCase
         $r->assertDontSee(route('instructor.documents.store', [$app, 'degree']));
         $r->assertSee(route('instructor.documents.store', [$app, 'salary_cert']));
         $r->assertDontSee(__('app.exemptions.request'));
+        $r->assertSee(__('app.applications.still_required'));
+
+        foreach (['salary_cert', 'employer_approval', 'undertaking'] as $code) {
+            Document::factory()->for($app)->forItem($code)->create();
+        }
+        $this->actingAs($this->user)->get(route('instructor.applications.show', $app->fresh()))->assertOk()
+            ->assertDontSee(__('app.applications.still_required'));
 
         $app->update(['status' => Application::STATUS_UNDER_REVIEW]);
         $admin = User::factory()->admin()->create();
