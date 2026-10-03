@@ -213,7 +213,7 @@
             @endif
             @if ($application->approval)
                 <div class="small text-muted mt-2">
-                    {{ __('app.review.year_approval', ['year' => $application->approval->academic_year, 'kind' => __('app.applications.kinds.'.$application->kind), 'date' => format_date($application->approval->committee_met_on), 'ref' => $application->approval->committee_reference]) }}
+                    {{ __('app.review.year_approval', ['year' => $application->approval->academic_year, 'kind' => __('app.review.approval_kinds.'.$application->approval->kind), 'date' => format_date($application->approval->committee_met_on), 'ref' => $application->approval->committee_reference]) }}
                 </div>
             @endif
             @if ($application->status === \App\Models\Application::STATUS_APPROVED)

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AttestationController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController as AdminDocumentController;
 use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
+use App\Http\Controllers\Admin\RenewalController;
 use App\Http\Controllers\Admin\SectionController;
 use App\Http\Controllers\Admin\SectionImportController;
 use App\Http\Controllers\Admin\TermController;
@@ -93,4 +94,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::put('attestations/{attestation}', [AttestationController::class, 'update'])->name('attestations.update');
     Route::post('attestations/{attestation}/regenerate', [AttestationController::class, 'regenerate'])->name('attestations.regenerate');
     Route::post('attestations/{attestation}/unlock', [AttestationController::class, 'unlock'])->name('attestations.unlock');
+    Route::get('renewals', [RenewalController::class, 'index'])->name('renewals.index');
+    Route::post('renewals', [RenewalController::class, 'store'])->name('renewals.store');
+    Route::get('renewals/list', [RenewalController::class, 'list'])->name('renewals.list');
+    Route::delete('renewals/{approval}', [RenewalController::class, 'destroy'])->name('renewals.destroy');
 });
