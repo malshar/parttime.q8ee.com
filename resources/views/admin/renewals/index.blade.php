@@ -54,12 +54,12 @@
                         <td>
                             <select name="rows[{{ $i->id }}][outcome]" class="form-select form-select-sm">
                                 <option value="">—</option>
-                                <option value="renewed">{{ __('app.renewals.outcomes.renewed') }}</option>
-                                <option value="not_renewed">{{ __('app.renewals.outcomes.not_renewed') }}</option>
+                                <option value="renewed" @selected(old('rows.'.$i->id.'.outcome') === 'renewed')>{{ __('app.renewals.outcomes.renewed') }}</option>
+                                <option value="not_renewed" @selected(old('rows.'.$i->id.'.outcome') === 'not_renewed')>{{ __('app.renewals.outcomes.not_renewed') }}</option>
                             </select>
                         </td>
                         <td>
-                            <input name="rows[{{ $i->id }}][note]" class="form-control form-control-sm" maxlength="500">
+                            <input name="rows[{{ $i->id }}][note]" value="{{ old('rows.'.$i->id.'.note') }}" class="form-control form-control-sm" maxlength="500">
                         </td>
                     </tr>
                 @endforeach
@@ -72,7 +72,7 @@
 
 <h2 class="h6 mt-4">{{ __('app.renewals.recorded_rows') }}</h2>
 @if ($recorded->isEmpty())
-    <p class="text-muted">{{ __('app.renewals.no_candidates') }}</p>
+    <p class="text-muted">{{ __('app.renewals.no_recorded') }}</p>
 @else
     <div class="table-responsive">
         <table class="table table-striped align-middle">
@@ -87,16 +87,19 @@
             </thead>
             <tbody>
             @foreach ($recorded as $row)
-                @php($application = $row->applications->first())
-                @php($deletable = $row->kind === \App\Models\CommitteeApproval::KIND_RENEWAL && (! $application || $application->status === \App\Models\Application::STATUS_DRAFT))
+                @php($deletable = $row->kind === \App\Models\CommitteeApproval::KIND_RENEWAL && $row->applications->every(fn ($a) => $a->status === \App\Models\Application::STATUS_DRAFT))
                 <tr>
                     <td>{{ $row->instructor->full_name }}</td>
                     <td>
                         <span class="badge bg-info text-dark">{{ __('app.review.approval_kinds.'.$row->kind) }}</span>
-                        @if ($row->isApproved())
-                            <span class="badge bg-success">{{ __('app.renewals.outcomes.renewed') }}</span>
+                        @if ($row->kind === \App\Models\CommitteeApproval::KIND_RENEWAL)
+                            @if ($row->isApproved())
+                                <span class="badge bg-success">{{ __('app.renewals.outcomes.renewed') }}</span>
+                            @else
+                                <span class="badge bg-secondary">{{ __('app.renewals.outcomes.not_renewed') }}</span>
+                            @endif
                         @else
-                            <span class="badge bg-secondary">{{ __('app.renewals.outcomes.not_renewed') }}</span>
+                            <span class="badge bg-success">{{ __('app.review.outcomes.approved') }}</span>
                         @endif
                     </td>
                     <td>{{ format_date($row->committee_met_on) }}</td>

@@ -6,6 +6,7 @@ use App\Mail\RenewalApproved;
 use App\Mail\RenewalRefused;
 use App\Models\Application;
 use App\Models\CommitteeApproval;
+use App\Models\Document;
 use App\Models\Instructor;
 use App\Models\Term;
 use App\Models\User;
@@ -14,6 +15,7 @@ use App\Services\RenewalService;
 use Database\Seeders\ChecklistItemSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class RenewalsTest extends TestCase
@@ -34,6 +36,7 @@ class RenewalsTest extends TestCase
     {
         parent::setUp();
         Mail::fake();
+        Storage::fake('local');
         $this->seed(ChecklistItemSeeder::class);
         $this->admin = User::factory()->admin()->create();
         $old = Term::factory()->create(['academic_year' => '2026-2027', 'type' => 'second', 'teaching_starts_on' => '2027-02-07', 'teaching_ends_on' => '2027-05-27', 'status' => 'closed']);
@@ -60,6 +63,20 @@ class RenewalsTest extends TestCase
     {
         $this->actingAs($this->admin)->get(route('admin.renewals.index', ['year' => '2027-2028']))->assertOk()->assertSee('أحمد المرشح')->assertDontSee('جابر المرفوض');
         $this->actingAs($this->a->user)->get(route('admin.renewals.index'))->assertForbidden();
+    }
+
+    public function test_page_falls_back_to_the_default_year_when_the_query_value_is_malformed(): void
+    {
+        // The only open term is 2027-2028 (first), so the default is the year after it: 2028-2029.
+        $this->actingAs($this->admin)->get(route('admin.renewals.index', ['year' => 'not-a-year']))
+            ->assertOk()->assertSee('2028-2029');
+    }
+
+    public function test_recorded_rows_table_shows_initial_approvals_with_the_review_outcome_label(): void
+    {
+        CommitteeApproval::factory()->for($this->c)->create(['academic_year' => '2027-2028']);
+        $this->actingAs($this->admin)->get(route('admin.renewals.index', ['year' => '2027-2028']))
+            ->assertOk()->assertSee(__('app.review.approval_kinds.initial'))->assertSee(__('app.review.outcomes.approved'));
     }
 
     public function test_record_creates_rows_drafts_and_mails(): void
@@ -98,6 +115,34 @@ class RenewalsTest extends TestCase
         $this->assertSame(Application::KIND_CONTINUATION, $app->kind);
     }
 
+    public function test_record_converts_an_existing_initial_draft_to_continuation(): void
+    {
+        // The instructor already clicked "start" on the new term before the committee's batch ran,
+        // so ApplicationWorkflow::start() left a draft with kind=initial (no approval existed yet).
+        $existing = app(ApplicationWorkflow::class)->start($this->a, $this->nextFirst);
+        $this->assertSame(Application::KIND_INITIAL, $existing->kind);
+
+        app(RenewalService::class)->record('2027-2028', [$this->a->id => ['outcome' => 'renewed']], '2027-06-15', 'ق/22', $this->admin);
+
+        $this->assertSame(1, Application::where('instructor_id', $this->a->id)->where('term_id', $this->nextFirst->id)->count());
+        $existing->refresh();
+        $this->assertSame(Application::KIND_CONTINUATION, $existing->kind);
+        $this->assertSame(Application::STATUS_DRAFT, $existing->status);
+        $this->assertSame($this->a->approvalFor('2027-2028')->id, $existing->approval_id);
+    }
+
+    public function test_record_leaves_a_non_draft_application_untouched(): void
+    {
+        $existing = Application::factory()->submitted()->for($this->nextFirst)->for($this->a)->create(['kind' => Application::KIND_INITIAL]);
+
+        app(RenewalService::class)->record('2027-2028', [$this->a->id => ['outcome' => 'renewed']], '2027-06-15', 'ق/22', $this->admin);
+
+        $existing->refresh();
+        $this->assertSame(Application::KIND_INITIAL, $existing->kind);
+        $this->assertNull($existing->approval_id);
+        $this->assertSame(1, Application::where('instructor_id', $this->a->id)->where('term_id', $this->nextFirst->id)->count());
+    }
+
     public function test_record_refusals(): void
     {
         $post = fn (array $over = []) => $this->actingAs($this->admin)->post(route('admin.renewals.store'), array_merge([
@@ -117,7 +162,7 @@ class RenewalsTest extends TestCase
         $this->actingAs($this->admin)->post(route('admin.renewals.store'), [
             'year' => '2027-2028', 'committee_met_on' => '2027-06-15', 'committee_reference' => 'ق/22',
             'rows' => [$this->a->id => ['outcome' => 'renewed'], $this->b->id => ['outcome' => 'renewed']],
-        ])->assertSessionHasErrors('renewals');
+        ])->assertSessionHasErrors(['renewals' => __('app.renewals.already_recorded')]);
         $this->assertNull($this->b->approvalFor('2027-2028'));
     }
 
@@ -125,10 +170,16 @@ class RenewalsTest extends TestCase
     {
         app(RenewalService::class)->record('2027-2028', [$this->a->id => ['outcome' => 'renewed']], '2027-06-15', 'ق/22', $this->admin);
         $row = $this->a->approvalFor('2027-2028');
+        $draft = Application::where('instructor_id', $this->a->id)->where('term_id', $this->nextFirst->id)->firstOrFail();
+        $path = 'applications/'.$draft->id.'/civil-id.pdf';
+        Storage::disk('local')->put($path, 'x');
+        Document::factory()->for($draft)->create(['path' => $path]);
+
         $this->actingAs($this->admin)->delete(route('admin.renewals.destroy', $row))->assertRedirect()->assertSessionHasNoErrors();
         $this->assertNull($this->a->fresh()->approvalFor('2027-2028'));
         $this->assertDatabaseMissing('applications', ['instructor_id' => $this->a->id, 'term_id' => $this->nextFirst->id]);
         $this->assertDatabaseHas('audit_log', ['action' => 'delete_renewal', 'subject_id' => $this->a->id, 'details' => '2027-2028']);
+        Storage::disk('local')->assertMissing($path);
 
         app(RenewalService::class)->record('2027-2028', [$this->a->id => ['outcome' => 'renewed']], '2027-06-15', 'ق/22', $this->admin);
         Application::where('instructor_id', $this->a->id)->where('term_id', $this->nextFirst->id)->update(['status' => Application::STATUS_SUBMITTED]);

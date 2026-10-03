@@ -349,6 +349,7 @@ return [
     'renewals' => [
         'title' => 'Renew approval', 'year' => 'Target academic year', 'candidates' => 'Renewal candidates',
         'no_candidates' => 'There are no part-timers approved last year awaiting renewal.',
+        'no_recorded' => 'No decision has been recorded for this year yet.',
         'outcome' => 'Committee decision', 'outcomes' => ['renewed' => 'Renewed', 'not_renewed' => 'Not renewed'],
         'note' => 'Note', 'last_term' => 'Last term', 'record' => 'Record committee decision',
         'record_confirm' => 'The decision will be recorded and the part-timers notified. This cannot be undone except by deleting the renewal record before the application is submitted.',
@@ -356,6 +357,7 @@ return [
         'recorded_rows' => 'Decisions recorded for this year', 'delete' => 'Delete', 'deleted' => 'The renewal record has been deleted.',
         'list' => 'Names list for the committee', 'list_title' => 'List of part-timers nominated to renew their approval for the academic year :year',
         'list_footer' => 'Please kindly renew the approval of those listed above for the stated academic year.',
+        'list_signature' => 'Head of Department',
         'nothing_selected' => 'No decision was chosen for any part-timer.',
         'no_first_term' => 'There is no first term for the academic year :year; add the term first.',
         'not_a_candidate' => 'One of the selected part-timers is not a renewal candidate.',

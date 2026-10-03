@@ -10,7 +10,7 @@ use App\Models\CommitteeApproval;
 use App\Models\Term;
 use App\Services\RenewalListDocument;
 use App\Services\RenewalService;
-use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -41,9 +41,9 @@ class RenewalController extends Controller
                 $request->year, $request->rows, $request->committee_met_on, $request->committee_reference, $request->user(),
             );
         } catch (\DomainException $e) {
-            return back()->withErrors(['renewals' => $e->getMessage()]);
-        } catch (QueryException $e) {
-            return back()->withErrors(['renewals' => __('app.renewals.already_recorded')]);
+            return back()->withErrors(['renewals' => $e->getMessage()])->withInput();
+        } catch (UniqueConstraintViolationException $e) {
+            return back()->withErrors(['renewals' => __('app.renewals.already_recorded')])->withInput();
         }
 
         return back()->with('status', __('app.renewals.recorded', $counts));
@@ -73,9 +73,19 @@ class RenewalController extends Controller
         return back()->with('status', __('app.renewals.deleted'));
     }
 
+    /**
+     * The year from the query string, when it is well-formed, otherwise the default
+     * (next year after the current open term, or after the current calendar year).
+     * An invalid value (mistyped by hand) falls back rather than 404s, since this is a
+     * plain filter field, not a resource lookup.
+     */
     private function resolveYear(Request $request): string
     {
-        return $request->filled('year') ? $request->string('year')->value()
-            : CommitteeApproval::nextYear(Term::current()?->academic_year ?? (now()->year.'-'.(now()->year + 1)));
+        $year = $request->string('year')->value();
+        if ($year !== '' && preg_match('/^\d{4}-\d{4}$/', $year)) {
+            return $year;
+        }
+
+        return CommitteeApproval::nextYear(Term::current()?->academic_year ?? (now()->year.'-'.(now()->year + 1)));
     }
 }

@@ -60,8 +60,8 @@ class RenewalListDocument
         $section->addTextBreak();
         $section->addText(__('app.renewals.list_footer', [], 'ar'), [], $rtl);
         $section->addTextBreak(2);
-        $section->addText(__('app.dept_name', [], 'ar'), $bold, $rtl);
-        $section->addText($by->name, [], $rtl);
+        // The signature line is the position, not whoever happened to click "export" (spec M6 §5).
+        $section->addText(__('app.renewals.list_signature', [], 'ar'), $bold, $rtl);
 
         Storage::disk('local')->makeDirectory('generated');
         $path = Storage::disk('local')->path('generated/renewal-list-'.$year.'-'.Str::random(12).'.docx');

@@ -14,6 +14,7 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 /** Spec M6 §5: the yearly renewal batch. */
 class RenewalService
@@ -49,6 +50,11 @@ class RenewalService
         $candidates = $this->candidates($year)->keyBy('id');
         foreach (array_keys($rows) as $id) {
             if (! $candidates->has($id)) {
+                // Already has a row for this year: a resubmit (back button, double click after
+                // the first commit), not an instructor outside the renewal pool.
+                if (Instructor::find($id)?->approvalFor($year) !== null) {
+                    throw new \DomainException(__('app.renewals.already_recorded'));
+                }
                 throw new \DomainException(__('app.renewals.not_a_candidate'));
             }
         }
@@ -66,10 +72,17 @@ class RenewalService
                     'note' => $decision['note'] ?? null, 'decided_by' => $admin->id,
                 ]);
                 if ($renewed) {
-                    $application = Application::firstOrCreate(
-                        ['term_id' => $firstTerm->id, 'instructor_id' => $instructor->id],
-                        ['status' => Application::STATUS_DRAFT, 'kind' => Application::KIND_CONTINUATION, 'approval_id' => $approval->id],
-                    );
+                    $application = Application::where('term_id', $firstTerm->id)->where('instructor_id', $instructor->id)->first();
+                    if ($application === null) {
+                        $application = Application::create([
+                            'term_id' => $firstTerm->id, 'instructor_id' => $instructor->id,
+                            'status' => Application::STATUS_DRAFT, 'kind' => Application::KIND_CONTINUATION, 'approval_id' => $approval->id,
+                        ]);
+                    } elseif ($application->status === Application::STATUS_DRAFT && $application->kind === Application::KIND_INITIAL) {
+                        // The instructor already clicked "start" before the batch ran; this draft becomes
+                        // the continuation draft instead of leaving a duplicate initial one behind.
+                        $application->update(['kind' => Application::KIND_CONTINUATION, 'approval_id' => $approval->id]);
+                    }
                     $mails[] = [$instructor->user->email, new RenewalApproved($instructor, $approval, $application)];
                     $counts['renewed']++;
                 } else {
@@ -88,15 +101,29 @@ class RenewalService
 
     public function delete(CommitteeApproval $approval, User $admin): void
     {
-        $application = $approval->applications()->first();
-        if ($approval->kind !== CommitteeApproval::KIND_RENEWAL || ($application && $application->status !== Application::STATUS_DRAFT)) {
+        if ($approval->kind !== CommitteeApproval::KIND_RENEWAL
+            || $approval->applications()->where('status', '!=', Application::STATUS_DRAFT)->exists()) {
             throw new \DomainException(__('app.renewals.cannot_delete'));
         }
-        DB::transaction(function () use ($approval, $application, $admin) {
-            $application?->delete();
+        DB::transaction(function () use ($approval, $admin) {
+            foreach ($approval->applications()->where('status', Application::STATUS_DRAFT)->get() as $application) {
+                $this->deleteApplicationFiles($application);
+            }
             AuditLog::record($admin->id, 'delete_renewal', $approval->instructor, null, $approval->academic_year);
             $approval->delete();
         });
+    }
+
+    /** Deletes the application row (its documents cascade), then the now-orphaned files on disk. */
+    private function deleteApplicationFiles(Application $application): void
+    {
+        $paths = $application->documents()->pluck('path')->all();
+        $id = $application->id;
+        $application->delete();
+        if ($paths !== []) {
+            Storage::disk('local')->delete($paths);
+        }
+        Storage::disk('local')->deleteDirectory("applications/{$id}");
     }
 
     private function safeSend(string $to, Mailable $mail): void
