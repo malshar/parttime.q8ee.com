@@ -8,6 +8,7 @@ use App\Http\Requests\StoreTermRequest;
 use App\Models\AuditLog;
 use App\Models\Term;
 use App\Services\ApplicationWorkflow;
+use App\Services\TermClosingReport;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -79,6 +80,16 @@ class TermController extends Controller
         }
 
         return redirect()->route('admin.terms.index')->with('status', __('app.terms.closed_with_drafts', ['n' => $n]));
+    }
+
+    public function closing(Term $term, TermClosingReport $report): View
+    {
+        return view('admin.terms.closing', [
+            'term' => $term,
+            'rows' => $report->rows($term),
+            'counts' => $report->counts($term),
+            'nextTerm' => $report->nextTerm($term),
+        ]);
     }
 
     private function syncHolidays(Term $term, StoreTermRequest $request): void

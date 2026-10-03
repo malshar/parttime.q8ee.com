@@ -39,6 +39,7 @@
                 </td>
                 <td>{{ $term->applications_count }}</td>
                 <td class="d-flex gap-2">
+                    <a href="{{ route('admin.terms.closing', $term) }}" class="btn btn-sm btn-outline-secondary">{{ __('app.terms.closing') }}</a>
                     @if ($term->isOpen())
                         <a href="{{ route('admin.terms.edit', $term) }}" class="btn btn-sm btn-outline-secondary">{{ __('app.terms.edit') }}</a>
                         <form method="post" action="{{ route('admin.terms.close', $term) }}" onsubmit="return confirm(@js(__('app.terms.close_confirm')))">

@@ -64,6 +64,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('terms/{term}/edit', [TermController::class, 'edit'])->name('terms.edit');
     Route::put('terms/{term}', [TermController::class, 'update'])->name('terms.update');
     Route::post('terms/{term}/close', [TermController::class, 'close'])->name('terms.close');
+    Route::get('terms/{term}/closing', [TermController::class, 'closing'])->name('terms.closing');
     Route::get('applications', [AdminApplicationController::class, 'index'])->name('applications.index');
     Route::get('applications/{application}', [AdminApplicationController::class, 'show'])->name('applications.show');
     Route::get('applications/{application}/profile', [AdminProfileController::class, 'edit'])->name('applications.profile.edit');
