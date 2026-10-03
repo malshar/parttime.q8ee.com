@@ -84,11 +84,14 @@ class TermController extends Controller
 
     public function closing(Term $term, TermClosingReport $report): View
     {
+        $nextTerm = $report->nextTerm($term);
+        $rows = $report->rows($term, $nextTerm);
+
         return view('admin.terms.closing', [
             'term' => $term,
-            'rows' => $report->rows($term),
-            'counts' => $report->counts($term),
-            'nextTerm' => $report->nextTerm($term),
+            'rows' => $rows,
+            'counts' => $report->counts($rows, $nextTerm),
+            'nextTerm' => $nextTerm,
         ]);
     }
 

@@ -31,11 +31,12 @@ class TermClosingPageTest extends TestCase
         $cont = Application::factory()->continuation()->for($next)->for($i)->create();
 
         $report = app(TermClosingReport::class);
-        $row = $report->rows($term)->first();
+        $rows = $report->rows($term);
+        $row = $rows->first();
         $this->assertSame(['exported', 'generated', 'missing', 'missing'], array_column($row['months'], 'status'));
         $this->assertTrue($row['next']->is($cont));
         $this->assertContains('شهادة راتب حديثة', $row['nextMissing']);
-        $this->assertSame(['approved' => 1, 'months_unexported' => 3, 'continuations_missing' => 0], $report->counts($term));
+        $this->assertSame(['approved' => 1, 'months_unexported' => 3, 'continuations_missing' => 0], $report->counts($rows, $report->nextTerm($term)));
 
         $this->actingAs($admin)->get(route('admin.terms.closing', $term))->assertOk()
             ->assertSee('سالم المنتدب')->assertSee(__('app.terms.closing_title'))->assertSee(__('app.applications.statuses.draft'))

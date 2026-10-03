@@ -28,7 +28,7 @@
                 <td>{{ $row['application']->weeklyHoursLabel() }}</td>
                 <td>
                     @foreach ($row['months'] as $m)
-                        <span class="badge {{ $m['status'] === 'exported' ? 'bg-success' : ($m['status'] === 'generated' ? 'bg-warning text-dark' : 'bg-secondary') }}">{{ $m['label'] }}</span>
+                        <span class="badge {{ $m['status'] === \App\Models\Attestation::STATUS_EXPORTED ? 'bg-success' : ($m['status'] === \App\Models\Attestation::STATUS_GENERATED ? 'bg-warning text-dark' : 'bg-secondary') }}" title="{{ __('app.attestations.statuses.'.$m['status']) }}">{{ $m['label'] }}</span>
                     @endforeach
                 </td>
                 <td>

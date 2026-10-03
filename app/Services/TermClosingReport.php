@@ -17,9 +17,9 @@ class TermClosingReport
         return Term::where('teaching_starts_on', '>', $term->teaching_starts_on)->orderBy('teaching_starts_on')->first();
     }
 
-    public function rows(Term $term): Collection
+    public function rows(Term $term, ?Term $nextTerm = null): Collection
     {
-        $next = $this->nextTerm($term);
+        $next = $nextTerm ?? $this->nextTerm($term);
         $months = $term->months();
         $applications = $term->applications()->where('status', Application::STATUS_APPROVED)->with('instructor')->get()
             ->sortBy(fn ($a) => $a->instructor->full_name)->values();
@@ -40,14 +40,12 @@ class TermClosingReport
         });
     }
 
-    public function counts(Term $term): array
+    public function counts(Collection $rows, ?Term $nextTerm): array
     {
-        $rows = $this->rows($term);
-
         return [
             'approved' => $rows->count(),
             'months_unexported' => $rows->sum(fn ($r) => count(array_filter($r['months'], fn ($m) => $m['status'] !== Attestation::STATUS_EXPORTED))),
-            'continuations_missing' => $rows->filter(fn ($r) => $r['nextTerm'] && $r['next'] === null)->count(),
+            'continuations_missing' => $nextTerm ? $rows->filter(fn ($r) => $r['next'] === null)->count() : 0,
         ];
     }
 }
