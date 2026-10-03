@@ -130,6 +130,9 @@ above, so a full 10-file upload of 10 MB each may still be refused by the
 proxy before it reaches PHP-FPM — keep uploads well under that limit in
 practice, or raise the Cloudflare plan if larger uploads become routine.
 
+Milestone 6: two migrations, no server steps; the renewal batch needs the
+target year's first term to exist.
+
 ## 5. Migrate + seed
 
 ```bash

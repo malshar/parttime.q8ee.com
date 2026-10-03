@@ -54,14 +54,38 @@
 > hardenings. Deploy note: `./deploy/deploy.sh` runs four migrations
 > (checklist stage flags, `checklist_exemptions`, `documents.part`, nullable
 > salary columns) and the `ChecklistItemSeeder` re-run; afterwards check
-> PHP-FPM's upload limits (`deploy/DEPLOY.md` §4).** The (خ-3)
+> PHP-FPM's upload limits (`deploy/DEPLOY.md` §4).** **Milestone 6 (year
+> approval, continuation, renewal, branch `milestone-6-year-approval`) is
+> implemented: a `committee_approvals` table records one row per instructor
+> per academic year (kind `initial`/`renewal`, outcome `approved`/
+> `not_renewed`); `applications.kind` (`initial`/`continuation`) and
+> `applications.approval_id` link a same-year later-term application to its
+> year's decision. A continuation application needs only the per-term
+> papers (checklist items flagged `renews_each_term`) plus a new civil ID if
+> the old one expired — no exemptions, no committee form — and is approved
+> directly by the department completing the file ("اعتماد الاستمرار"). The
+> renewal batch at `/admin/renewals` (nav link) lists last year's approved
+> instructors with no row yet this year, records one meeting decision for
+> the whole list (renewed / not renewed with a note), creates first-term
+> continuation drafts for the renewed names (the target year's first term
+> must already exist), mails `RenewalApproved`/`RenewalRefused`, exports an
+> audited names-list Word document, and allows deleting the batch only
+> while its drafts are untouched. The instructor record at
+> `/admin/instructors/{id}` (linked from the application page's profile
+> card) shows approval history and an academic bundle ZIP export. The
+> term-end page at `/admin/terms/{id}/closing` (linked from the terms
+> index) shows attestation-month coverage, next-term continuation
+> readiness, and counts. Deploy note: two migrations, no server steps; the
+> renewal batch needs the target year's first term to exist.** The (خ-3)
 > Word template is `resources/forms/kh3-template.docx`, rebuilt by
 > `scripts/build-kh3-template.py` from the official blank form. Design:
 > `docs/superpowers/specs/2026-09-28-parttime-system-design.md` (milestone 1),
 > `docs/superpowers/specs/2026-09-29-milestone-2-assignment-design.md`
 > (milestone 2), `docs/superpowers/specs/2026-09-30-milestone-3-attestation-design.md`
 > (milestone 3), `docs/superpowers/specs/2026-09-30-milestone-4-term-close-on-file-design.md`
-> (milestone 4); final reviews with rulings and deferred minors are in
+> (milestone 4),
+> `docs/superpowers/specs/2026-10-03-milestone-6-year-approval-design.md`
+> (milestone 6); final reviews with rulings and deferred minors are in
 > `docs/superpowers/reviews/`. Deploy scripts/docs are in `deploy/` (`deploy/DEPLOY.md` for
 > the server setup as done on 2026-09-30, `./deploy/deploy.sh` for routine
 > deploys; mail goes through the server's mailcow as `mail.q8ee.com`).
@@ -165,10 +189,30 @@ Milestone 5b (two-stage documents, transcript with exemptions, salary
 timing, multi-file upload, parked minors) is implemented on branch
 `milestone-5b-two-stage`, Tasks 1–9.
 
-Next: deploy milestone 5b (`./deploy/deploy.sh`, four migrations and the
-seeder re-run), then check PHP-FPM's upload limits (`deploy/DEPLOY.md` §4:
-`upload_max_filesize = 10M`, `post_max_size = 110M`,
-`max_file_uploads = 20`, reload `php8.4-fpm`). Then the first real
-applicants, and re-export/re-import the term's jadawil timetable
-(v2.4.13 or later, with seat columns `الحد الأقصى`, `مسجلة`, `متبقية`)
-so the student count prints on (خ-3).
+Milestone 6 (year approval, continuation, renewal, branch
+`milestone-6-year-approval`) is implemented: a per-instructor,
+per-academic-year `committee_approvals` row (kind `initial`/`renewal`,
+outcome `approved`/`not_renewed`) records the committee's yearly decision;
+`applications.kind` (`initial`/`continuation`) and `applications.approval_id`
+link a later-term application in the same year back to that decision. A
+continuation application (same-year, later term) needs only the per-term
+papers (checklist items flagged `renews_each_term`) plus a new civil ID if
+the old one expired, and exemptions are refused; the department approves it
+directly by completing the file ("اعتماد الاستمرار"), with no committee form.
+The renewal batch at `/admin/renewals` (linked from the nav) lists candidates
+approved last year with no row yet this year, records one meeting decision
+(renewed, or not renewed with a note) for the whole list, creates first-term
+continuation drafts for the renewed names (the target year's first term must
+already exist), mails `RenewalApproved`/`RenewalRefused`, exports an audited
+names-list Word document, and allows deleting the batch only while its draft
+applications are untouched. The instructor record at
+`/admin/instructors/{id}` (linked from the application page's profile card)
+shows the approval history and an academic bundle ZIP export. The term-end
+page at `/admin/terms/{id}/closing` (linked from the terms index) shows
+attestation-month coverage, next-term continuation readiness, and counts.
+
+Next step: deploy milestone 6 (two migrations, no seeder changes), then
+create the next academic year's first term before running a renewal batch
+against it. Then the first real applicants, and re-export/re-import the
+term's jadawil timetable (v2.4.13 or later, with seat columns `الحد الأقصى`,
+`مسجلة`, `متبقية`) so the student count prints on (خ-3).

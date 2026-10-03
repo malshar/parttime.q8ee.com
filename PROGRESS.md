@@ -159,3 +159,27 @@ the admin and signed on paper; there is no instructor confirmation step.
   (`DEPLOY.md` PHP-FPM upload-limit note, docx table-cell-count assertion,
   admin-name assertion). `php artisan test` green (342 passed, 1 skipped).
   Deploy pending.
+- 2026-10-04 — milestone 6 (year approval, continuation, renewal) on branch
+  `milestone-6-year-approval`, Tasks 1-6: a `committee_approvals` table
+  records one row per instructor per academic year (kind `initial`/
+  `renewal`, outcome `approved`/`not_renewed`); `applications.kind`
+  (`initial`/`continuation`) and `applications.approval_id` link a
+  same-year later-term application to its year's decision (two
+  migrations); a continuation application needs only the per-term papers
+  (checklist items flagged `renews_each_term`) plus a new civil ID if the
+  old one expired, exemptions are refused, and the department approves it
+  directly by completing the file ("اعتماد الاستمرار") with no committee
+  form; the renewal batch at `/admin/renewals` (nav link) lists last
+  year's approved instructors with no row yet this year, records one
+  meeting decision for the whole list (renewed / not renewed with a note),
+  creates first-term continuation drafts for the renewed names (the target
+  year's first term must already exist), mails `RenewalApproved`/
+  `RenewalRefused`, exports an audited names-list Word document
+  (`export_renewal_list`), and allows deleting the batch only while its
+  drafts are untouched; the instructor record at `/admin/instructors/{id}`
+  (linked from the application page's profile card) shows approval history
+  and an academic bundle ZIP export (`export_academic_bundle`); the
+  term-end page at `/admin/terms/{id}/closing` (linked from the terms
+  index) shows attestation-month coverage, next-term continuation
+  readiness, and counts. `php artisan test` green (375 passed, 1 skipped).
+  Deploy pending.
